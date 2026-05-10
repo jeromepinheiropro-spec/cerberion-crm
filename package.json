@@ -1,0 +1,19 @@
+{
+  "name": "cerberion-crm",
+  "version": "1.0.0",
+  "description": "CRM Cerberion - gestion clients, prospects, devis, factures et signature electronique",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "compression": "^1.7.4"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
