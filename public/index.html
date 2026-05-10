@@ -126,9 +126,9 @@
 
   /* Sidebar (dark) */
   .sidebar { background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border); color: var(--sidebar-text-strong); }
-  .nav-item { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; color:var(--sidebar-text); font-weight:500; font-size:14px; transition: all .15s ease; cursor: pointer; user-select:none; }
-  .nav-item:hover { background: rgba(255,255,255,.04); color:#f3f4f6; }
-  .nav-item.active { background: linear-gradient(180deg, rgba(200,169,106,.18), rgba(200,169,106,.08)); color: #f0e3c2; border: 1px solid rgba(200,169,106,.3); }
+  .nav-item { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:10px; color:var(--sidebar-text); font-weight:500; font-size:14px; transition: background-color .12s ease, color .12s ease, border-color .12s ease; cursor: pointer; user-select:none; border: 1px solid transparent; }
+  .nav-item:hover:not(.active) { background: rgba(255,255,255,.04); color:#d6dbe5; }
+  .nav-item.active { background: linear-gradient(180deg, rgba(200,169,106,.18), rgba(200,169,106,.08)); color: #f0e3c2; border-color: rgba(200,169,106,.3); }
   .nav-item.active .nav-icon { color: var(--gold); }
   .nav-icon { width:18px; height:18px; flex: none; }
 
@@ -321,6 +321,53 @@ const TASK_PRIORITY = {
     label: "Basse",
     color: "slate"
   }
+};
+
+// User roles & permissions
+const USER_ROLES = {
+  admin: {
+    label: "Administrateur",
+    color: "gold",
+    badgeColor: "gold",
+    description: "Accès complet, gestion utilisateurs et rôles"
+  },
+  manager: {
+    label: "Manager",
+    color: "blue",
+    badgeColor: "blue",
+    description: "Accès complet sauf backend administrateur"
+  },
+  commercial: {
+    label: "Commercial",
+    color: "green",
+    badgeColor: "green",
+    description: "Gère ses clients, prospects, devis et factures"
+  },
+  technicien: {
+    label: "Technicien",
+    color: "amber",
+    badgeColor: "amber",
+    description: "Accède aux clients, tâches et plannings"
+  }
+};
+const can = (role, action) => {
+  if (!role) return false;
+  // Permissions matrix
+  const matrix = {
+    seeBackend: ["admin"],
+    manageRoles: ["admin"],
+    inviteUsers: ["admin"],
+    deleteUsers: ["admin"],
+    deleteAnyData: ["admin", "manager"],
+    seeAllQuotes: ["admin", "manager"],
+    // commercial see only their own
+    manageInvoices: ["admin", "manager", "commercial"],
+    manageQuotes: ["admin", "manager", "commercial"],
+    manageClients: ["admin", "manager", "commercial"],
+    manageTasks: ["admin", "manager", "commercial", "technicien"],
+    viewFinancials: ["admin", "manager", "commercial"] // technicien hidden from prices
+  };
+  return (matrix[action] || []).includes(role);
 };
 const SERVICE_CATALOGUE = [{
   ref: "GAR-STAT-J",
@@ -1858,6 +1905,968 @@ function PageHeader({
 }
 
 // ============================================================================
+//  AUTH PROVIDER & GATE - with roles, positions, invitations
+// ============================================================================
+const AuthCtx = createContext(null);
+function useAuth() {
+  return useContext(AuthCtx);
+}
+function AuthProvider({
+  children
+}) {
+  const [auth, setAuth] = useState(() => {
+    const loaded = loadAuth();
+    return {
+      users: loaded?.users || [],
+      invitations: loaded?.invitations || []
+    };
+  });
+  const [sessionUserId, setSessionUserId] = useState(() => loadSession());
+  const currentUser = auth.users.find(u => u.id === sessionUserId) || null;
+  useEffect(() => {
+    saveAuth(auth);
+  }, [auth]);
+  useEffect(() => {
+    if (sessionUserId) saveSession(sessionUserId);else clearSession();
+  }, [sessionUserId]);
+
+  // Check URL hash for invitation token on mount
+  const [pendingInvite, setPendingInvite] = useState(() => {
+    const m = window.location.hash.match(/^#invite\/(.+)$/);
+    if (m) {
+      const inv = (loadAuth()?.invitations || []).find(i => i.token === m[1] && !i.usedAt);
+      return inv || null;
+    }
+    return null;
+  });
+  const signup = async ({
+    email,
+    name,
+    password,
+    position,
+    role,
+    fromInvite
+  }) => {
+    const e = (email || "").trim().toLowerCase();
+    if (!e || !name.trim() || !password) return {
+      ok: false,
+      error: "Tous les champs sont requis"
+    };
+    if (password.length < 6) return {
+      ok: false,
+      error: "Mot de passe trop court (6 caractères min)"
+    };
+    if (auth.users.find(u => u.email === e)) return {
+      ok: false,
+      error: "Email déjà utilisé"
+    };
+    const hash = await hashPassword(password);
+    const isFirst = auth.users.length === 0;
+    // First user is always admin. Invited users get the role from invitation. Others get "commercial" by default.
+    const finalRole = isFirst ? "admin" : fromInvite?.role || role || "commercial";
+    const finalPosition = (position || "").trim() || fromInvite?.position || "";
+    const user = {
+      id: uid("usr"),
+      email: e,
+      name: name.trim(),
+      role: finalRole,
+      position: finalPosition,
+      passwordHash: hash,
+      createdAt: nowISO(),
+      lastLogin: nowISO(),
+      invitedBy: fromInvite?.createdBy || null
+    };
+    setAuth(a => ({
+      ...a,
+      users: [...a.users, user],
+      invitations: fromInvite ? a.invitations.map(i => i.id === fromInvite.id ? {
+        ...i,
+        usedAt: nowISO(),
+        usedBy: user.id
+      } : i) : a.invitations
+    }));
+    setSessionUserId(user.id);
+    if (fromInvite) {
+      window.location.hash = "";
+      setPendingInvite(null);
+    }
+    return {
+      ok: true,
+      user
+    };
+  };
+  const login = async ({
+    email,
+    password
+  }) => {
+    const e = (email || "").trim().toLowerCase();
+    const user = auth.users.find(u => u.email === e);
+    if (!user) return {
+      ok: false,
+      error: "Email introuvable"
+    };
+    const hash = await hashPassword(password);
+    if (hash !== user.passwordHash) return {
+      ok: false,
+      error: "Mot de passe incorrect"
+    };
+    setAuth(a => ({
+      ...a,
+      users: a.users.map(u => u.id === user.id ? {
+        ...u,
+        lastLogin: nowISO()
+      } : u)
+    }));
+    setSessionUserId(user.id);
+    return {
+      ok: true,
+      user
+    };
+  };
+  const logout = () => setSessionUserId(null);
+  const updateUser = (id, patch) => setAuth(a => ({
+    ...a,
+    users: a.users.map(u => u.id === id ? {
+      ...u,
+      ...patch
+    } : u)
+  }));
+  const deleteUser = id => setAuth(a => ({
+    ...a,
+    users: a.users.filter(u => u.id !== id)
+  }));
+  const changePassword = async (id, newPassword) => {
+    const hash = await hashPassword(newPassword);
+    updateUser(id, {
+      passwordHash: hash
+    });
+  };
+
+  // Invitations
+  const createInvitation = ({
+    email,
+    role,
+    position
+  }) => {
+    const token = uid("inv").slice(4) + Math.random().toString(36).slice(2, 10);
+    const invitation = {
+      id: uid("inv"),
+      email: (email || "").trim().toLowerCase(),
+      role: role || "commercial",
+      position: (position || "").trim(),
+      token,
+      createdAt: nowISO(),
+      createdBy: currentUser?.id,
+      usedAt: null,
+      usedBy: null
+    };
+    setAuth(a => ({
+      ...a,
+      invitations: [...a.invitations, invitation]
+    }));
+    return invitation;
+  };
+  const revokeInvitation = id => setAuth(a => ({
+    ...a,
+    invitations: a.invitations.filter(i => i.id !== id)
+  }));
+  const inviteLink = token => `${location.origin}${location.pathname}#invite/${token}`;
+  const api = {
+    auth,
+    currentUser,
+    pendingInvite,
+    signup,
+    login,
+    logout,
+    updateUser,
+    deleteUser,
+    changePassword,
+    createInvitation,
+    revokeInvitation,
+    inviteLink
+  };
+  return /*#__PURE__*/React.createElement(AuthCtx.Provider, {
+    value: api
+  }, children);
+}
+
+// ============================================================================
+//  AUTH GATE
+// ============================================================================
+function AuthGate({
+  children
+}) {
+  const {
+    auth,
+    currentUser,
+    pendingInvite
+  } = useAuth();
+  const [mode, setMode] = useState(() => {
+    if (pendingInvite) return "signup";
+    return auth.users.length === 0 ? "signup" : "login";
+  });
+  if (currentUser) return children;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "min-h-screen flex items-center justify-center p-4",
+    style: {
+      background: "linear-gradient(135deg, #0a0c10 0%, #151922 100%)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-full max-w-md"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-center mb-8"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "inline-flex w-20 h-20 rounded-2xl bg-ink-900 items-center justify-center mb-4 border border-gold-500/30"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: LOGO_LIGHT,
+    alt: "Cerberion",
+    className: "w-14 h-14 object-contain"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "font-display text-2xl tracking-[0.3em] text-gold-200"
+  }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-400 tracking-wider uppercase mt-1"
+  }, "Security CRM \xB7 Espace de connexion")), pendingInvite && /*#__PURE__*/React.createElement("div", {
+    className: "mb-4 p-3 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-200 text-sm text-center"
+  }, "\uD83C\uDF89 Invitation re\xE7ue pour rejoindre Cerberion \xB7 R\xF4le : ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, USER_ROLES[pendingInvite.role]?.label || pendingInvite.role)), mode === "login" ? /*#__PURE__*/React.createElement(LoginForm, {
+    onSwitchToSignup: () => setMode("signup")
+  }) : /*#__PURE__*/React.createElement(SignupForm, {
+    onSwitchToLogin: () => setMode("login"),
+    firstUser: auth.users.length === 0,
+    invitation: pendingInvite
+  })));
+}
+function LoginForm({
+  onSwitchToSignup
+}) {
+  const {
+    login
+  } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async e => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const res = await login({
+      email,
+      password
+    });
+    setLoading(false);
+    if (!res.ok) setError(res.error);
+  };
+  return /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    className: "bg-white rounded-2xl p-7 shadow-card-hover border border-paper-200"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-xl font-bold text-paper-800 mb-1"
+  }, "Connexion"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-600 mb-5"
+  }, "Connectez-vous pour acc\xE9der au CRM Cerberion."), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Email",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "prenom.nom@cerberion.lu",
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Mot de passe",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "password",
+    value: password,
+    onChange: e => setPassword(e.target.value),
+    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+  })), error && /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
+  }, error), /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "lg",
+    className: "w-full",
+    type: "submit",
+    disabled: loading
+  }, loading ? "Connexion…" : "Se connecter"), /*#__PURE__*/React.createElement("div", {
+    className: "text-center text-sm text-paper-600 pt-2"
+  }, "Pas encore de compte ? ", /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onSwitchToSignup,
+    className: "text-gold-700 font-semibold hover:text-gold-600"
+  }, "Cr\xE9er un compte"))));
+}
+function SignupForm({
+  onSwitchToLogin,
+  firstUser,
+  invitation
+}) {
+  const {
+    signup
+  } = useAuth();
+  const [email, setEmail] = useState(invitation?.email || "");
+  const [name, setName] = useState("");
+  const [position, setPosition] = useState(invitation?.position || "");
+  const [role, setRole] = useState(invitation?.role || "commercial");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const submit = async e => {
+    e.preventDefault();
+    setError("");
+    if (password !== password2) return setError("Les mots de passe ne correspondent pas");
+    setLoading(true);
+    const res = await signup({
+      email,
+      name,
+      password,
+      position,
+      role,
+      fromInvite: invitation
+    });
+    setLoading(false);
+    if (!res.ok) setError(res.error);
+  };
+  const showRoleSelect = !firstUser && !invitation;
+  return /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    className: "bg-white rounded-2xl p-7 shadow-card-hover border border-paper-200"
+  }, /*#__PURE__*/React.createElement("h2", {
+    className: "text-xl font-bold text-paper-800 mb-1"
+  }, firstUser ? "Créer le compte administrateur" : invitation ? "Finaliser votre inscription" : "Créer un compte"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-600 mb-5"
+  }, firstUser ? "Vous êtes le premier utilisateur. Votre compte aura les droits d'administration." : invitation ? `Compte créé avec le rôle ${USER_ROLES[invitation.role]?.label}.` : "Créez votre compte pour rejoindre l'équipe Cerberion. L'administrateur pourra modifier votre rôle ensuite."), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom complet",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: name,
+    onChange: e => setName(e.target.value),
+    placeholder: "Pr\xE9nom Nom",
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Email",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "prenom.nom@cerberion.lu",
+    disabled: !!invitation
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Poste / Fonction dans la soci\xE9t\xE9"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: position,
+    onChange: e => setPosition(e.target.value),
+    placeholder: "Ex : Charg\xE9 de comptes, Agent SSIAP1, Directeur op\xE9rationnel\u2026"
+  })), showRoleSelect && /*#__PURE__*/React.createElement(Field, {
+    label: "Type de compte",
+    hint: "L'administrateur pourra modifier votre r\xF4le apr\xE8s inscription"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: role,
+    onChange: e => setRole(e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "commercial"
+  }, USER_ROLES.commercial.label), /*#__PURE__*/React.createElement("option", {
+    value: "manager"
+  }, USER_ROLES.manager.label), /*#__PURE__*/React.createElement("option", {
+    value: "technicien"
+  }, USER_ROLES.technicien.label))), /*#__PURE__*/React.createElement(Field, {
+    label: "Mot de passe",
+    required: true,
+    hint: "Au moins 6 caract\xE8res"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "password",
+    value: password,
+    onChange: e => setPassword(e.target.value)
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Confirmer le mot de passe",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "password",
+    value: password2,
+    onChange: e => setPassword2(e.target.value)
+  })), error && /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
+  }, error), /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "lg",
+    className: "w-full",
+    type: "submit",
+    disabled: loading
+  }, loading ? "Création…" : "Créer le compte"), !firstUser && !invitation && /*#__PURE__*/React.createElement("div", {
+    className: "text-center text-sm text-paper-600 pt-2"
+  }, "D\xE9j\xE0 un compte ? ", /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: onSwitchToLogin,
+    className: "text-gold-700 font-semibold hover:text-gold-600"
+  }, "Se connecter"))));
+}
+
+// ============================================================================
+//  BACKEND PAGE - admin only - users + invitations + stats
+// ============================================================================
+function BackendPage() {
+  const {
+    auth,
+    currentUser,
+    updateUser,
+    deleteUser,
+    changePassword,
+    createInvitation,
+    revokeInvitation,
+    inviteLink
+  } = useAuth();
+  const {
+    state
+  } = useStore();
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [editPwd, setEditPwd] = useState(null);
+  const [showInvite, setShowInvite] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState(null);
+  if (!can(currentUser?.role, "seeBackend")) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "card-base p-10 text-center"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-10 h-10 text-red-500 mx-auto mb-3"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-xl font-bold text-paper-800 mb-2"
+    }, "Acc\xE8s refus\xE9"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm text-paper-600"
+    }, "Cette page est r\xE9serv\xE9e aux administrateurs."));
+  }
+  const totalSigned = state.quotes.filter(q => q.status === "signe").reduce((s, q) => s + (q.ttc || 0), 0);
+  const totalOpen = state.quotes.filter(q => q.status === "envoye").reduce((s, q) => s + (q.ttc || 0), 0);
+  const sortedUsers = [...auth.users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const pendingInvitations = auth.invitations.filter(i => !i.usedAt);
+  const usedInvitations = auth.invitations.filter(i => i.usedAt);
+  const copyLink = async link => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.push({
+        type: "success",
+        title: "Lien copié"
+      });
+    } catch (e) {
+      toast.push({
+        type: "error",
+        title: "Impossible de copier"
+      });
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "Backend administrateur",
+    subtitle: "Gestion des utilisateurs, invitations et r\xF4les d'acc\xE8s au CRM.",
+    icon: /*#__PURE__*/React.createElement(Ic.Shield, {
+      className: "w-6 h-6"
+    }),
+    actions: /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: () => setShowInvite(true)
+    }, "Inviter un utilisateur")
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+  }, /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Users, {
+      className: "w-5 h-5"
+    }),
+    label: "Utilisateurs actifs",
+    value: auth.users.length,
+    sub: `${auth.users.filter(u => u.role === "admin").length} admin`
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Mail, {
+      className: "w-5 h-5"
+    }),
+    label: "Invitations en attente",
+    value: pendingInvitations.length
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-5 h-5"
+    }),
+    label: "Clients",
+    value: state.clients.length
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-5 h-5"
+    }),
+    label: "CA sign\xE9",
+    value: fmtMoney(totalSigned)
+  })), pendingInvitations.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-4 border-b border-paper-200 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800"
+  }, "Invitations en attente (", pendingInvitations.length, ")")), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 border-b border-paper-200"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Email"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "R\xF4le propos\xE9"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Poste"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Envoy\xE9e"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold w-44 text-right"
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, pendingInvitations.map(inv => /*#__PURE__*/React.createElement("tr", {
+    key: inv.id,
+    className: "table-row"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3 font-medium text-paper-800"
+  }, inv.email || "—"), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    color: USER_ROLES[inv.role]?.badgeColor
+  }, USER_ROLES[inv.role]?.label)), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3 text-paper-700"
+  }, inv.position || "—"), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3 text-paper-700"
+  }, fmtDate(inv.createdAt)), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3 text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 justify-end"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Copy, {
+      className: "w-3 h-3"
+    }),
+    onClick: () => copyLink(inviteLink(inv.token))
+  }, "Copier lien"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      revokeInvitation(inv.id);
+      toast.push({
+        type: "warning",
+        title: "Invitation annulée"
+      });
+    },
+    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600"
+  }, /*#__PURE__*/React.createElement(Ic.Trash, {
+    className: "w-4 h-4"
+  })))))))))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-4 border-b border-paper-200 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800"
+  }, "Utilisateurs (", auth.users.length, ")"), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs text-paper-500"
+  }, "Premi\xE8re inscription = admin \xB7 invitations cibl\xE9es r\xF4le")), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 border-b border-paper-200"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Utilisateur"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Email"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Poste"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "R\xF4le"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Inscrit"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold w-28 text-right"
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, sortedUsers.map(u => /*#__PURE__*/React.createElement("tr", {
+    key: u.id,
+    className: "table-row"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: u.name,
+    size: 32
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "font-semibold text-paper-800"
+  }, u.name, u.id === currentUser.id && /*#__PURE__*/React.createElement("span", {
+    className: "text-[10px] ml-2 text-gold-700"
+  }, "(vous)"))))), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5 text-paper-700"
+  }, u.email), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5 text-paper-700"
+  }, u.position || "—"), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: u.role,
+    disabled: u.id === currentUser.id,
+    onChange: e => {
+      updateUser(u.id, {
+        role: e.target.value
+      });
+      toast.push({
+        type: "success",
+        title: `Rôle modifié`,
+        message: `${u.name} → ${USER_ROLES[e.target.value]?.label}`
+      });
+    },
+    className: "text-xs py-1 px-2 h-auto"
+  }, Object.entries(USER_ROLES).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.label)))), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5 text-paper-700"
+  }, fmtDate(u.createdAt)), /*#__PURE__*/React.createElement("td", {
+    className: "px-5 py-3.5 text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-1 justify-end"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setEditPwd(u),
+    title: "Changer mot de passe",
+    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+  }, /*#__PURE__*/React.createElement(Ic.Edit, {
+    className: "w-4 h-4"
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setConfirmDelete(u),
+    disabled: u.id === currentUser.id,
+    title: "Supprimer",
+    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+  }, /*#__PURE__*/React.createElement(Ic.Trash, {
+    className: "w-4 h-4"
+  })))))))))), usedInvitations.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-3"
+  }, "Historique des invitations utilis\xE9es (", usedInvitations.length, ")"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, usedInvitations.slice(0, 5).map(inv => {
+    const usedByUser = auth.users.find(u => u.id === inv.usedBy);
+    return /*#__PURE__*/React.createElement("div", {
+      key: inv.id,
+      className: "flex items-center justify-between text-sm py-2 border-b border-paper-100 last:border-0"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-paper-700"
+    }, inv.email, " \xB7 ", /*#__PURE__*/React.createElement(Badge, {
+      color: USER_ROLES[inv.role]?.badgeColor
+    }, USER_ROLES[inv.role]?.label)), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-500"
+    }, "Accept\xE9e par ", usedByUser?.name || "—", " \xB7 ", fmtDate(inv.usedAt)));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-5"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-2"
+  }, "R\xF4les disponibles"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-3"
+  }, Object.entries(USER_ROLES).map(([k, v]) => /*#__PURE__*/React.createElement("div", {
+    key: k,
+    className: "card-soft p-3 flex items-start gap-3"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    color: v.badgeColor
+  }, v.label), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-600 flex-1"
+  }, v.description))))), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
+    title: "Supprimer cet utilisateur ?",
+    message: `Le compte de "${confirmDelete.name}" (${confirmDelete.email}) sera définitivement supprimé.`,
+    danger: true,
+    onCancel: () => setConfirmDelete(null),
+    onConfirm: () => {
+      deleteUser(confirmDelete.id);
+      toast.push({
+        type: "warning",
+        title: "Utilisateur supprimé"
+      });
+      setConfirmDelete(null);
+    }
+  }), editPwd && /*#__PURE__*/React.createElement(ChangePasswordModal, {
+    user: editPwd,
+    onClose: () => setEditPwd(null),
+    onSave: async pwd => {
+      await changePassword(editPwd.id, pwd);
+      toast.push({
+        type: "success",
+        title: "Mot de passe mis à jour"
+      });
+      setEditPwd(null);
+    }
+  }), showInvite && /*#__PURE__*/React.createElement(InviteModal, {
+    onClose: () => {
+      setShowInvite(false);
+      setGeneratedLink(null);
+    },
+    onCreate: ({
+      email,
+      role,
+      position
+    }) => {
+      const inv = createInvitation({
+        email,
+        role,
+        position
+      });
+      const link = inviteLink(inv.token);
+      setGeneratedLink({
+        link,
+        email,
+        role
+      });
+      copyLink(link);
+      toast.push({
+        type: "success",
+        title: "Invitation créée",
+        message: "Lien copié dans le presse-papier"
+      });
+    },
+    generatedLink: generatedLink
+  }));
+}
+function KPIBlock({
+  icon,
+  label,
+  value,
+  sub
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-5 kpi-accent"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold"
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "text-2xl font-bold text-paper-800 mt-2 truncate"
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 mt-1"
+  }, sub)), /*#__PURE__*/React.createElement("div", {
+    className: "p-2 rounded-lg bg-gold-50 text-gold-700 flex-none"
+  }, icon)));
+}
+function ChangePasswordModal({
+  user,
+  onClose,
+  onSave
+}) {
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [error, setError] = useState("");
+  const submit = async () => {
+    if (pwd.length < 6) return setError("6 caractères minimum");
+    if (pwd !== pwd2) return setError("Les mots de passe ne correspondent pas");
+    await onSave(pwd);
+  };
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: `Changer le mot de passe de ${user.name}`,
+    size: "sm",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-end gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      onClick: submit,
+      disabled: !pwd
+    }, "Enregistrer"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nouveau mot de passe",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "password",
+    value: pwd,
+    onChange: e => setPwd(e.target.value),
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Confirmer",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "password",
+    value: pwd2,
+    onChange: e => setPwd2(e.target.value)
+  })), error && /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
+  }, error)));
+}
+function InviteModal({
+  onClose,
+  onCreate,
+  generatedLink
+}) {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("commercial");
+  const [position, setPosition] = useState("");
+  const submit = () => onCreate({
+    email,
+    role,
+    position
+  });
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: "Inviter un utilisateur",
+    size: "md",
+    footer: generatedLink ? /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-end gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Fermer")) : /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-end gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      onClick: submit,
+      disabled: !email && !role
+    }, "G\xE9n\xE9rer le lien"))
+  }, generatedLink ? /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-paper-700"
+  }, "\u2713 Invitation cr\xE9\xE9e pour ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, generatedLink.email || "(pas d'email)"), " avec le r\xF4le ", /*#__PURE__*/React.createElement(Badge, {
+    color: USER_ROLES[generatedLink.role]?.badgeColor
+  }, USER_ROLES[generatedLink.role]?.label)), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] uppercase tracking-wider text-paper-500 font-semibold mb-2"
+  }, "Lien d'invitation (\xE0 partager par email ou messagerie)"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement("code", {
+    className: "flex-1 text-xs bg-white border border-paper-200 rounded-md px-3 py-2 truncate select-all"
+  }, generatedLink.link), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Copy, {
+      className: "w-3 h-3"
+    }),
+    onClick: () => navigator.clipboard?.writeText(generatedLink.link)
+  }, "Copier")), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-500 mt-2"
+  }, "Le lien est unique et \xE0 usage unique. La personne pourra cr\xE9er son compte avec le r\xF4le assign\xE9."))) : /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Email du destinataire",
+    hint: "Pour identifier l'invitation. Le lien fonctionnera m\xEAme sans email v\xE9rifi\xE9."
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "email",
+    value: email,
+    onChange: e => setEmail(e.target.value),
+    placeholder: "prenom.nom@cerberion.lu",
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Poste / Fonction (suggestion)",
+    hint: "Pr\xE9-rempli sur le formulaire d'inscription"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: position,
+    onChange: e => setPosition(e.target.value),
+    placeholder: "Ex : Commercial, Charg\xE9 d'affaires\u2026"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "R\xF4le \xE0 attribuer",
+    required: true
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: role,
+    onChange: e => setRole(e.target.value)
+  }, Object.entries(USER_ROLES).map(([k, v]) => /*#__PURE__*/React.createElement("option", {
+    key: k,
+    value: k
+  }, v.label))), USER_ROLES[role] && /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-500 mt-1"
+  }, USER_ROLES[role].description))));
+}
+
+// ============================================================================
+//  USER MENU
+// ============================================================================
+function UserMenu() {
+  const {
+    currentUser,
+    logout
+  } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = e => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = e => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+  if (!currentUser) return null;
+  const roleInfo = USER_ROLES[currentUser.role] || USER_ROLES.commercial;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "relative",
+    ref: ref
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setOpen(o => !o),
+    className: "flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-lg hover:bg-paper-100 transition-colors"
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: currentUser.name,
+    size: 32
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-left hidden md:block"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-semibold text-paper-800"
+  }, currentUser.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-paper-500"
+  }, currentUser.position || roleInfo.label)), /*#__PURE__*/React.createElement(Ic.ChevronDown, {
+    className: "w-4 h-4 text-paper-500 hidden md:block"
+  })), open && /*#__PURE__*/React.createElement("div", {
+    className: "absolute right-0 top-full mt-2 w-64 bg-white border border-paper-200 rounded-xl shadow-card-hover z-[1100] overflow-hidden animate-slide-up"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-3 border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 truncate"
+  }, currentUser.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 truncate"
+  }, currentUser.email), currentUser.position && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-600 mt-1 italic"
+  }, currentUser.position), /*#__PURE__*/React.createElement("div", {
+    className: "mt-2"
+  }, /*#__PURE__*/React.createElement(Badge, {
+    color: roleInfo.badgeColor
+  }, roleInfo.label))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      logout();
+      setOpen(false);
+    },
+    className: "w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Ic.X, {
+    className: "w-4 h-4"
+  }), " Se d\xE9connecter")));
+}
+
+// ============================================================================
 //  STORE / CONTEXT
 // ============================================================================
 const StoreCtx = createContext(null);
@@ -1867,6 +2876,8 @@ function useStore() {
 function StoreProvider({
   children
 }) {
+  const authCtx = useAuth();
+  const currentUserId = authCtx?.currentUser?.id || null;
   const [state, setState] = useState(() => {
     const loaded = loadState();
     if (!loaded || !loaded.invoices) return emptyData();
@@ -2036,6 +3047,7 @@ function StoreProvider({
         id: data.id || uid("q"),
         number: data.number || generateQuoteNumber(s.quotes),
         createdAt: nowISO(),
+        createdBy: data.createdBy || currentUserId,
         status: data.status || "brouillon"
       }];
       return {
@@ -2405,7 +3417,7 @@ function Sidebar({
     badgeColor: unread > 0 ? "gold" : null,
     badge: unread || null
   }];
-  if (currentUser?.role === "admin") {
+  if (can(currentUser?.role, "seeBackend")) {
     items.push({
       id: "backend",
       label: "Backend",
@@ -2476,7 +3488,11 @@ function TopBar({
   setPage,
   onMobileMenu,
   search,
-  setSearch
+  setSearch,
+  onOpenClient,
+  onOpenProspect,
+  onOpenQuote,
+  onOpenInvoice
 }) {
   const {
     state,
@@ -2484,6 +3500,9 @@ function TopBar({
     markNotifRead
   } = useStore();
   const [openNotifs, setOpenNotifs] = useState(false);
+  const [openSearch, setOpenSearch] = useState(false);
+  const notifRef = useRef(null);
+  const searchRef = useRef(null);
   const titles = {
     dashboard: "Tableau de bord",
     clients: "Clients",
@@ -2493,10 +3512,48 @@ function TopBar({
     factures: "Factures",
     taches: "Tâches",
     notifications: "Notifications",
-    settings: "Paramètres"
+    settings: "Paramètres",
+    backend: "Backend"
   };
   const unread = state.notifications.filter(n => !n.read).length;
   const recent = [...state.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6);
+
+  // Close popovers on outside click + Esc
+  useEffect(() => {
+    const onDocClick = e => {
+      if (openNotifs && notifRef.current && !notifRef.current.contains(e.target)) setOpenNotifs(false);
+      if (openSearch && searchRef.current && !searchRef.current.contains(e.target)) setOpenSearch(false);
+    };
+    const onEsc = e => {
+      if (e.key === "Escape") {
+        setOpenNotifs(false);
+        setOpenSearch(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [openNotifs, openSearch]);
+
+  // Build global search results
+  const searchResults = useMemo(() => {
+    const q = (search || "").toLowerCase().trim();
+    if (!q || q.length < 1) return null;
+    const clients = state.clients.filter(c => [c.name, c.contact, c.email, c.city, c.phone].some(f => (f || "").toLowerCase().includes(q))).slice(0, 5);
+    const prospects = state.prospects.filter(p => [p.name, p.contact, p.email, p.city].some(f => (f || "").toLowerCase().includes(q))).slice(0, 5);
+    const quotes = state.quotes.filter(qq => [qq.number, qq.title, qq.notes].some(f => (f || "").toLowerCase().includes(q))).slice(0, 5);
+    const invoices = (state.invoices || []).filter(inv => [inv.number, inv.title].some(f => (f || "").toLowerCase().includes(q))).slice(0, 5);
+    return {
+      clients,
+      prospects,
+      quotes,
+      invoices,
+      total: clients.length + prospects.length + quotes.length + invoices.length
+    };
+  }, [search, state.clients, state.prospects, state.quotes, state.invoices]);
   return /*#__PURE__*/React.createElement("header", {
     className: "topbar flex-none h-16 px-4 md:px-6 flex items-center gap-3"
   }, /*#__PURE__*/React.createElement("button", {
@@ -2511,16 +3568,121 @@ function TopBar({
   }, "Cerberion CRM"), /*#__PURE__*/React.createElement("div", {
     className: "text-base font-semibold text-paper-800"
   }, titles[page] || "—")), /*#__PURE__*/React.createElement("div", {
-    className: "flex-1 max-w-xl mx-auto relative"
+    className: "flex-1 max-w-xl mx-auto relative",
+    ref: searchRef
   }, /*#__PURE__*/React.createElement(Ic.Search, {
     className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-paper-500"
   }), /*#__PURE__*/React.createElement("input", {
     value: search,
-    onChange: e => setSearch(e.target.value),
-    placeholder: "Rechercher un client, prospect, devis\u2026",
+    onChange: e => {
+      setSearch(e.target.value);
+      setOpenSearch(true);
+    },
+    onFocus: () => {
+      if (search) setOpenSearch(true);
+    },
+    placeholder: "Rechercher clients, prospects, devis, factures\u2026",
     className: "input-base pl-9 h-10 ring-focus"
+  }), search && /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      setSearch("");
+      setOpenSearch(false);
+    },
+    className: "absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-paper-100 text-paper-500",
+    title: "Effacer"
+  }, /*#__PURE__*/React.createElement(Ic.X, {
+    className: "w-4 h-4"
+  })), openSearch && searchResults && /*#__PURE__*/React.createElement("div", {
+    className: "absolute left-0 right-0 top-full mt-2 bg-white border border-paper-200 rounded-xl shadow-card-hover z-[1100] overflow-hidden animate-slide-up max-h-[70vh] overflow-y-auto"
+  }, searchResults.total === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "p-6 text-center text-sm text-paper-500"
+  }, "Aucun r\xE9sultat pour ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, "\"", search, "\"")) : /*#__PURE__*/React.createElement(React.Fragment, null, searchResults.clients.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2 text-[10px] uppercase tracking-wider text-paper-500 font-bold bg-paper-50"
+  }, "Clients (", searchResults.clients.length, ")"), searchResults.clients.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    onClick: () => {
+      onOpenClient(c.id);
+      setSearch("");
+      setOpenSearch(false);
+    },
+    className: "w-full px-4 py-2.5 hover:bg-paper-50 text-left flex items-center gap-3 border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: c.name,
+    size: 28
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 truncate"
+  }, c.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 truncate"
+  }, c.contact || c.email || c.city))))), searchResults.prospects.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2 text-[10px] uppercase tracking-wider text-paper-500 font-bold bg-paper-50"
+  }, "Prospects (", searchResults.prospects.length, ")"), searchResults.prospects.map(p => /*#__PURE__*/React.createElement("button", {
+    key: p.id,
+    onClick: () => {
+      onOpenProspect(p.id);
+      setSearch("");
+      setOpenSearch(false);
+    },
+    className: "w-full px-4 py-2.5 hover:bg-paper-50 text-left flex items-center gap-3 border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement(Avatar, {
+    name: p.name,
+    size: 28
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 truncate"
+  }, p.name), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 truncate"
+  }, PROSPECT_STAGES.find(s => s.id === p.stage)?.label, " \xB7 ", p.contact || p.email))))), searchResults.quotes.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2 text-[10px] uppercase tracking-wider text-paper-500 font-bold bg-paper-50"
+  }, "Devis (", searchResults.quotes.length, ")"), searchResults.quotes.map(q => /*#__PURE__*/React.createElement("button", {
+    key: q.id,
+    onClick: () => {
+      onOpenQuote(q.id);
+      setSearch("");
+      setOpenSearch(false);
+    },
+    className: "w-full px-4 py-2.5 hover:bg-paper-50 text-left flex items-center gap-3 border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-2 rounded-lg bg-blue-50 text-blue-700 flex-none"
+  }, /*#__PURE__*/React.createElement(Ic.FileText, {
+    className: "w-4 h-4"
   })), /*#__PURE__*/React.createElement("div", {
-    className: "relative"
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 truncate"
+  }, q.title || q.number), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 truncate font-mono"
+  }, q.number, " \xB7 ", fmtMoney(q.ttc))), /*#__PURE__*/React.createElement(Badge, {
+    color: QUOTE_STATUS[q.status]?.color
+  }, QUOTE_STATUS[q.status]?.label)))), searchResults.invoices.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2 text-[10px] uppercase tracking-wider text-paper-500 font-bold bg-paper-50"
+  }, "Factures (", searchResults.invoices.length, ")"), searchResults.invoices.map(inv => /*#__PURE__*/React.createElement("button", {
+    key: inv.id,
+    onClick: () => {
+      onOpenInvoice(inv.id);
+      setSearch("");
+      setOpenSearch(false);
+    },
+    className: "w-full px-4 py-2.5 hover:bg-paper-50 text-left flex items-center gap-3 border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-2 rounded-lg bg-emerald-50 text-emerald-700 flex-none"
+  }, /*#__PURE__*/React.createElement(Ic.DollarSign, {
+    className: "w-4 h-4"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 truncate"
+  }, inv.title || inv.number), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 truncate font-mono"
+  }, inv.number, " \xB7 ", fmtMoney(inv.ttc))), /*#__PURE__*/React.createElement(Badge, {
+    color: INVOICE_STATUS[inv.status]?.color
+  }, INVOICE_STATUS[inv.status]?.label))))))), /*#__PURE__*/React.createElement("div", {
+    className: "relative",
+    ref: notifRef
   }, /*#__PURE__*/React.createElement("button", {
     onClick: () => setOpenNotifs(s => !s),
     className: "relative p-2.5 rounded-lg btn-ghost"
@@ -2528,11 +3690,8 @@ function TopBar({
     className: "w-5 h-5"
   }), unread > 0 && /*#__PURE__*/React.createElement("span", {
     className: "absolute top-1 right-1 w-4 h-4 rounded-full bg-gold-500 text-white text-[10px] font-bold flex items-center justify-center"
-  }, unread > 9 ? "9+" : unread)), openNotifs && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "fixed inset-0 z-40",
-    onClick: () => setOpenNotifs(false)
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "absolute right-0 top-full mt-2 w-[380px] bg-white border border-paper-200 rounded-xl shadow-card-hover z-50 overflow-hidden animate-slide-up"
+  }, unread > 9 ? "9+" : unread)), openNotifs && /*#__PURE__*/React.createElement("div", {
+    className: "absolute right-0 top-full mt-2 w-[380px] bg-white border border-paper-200 rounded-xl shadow-card-hover z-[1100] overflow-hidden animate-slide-up"
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between px-4 py-3 border-b border-paper-100"
   }, /*#__PURE__*/React.createElement("div", {
@@ -2576,7 +3735,7 @@ function TopBar({
       setOpenNotifs(false);
     },
     className: "w-full text-xs text-gold-700 hover:text-gold-600 font-medium"
-  }, "Voir toutes les notifications \u2192"))))), /*#__PURE__*/React.createElement("div", {
+  }, "Voir toutes les notifications \u2192")))), /*#__PURE__*/React.createElement("div", {
     className: "pl-3 border-l border-paper-200"
   }, /*#__PURE__*/React.createElement(UserMenu, null)));
 }
@@ -7236,618 +8395,6 @@ function SettingsPage() {
 }
 
 // ============================================================================
-//  AUTH PROVIDER & GATE
-// ============================================================================
-const AuthCtx = createContext(null);
-function useAuth() {
-  return useContext(AuthCtx);
-}
-function AuthProvider({
-  children
-}) {
-  const [auth, setAuth] = useState(() => loadAuth());
-  const [sessionUserId, setSessionUserId] = useState(() => loadSession());
-  const currentUser = auth.users.find(u => u.id === sessionUserId) || null;
-  useEffect(() => {
-    saveAuth(auth);
-  }, [auth]);
-  useEffect(() => {
-    if (sessionUserId) saveSession(sessionUserId);else clearSession();
-  }, [sessionUserId]);
-  const signup = async ({
-    email,
-    name,
-    password
-  }) => {
-    const e = (email || "").trim().toLowerCase();
-    if (!e || !name.trim() || !password) return {
-      ok: false,
-      error: "Tous les champs sont requis"
-    };
-    if (password.length < 6) return {
-      ok: false,
-      error: "Mot de passe trop court (6 caractères min)"
-    };
-    if (auth.users.find(u => u.email === e)) return {
-      ok: false,
-      error: "Email déjà utilisé"
-    };
-    const hash = await hashPassword(password);
-    const isFirst = auth.users.length === 0;
-    const user = {
-      id: uid("usr"),
-      email: e,
-      name: name.trim(),
-      role: isFirst ? "admin" : "user",
-      passwordHash: hash,
-      createdAt: nowISO(),
-      lastLogin: nowISO()
-    };
-    setAuth(a => ({
-      ...a,
-      users: [...a.users, user]
-    }));
-    setSessionUserId(user.id);
-    return {
-      ok: true,
-      user
-    };
-  };
-  const login = async ({
-    email,
-    password
-  }) => {
-    const e = (email || "").trim().toLowerCase();
-    const user = auth.users.find(u => u.email === e);
-    if (!user) return {
-      ok: false,
-      error: "Email introuvable"
-    };
-    const hash = await hashPassword(password);
-    if (hash !== user.passwordHash) return {
-      ok: false,
-      error: "Mot de passe incorrect"
-    };
-    setAuth(a => ({
-      ...a,
-      users: a.users.map(u => u.id === user.id ? {
-        ...u,
-        lastLogin: nowISO()
-      } : u)
-    }));
-    setSessionUserId(user.id);
-    return {
-      ok: true,
-      user
-    };
-  };
-  const logout = () => setSessionUserId(null);
-  const updateUser = (id, patch) => setAuth(a => ({
-    ...a,
-    users: a.users.map(u => u.id === id ? {
-      ...u,
-      ...patch
-    } : u)
-  }));
-  const deleteUser = id => setAuth(a => ({
-    ...a,
-    users: a.users.filter(u => u.id !== id)
-  }));
-  const changePassword = async (id, newPassword) => {
-    const hash = await hashPassword(newPassword);
-    updateUser(id, {
-      passwordHash: hash
-    });
-  };
-  const api = {
-    auth,
-    currentUser,
-    signup,
-    login,
-    logout,
-    updateUser,
-    deleteUser,
-    changePassword
-  };
-  return /*#__PURE__*/React.createElement(AuthCtx.Provider, {
-    value: api
-  }, children);
-}
-
-// ============================================================================
-//  AUTH GATE - decides Login / Signup / App
-// ============================================================================
-function AuthGate({
-  children
-}) {
-  const {
-    auth,
-    currentUser
-  } = useAuth();
-  const [mode, setMode] = useState(auth.users.length === 0 ? "signup" : "login");
-  if (currentUser) return children;
-  return /*#__PURE__*/React.createElement("div", {
-    className: "min-h-screen flex items-center justify-center p-4",
-    style: {
-      background: "linear-gradient(135deg, #0a0c10 0%, #151922 100%)"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "w-full max-w-md"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-center mb-8"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "inline-flex w-20 h-20 rounded-2xl bg-ink-900 items-center justify-center mb-4 border border-gold-500/30"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO_LIGHT,
-    alt: "Cerberion",
-    className: "w-14 h-14 object-contain"
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "font-display text-2xl tracking-[0.3em] text-gold-200"
-  }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-paper-400 tracking-wider uppercase mt-1"
-  }, "Security CRM \xB7 Espace de connexion")), mode === "login" ? /*#__PURE__*/React.createElement(LoginForm, {
-    onSwitchToSignup: () => setMode("signup")
-  }) : /*#__PURE__*/React.createElement(SignupForm, {
-    onSwitchToLogin: () => setMode("login"),
-    firstUser: auth.users.length === 0
-  })));
-}
-function LoginForm({
-  onSwitchToSignup
-}) {
-  const {
-    login
-  } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const submit = async e => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    const res = await login({
-      email,
-      password
-    });
-    setLoading(false);
-    if (!res.ok) setError(res.error);
-  };
-  return /*#__PURE__*/React.createElement("form", {
-    onSubmit: submit,
-    className: "bg-white rounded-2xl p-7 shadow-card-hover border border-paper-200"
-  }, /*#__PURE__*/React.createElement("h2", {
-    className: "text-xl font-bold text-paper-800 mb-1"
-  }, "Connexion"), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm text-paper-600 mb-5"
-  }, "Connectez-vous pour acc\xE9der au CRM Cerberion."), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-4"
-  }, /*#__PURE__*/React.createElement(Field, {
-    label: "Email",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "email",
-    value: email,
-    onChange: e => setEmail(e.target.value),
-    placeholder: "prenom.nom@cerberion.lu",
-    autoFocus: true
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Mot de passe",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "password",
-    value: password,
-    onChange: e => setPassword(e.target.value),
-    placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-  })), error && /*#__PURE__*/React.createElement("div", {
-    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
-  }, error), /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    size: "lg",
-    className: "w-full",
-    type: "submit",
-    disabled: loading
-  }, loading ? "Connexion…" : "Se connecter"), /*#__PURE__*/React.createElement("div", {
-    className: "text-center text-sm text-paper-600 pt-2"
-  }, "Pas encore de compte ? ", /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: onSwitchToSignup,
-    className: "text-gold-700 font-semibold hover:text-gold-600"
-  }, "Cr\xE9er un compte"))));
-}
-function SignupForm({
-  onSwitchToLogin,
-  firstUser
-}) {
-  const {
-    signup
-  } = useAuth();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
-  const [password2, setPassword2] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const submit = async e => {
-    e.preventDefault();
-    setError("");
-    if (password !== password2) return setError("Les mots de passe ne correspondent pas");
-    setLoading(true);
-    const res = await signup({
-      email,
-      name,
-      password
-    });
-    setLoading(false);
-    if (!res.ok) setError(res.error);
-  };
-  return /*#__PURE__*/React.createElement("form", {
-    onSubmit: submit,
-    className: "bg-white rounded-2xl p-7 shadow-card-hover border border-paper-200"
-  }, /*#__PURE__*/React.createElement("h2", {
-    className: "text-xl font-bold text-paper-800 mb-1"
-  }, firstUser ? "Créer le compte administrateur" : "Créer un compte"), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm text-paper-600 mb-5"
-  }, firstUser ? "Vous êtes le premier utilisateur. Votre compte aura les droits d'administration." : "Créez votre compte pour rejoindre l'équipe Cerberion."), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-4"
-  }, /*#__PURE__*/React.createElement(Field, {
-    label: "Nom complet",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: name,
-    onChange: e => setName(e.target.value),
-    placeholder: "Pr\xE9nom Nom",
-    autoFocus: true
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Email",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "email",
-    value: email,
-    onChange: e => setEmail(e.target.value),
-    placeholder: "prenom.nom@cerberion.lu"
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Mot de passe",
-    required: true,
-    hint: "Au moins 6 caract\xE8res"
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "password",
-    value: password,
-    onChange: e => setPassword(e.target.value)
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Confirmer le mot de passe",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "password",
-    value: password2,
-    onChange: e => setPassword2(e.target.value)
-  })), error && /*#__PURE__*/React.createElement("div", {
-    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
-  }, error), /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    size: "lg",
-    className: "w-full",
-    type: "submit",
-    disabled: loading
-  }, loading ? "Création…" : "Créer le compte"), !firstUser && /*#__PURE__*/React.createElement("div", {
-    className: "text-center text-sm text-paper-600 pt-2"
-  }, "D\xE9j\xE0 un compte ? ", /*#__PURE__*/React.createElement("button", {
-    type: "button",
-    onClick: onSwitchToLogin,
-    className: "text-gold-700 font-semibold hover:text-gold-600"
-  }, "Se connecter"))));
-}
-
-// ============================================================================
-//  BACKEND ADMIN PAGE - User management
-// ============================================================================
-function BackendPage() {
-  const {
-    auth,
-    currentUser,
-    updateUser,
-    deleteUser,
-    changePassword
-  } = useAuth();
-  const {
-    state
-  } = useStore();
-  const toast = useToast();
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [editPwd, setEditPwd] = useState(null);
-  if (currentUser?.role !== "admin") {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "card-base p-10 text-center"
-    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
-      className: "w-10 h-10 text-red-500 mx-auto mb-3"
-    }), /*#__PURE__*/React.createElement("h2", {
-      className: "text-xl font-bold text-paper-800 mb-2"
-    }, "Acc\xE8s refus\xE9"), /*#__PURE__*/React.createElement("p", {
-      className: "text-sm text-paper-600"
-    }, "Cette page est r\xE9serv\xE9e aux administrateurs."));
-  }
-  const totalSigned = state.quotes.filter(q => q.status === "signe").reduce((s, q) => s + (q.ttc || 0), 0);
-  const totalOpen = state.quotes.filter(q => q.status === "envoye").reduce((s, q) => s + (q.ttc || 0), 0);
-  const sortedUsers = [...auth.users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  return /*#__PURE__*/React.createElement("div", {
-    className: "space-y-6"
-  }, /*#__PURE__*/React.createElement(PageHeader, {
-    title: "Backend administrateur",
-    subtitle: "Gestion des utilisateurs et statistiques globales du CRM.",
-    icon: /*#__PURE__*/React.createElement(Ic.Settings, {
-      className: "w-6 h-6"
-    })
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-  }, /*#__PURE__*/React.createElement(KPIBlock, {
-    icon: /*#__PURE__*/React.createElement(Ic.Users, {
-      className: "w-5 h-5"
-    }),
-    label: "Utilisateurs",
-    value: auth.users.length,
-    sub: `${auth.users.filter(u => u.role === "admin").length} admin`
-  }), /*#__PURE__*/React.createElement(KPIBlock, {
-    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
-      className: "w-5 h-5"
-    }),
-    label: "Clients",
-    value: state.clients.length
-  }), /*#__PURE__*/React.createElement(KPIBlock, {
-    icon: /*#__PURE__*/React.createElement(Ic.Check, {
-      className: "w-5 h-5"
-    }),
-    label: "CA sign\xE9",
-    value: fmtMoney(totalSigned)
-  }), /*#__PURE__*/React.createElement(KPIBlock, {
-    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
-      className: "w-5 h-5"
-    }),
-    label: "Devis en cours",
-    value: fmtMoney(totalOpen)
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-0 overflow-hidden"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "px-5 py-4 border-b border-paper-200 flex items-center justify-between"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800"
-  }, "Utilisateurs (", auth.users.length, ")"), /*#__PURE__*/React.createElement("span", {
-    className: "text-xs text-paper-500"
-  }, "Premi\xE8re inscription = admin automatique")), /*#__PURE__*/React.createElement("div", {
-    className: "overflow-x-auto"
-  }, /*#__PURE__*/React.createElement("table", {
-    className: "w-full text-sm"
-  }, /*#__PURE__*/React.createElement("thead", {
-    className: "bg-paper-50 border-b border-paper-200"
-  }, /*#__PURE__*/React.createElement("tr", {
-    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
-  }, /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold"
-  }, "Utilisateur"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold"
-  }, "Email"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold"
-  }, "R\xF4le"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold"
-  }, "Inscrit"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold"
-  }, "Derni\xE8re connexion"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3 font-semibold w-24"
-  }))), /*#__PURE__*/React.createElement("tbody", {
-    className: "divide-y divide-paper-100"
-  }, sortedUsers.map(u => /*#__PURE__*/React.createElement("tr", {
-    key: u.id,
-    className: "table-row"
-  }, /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3"
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: u.name,
-    size: 32
-  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-semibold text-paper-800"
-  }, u.name, u.id === currentUser.id && /*#__PURE__*/React.createElement("span", {
-    className: "text-[10px] ml-2 text-gold-700"
-  }, "(vous)"))))), /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5 text-paper-700"
-  }, u.email), /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5"
-  }, /*#__PURE__*/React.createElement(Badge, {
-    color: u.role === "admin" ? "gold" : "slate"
-  }, u.role === "admin" ? "Administrateur" : "Utilisateur")), /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5 text-paper-700"
-  }, fmtDate(u.createdAt)), /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5 text-paper-700"
-  }, u.lastLogin ? fmtDateTime(u.lastLogin) : "—"), /*#__PURE__*/React.createElement("td", {
-    className: "px-5 py-3.5 text-right"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-1 justify-end"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      updateUser(u.id, {
-        role: u.role === "admin" ? "user" : "admin"
-      });
-      toast.push({
-        type: "success",
-        title: `Rôle modifié`,
-        message: u.name
-      });
-    },
-    title: u.role === "admin" ? "Rétrograder" : "Promouvoir admin",
-    disabled: u.id === currentUser.id,
-    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800 disabled:opacity-30 disabled:cursor-not-allowed"
-  }, /*#__PURE__*/React.createElement(Ic.Star, {
-    className: "w-4 h-4"
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setEditPwd(u),
-    title: "Changer mot de passe",
-    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
-  }, /*#__PURE__*/React.createElement(Ic.Edit, {
-    className: "w-4 h-4"
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setConfirmDelete(u),
-    disabled: u.id === currentUser.id,
-    title: "Supprimer",
-    className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
-  }, /*#__PURE__*/React.createElement(Ic.Trash, {
-    className: "w-4 h-4"
-  })))))))))), /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-5"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800 mb-2"
-  }, "Comment ajouter d'autres utilisateurs ?"), /*#__PURE__*/React.createElement("p", {
-    className: "text-sm text-paper-600"
-  }, "Partagez l'URL de l'application avec votre \xE9quipe. Chaque personne cr\xE9e son propre compte via la page \"Cr\xE9er un compte\". Les nouveaux comptes sont cr\xE9\xE9s au r\xF4le ", /*#__PURE__*/React.createElement("strong", null, "Utilisateur"), " par d\xE9faut. Vous pouvez les promouvoir en admin via cette page."), /*#__PURE__*/React.createElement("p", {
-    className: "text-xs text-paper-500 mt-3"
-  }, "\u26A0\uFE0F Les donn\xE9es (clients, devis, factures\u2026) sont partag\xE9es entre tous les utilisateurs. L'authentification prot\xE8ge l'acc\xE8s au CRM mais tous les utilisateurs voient les m\xEAmes donn\xE9es \u2014 c'est con\xE7u comme un CRM d'\xE9quipe.")), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
-    title: "Supprimer cet utilisateur ?",
-    message: `Le compte de "${confirmDelete.name}" (${confirmDelete.email}) sera définitivement supprimé.`,
-    danger: true,
-    onCancel: () => setConfirmDelete(null),
-    onConfirm: () => {
-      deleteUser(confirmDelete.id);
-      toast.push({
-        type: "warning",
-        title: "Utilisateur supprimé"
-      });
-      setConfirmDelete(null);
-    }
-  }), editPwd && /*#__PURE__*/React.createElement(ChangePasswordModal, {
-    user: editPwd,
-    onClose: () => setEditPwd(null),
-    onSave: async pwd => {
-      await changePassword(editPwd.id, pwd);
-      toast.push({
-        type: "success",
-        title: "Mot de passe mis à jour"
-      });
-      setEditPwd(null);
-    }
-  }));
-}
-function KPIBlock({
-  icon,
-  label,
-  value,
-  sub
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-5 kpi-accent"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-start justify-between"
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold"
-  }, label), /*#__PURE__*/React.createElement("div", {
-    className: "text-2xl font-bold text-paper-800 mt-2"
-  }, value), sub && /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-paper-500 mt-1"
-  }, sub)), /*#__PURE__*/React.createElement("div", {
-    className: "p-2 rounded-lg bg-gold-50 text-gold-700"
-  }, icon)));
-}
-function ChangePasswordModal({
-  user,
-  onClose,
-  onSave
-}) {
-  const [pwd, setPwd] = useState("");
-  const [pwd2, setPwd2] = useState("");
-  const [error, setError] = useState("");
-  const submit = async () => {
-    if (pwd.length < 6) return setError("6 caractères minimum");
-    if (pwd !== pwd2) return setError("Les mots de passe ne correspondent pas");
-    await onSave(pwd);
-  };
-  return /*#__PURE__*/React.createElement(Modal, {
-    open: true,
-    onClose: onClose,
-    title: `Changer le mot de passe de ${user.name}`,
-    size: "sm",
-    footer: /*#__PURE__*/React.createElement("div", {
-      className: "flex justify-end gap-2"
-    }, /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      onClick: onClose
-    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
-      variant: "primary",
-      onClick: submit,
-      disabled: !pwd
-    }, "Enregistrer"))
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "space-y-3"
-  }, /*#__PURE__*/React.createElement(Field, {
-    label: "Nouveau mot de passe",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "password",
-    value: pwd,
-    onChange: e => setPwd(e.target.value),
-    autoFocus: true
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Confirmer",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "password",
-    value: pwd2,
-    onChange: e => setPwd2(e.target.value)
-  })), error && /*#__PURE__*/React.createElement("div", {
-    className: "text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2.5"
-  }, error)));
-}
-
-// ============================================================================
-//  USER MENU (top right) - logout
-// ============================================================================
-function UserMenu() {
-  const {
-    currentUser,
-    logout
-  } = useAuth();
-  const [open, setOpen] = useState(false);
-  if (!currentUser) return null;
-  return /*#__PURE__*/React.createElement("div", {
-    className: "relative"
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setOpen(o => !o),
-    className: "flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-lg hover:bg-paper-100 transition-colors"
-  }, /*#__PURE__*/React.createElement(Avatar, {
-    name: currentUser.name,
-    size: 32
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-left hidden md:block"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "font-semibold text-paper-800"
-  }, currentUser.name), /*#__PURE__*/React.createElement("div", {
-    className: "text-paper-500"
-  }, currentUser.role === "admin" ? "Administrateur" : "Utilisateur")), /*#__PURE__*/React.createElement(Ic.ChevronDown, {
-    className: "w-4 h-4 text-paper-500 hidden md:block"
-  })), open && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "fixed inset-0 z-40",
-    onClick: () => setOpen(false)
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "absolute right-0 top-full mt-2 w-56 bg-white border border-paper-200 rounded-xl shadow-card-hover z-50 overflow-hidden animate-slide-up"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "px-4 py-3 border-b border-paper-100"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-sm font-semibold text-paper-800 truncate"
-  }, currentUser.name), /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-paper-500 truncate"
-  }, currentUser.email), /*#__PURE__*/React.createElement("div", {
-    className: "mt-2"
-  }, /*#__PURE__*/React.createElement(Badge, {
-    color: currentUser.role === "admin" ? "gold" : "slate"
-  }, currentUser.role === "admin" ? "Administrateur" : "Utilisateur"))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      logout();
-      setOpen(false);
-    },
-    className: "w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement(Ic.X, {
-    className: "w-4 h-4"
-  }), " Se d\xE9connecter"))));
-}
-
-// ============================================================================
 //  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
 // ============================================================================
 function SignaturePage({
@@ -8071,12 +8618,16 @@ function Shell() {
   const [quoteEditor, setQuoteEditor] = useState(null); // null | "new" | { id, prefill: {clientId|prospectId} }
   const [quoteViewer, setQuoteViewer] = useState(null); // null | quoteId
 
+  // Invoice viewer state
+  const [invoiceViewer, setInvoiceViewer] = useState(null);
+
   // Helpers
   const goTo = newPage => {
     setPage(newPage);
     setView({
       kind: "list"
     });
+    setSearch(""); // clear global search on page change to avoid filter sticking
     if (newPage !== "devis") setDevisFilter({
       clientId: null,
       prospectId: null
@@ -8091,6 +8642,7 @@ function Shell() {
       kind: "client",
       id
     });
+    setSearch("");
   };
   const openProspectProfile = id => {
     setPage("prospects");
@@ -8098,6 +8650,7 @@ function Shell() {
       kind: "prospect",
       id
     });
+    setSearch("");
   };
   const openQuoteEditor = (idOrNew, prefill = {}) => {
     if (idOrNew === "new") setQuoteEditor({
@@ -8106,7 +8659,14 @@ function Shell() {
       id: idOrNew
     });
   };
-  const openQuoteViewer = id => setQuoteViewer(id);
+  const openQuoteViewer = id => {
+    setQuoteViewer(id);
+    setSearch("");
+  };
+  const openInvoiceViewer = id => {
+    setInvoiceViewer(id);
+    setSearch("");
+  };
 
   // keyboard shortcut for search
   useEffect(() => {
@@ -8157,6 +8717,8 @@ function Shell() {
         openQuoteViewer: openQuoteViewer
       });
     }
+    // Per-page search is intentionally empty — global search is handled by TopBar dropdown
+    const pageSearch = "";
     switch (page) {
       case "dashboard":
         return /*#__PURE__*/React.createElement(Dashboard, {
@@ -8167,12 +8729,12 @@ function Shell() {
         });
       case "clients":
         return /*#__PURE__*/React.createElement(ClientsPage, {
-          search: search,
+          search: pageSearch,
           openClientProfile: openClientProfile
         });
       case "prospects":
         return /*#__PURE__*/React.createElement(ProspectsPage, {
-          search: search,
+          search: pageSearch,
           openProspectProfile: openProspectProfile
         });
       case "pipeline":
@@ -8181,7 +8743,7 @@ function Shell() {
         });
       case "devis":
         return /*#__PURE__*/React.createElement(DevisPage, {
-          search: search,
+          search: pageSearch,
           filterClient: devisFilter.clientId,
           filterProspect: devisFilter.prospectId,
           clearFilter: () => setDevisFilter({
@@ -8195,15 +8757,17 @@ function Shell() {
         });
       case "factures":
         return /*#__PURE__*/React.createElement(InvoicesPage, {
-          search: search,
+          search: pageSearch,
           filterClient: facturesFilter.clientId,
+          externalViewerId: invoiceViewer,
+          setExternalViewerId: setInvoiceViewer,
           clearFilter: () => setFacturesFilter({
             clientId: null
           })
         });
       case "taches":
         return /*#__PURE__*/React.createElement(TasksPage, {
-          search: search,
+          search: pageSearch,
           openClientProfile: openClientProfile,
           openProspectProfile: openProspectProfile
         });
@@ -8247,7 +8811,11 @@ function Shell() {
     setPage: goTo,
     onMobileMenu: () => setMobileMenu(true),
     search: search,
-    setSearch: setSearch
+    setSearch: setSearch,
+    onOpenClient: openClientProfile,
+    onOpenProspect: openProspectProfile,
+    onOpenQuote: openQuoteViewer,
+    onOpenInvoice: openInvoiceViewer
   }), /*#__PURE__*/React.createElement("main", {
     className: "flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8"
   }, renderContent())), quoteEditor && /*#__PURE__*/React.createElement(QuoteEditorWrapper, {
