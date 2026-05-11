@@ -259,6 +259,90 @@ var COMPANY = {
   bic: "BCEELULL",
   rcs: "B 234567"
 };
+
+// ---------- Catalog ----------
+var PRODUCT_CATEGORIES = [{
+  id: "formation_ssiap",
+  label: "Formation SSIAP",
+  color: "blue"
+}, {
+  id: "formation_secu",
+  label: "Formation sécurité",
+  color: "blue"
+}, {
+  id: "premiers_secours",
+  label: "Premiers secours",
+  color: "red"
+}, {
+  id: "incendie",
+  label: "Sécurité incendie",
+  color: "red"
+}, {
+  id: "travaux_hauteur",
+  label: "Travaux en hauteur",
+  color: "amber"
+}, {
+  id: "gardiennage",
+  label: "Gardiennage",
+  color: "slate"
+}, {
+  id: "epi",
+  label: "Équipement EPI",
+  color: "green"
+}, {
+  id: "audit",
+  label: "Audit & conseil",
+  color: "gold"
+}, {
+  id: "intervention",
+  label: "Intervention technique",
+  color: "amber"
+}, {
+  id: "autre",
+  label: "Autre prestation",
+  color: "slate"
+}];
+var PRODUCT_UNITS = [{
+  id: "forfait",
+  label: "Forfait"
+}, {
+  id: "heure",
+  label: "Heure"
+}, {
+  id: "jour",
+  label: "Jour"
+}, {
+  id: "piece",
+  label: "Pièce"
+}, {
+  id: "metre",
+  label: "Mètre"
+}, {
+  id: "m2",
+  label: "m²"
+}, {
+  id: "lot",
+  label: "Lot"
+}, {
+  id: "session",
+  label: "Session"
+}];
+var VAT_RATES = [{
+  rate: 0,
+  label: "0 % (exonéré)"
+}, {
+  rate: 3,
+  label: "3 % (super-réduit LU)"
+}, {
+  rate: 8,
+  label: "8 % (intermédiaire LU)"
+}, {
+  rate: 14,
+  label: "14 % (réduit LU)"
+}, {
+  rate: 17,
+  label: "17 % (standard LU)"
+}];
 var PROSPECT_STAGES = [{
   id: "contact",
   label: "Contact",
@@ -499,21 +583,21 @@ function hashPassword(_x) {
   return _hashPassword.apply(this, arguments);
 } // ---------- Utils ----------
 function _hashPassword() {
-  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23(password) {
+  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28(password) {
     var enc, hash;
-    return _regenerator().w(function (_context23) {
-      while (1) switch (_context23.n) {
+    return _regenerator().w(function (_context28) {
+      while (1) switch (_context28.n) {
         case 0:
           enc = new TextEncoder().encode(password + "::cerberion-salt");
-          _context23.n = 1;
+          _context28.n = 1;
           return crypto.subtle.digest('SHA-256', enc);
         case 1:
-          hash = _context23.v;
-          return _context23.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
+          hash = _context28.v;
+          return _context28.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
             return b.toString(16).padStart(2, '0');
           }).join(''));
       }
-    }, _callee23);
+    }, _callee28);
   }));
   return _hashPassword.apply(this, arguments);
 }
@@ -615,7 +699,7 @@ function shareableLink(quoteId) {
 // ---------- Empty state (production-ready, no demo data) ----------
 function emptyData() {
   return {
-    version: 2,
+    version: 3,
     clients: [],
     prospects: [],
     quotes: [],
@@ -623,9 +707,28 @@ function emptyData() {
     tasks: [],
     activities: [],
     notifications: [],
+    products: [],
     settings: {
       company: COMPANY,
-      vat: VAT_LU
+      vat: VAT_LU,
+      documents: {
+        quotePrefix: "DEV",
+        invoicePrefix: "FACT",
+        quoteCounter: 1,
+        invoiceCounter: 1,
+        paymentTermsDays: 30,
+        defaultNotes: "Devis valable 30 jours. Acceptation par signature électronique.",
+        defaultTerms: "Paiement à 30 jours fin de mois. Tout retard de paiement fera l'objet d'une majoration de 5 %."
+      },
+      notifPrefs: {
+        quoteSigned: true,
+        quoteSent: true,
+        invoicePaid: true,
+        invoiceOverdue: true,
+        taskDue: true,
+        newClient: false,
+        newProspect: false
+      }
     }
   };
 }
@@ -1683,6 +1786,49 @@ var Ic = {
       d: "M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"
     }));
   },
+  Package: function Package(p) {
+    return /*#__PURE__*/React.createElement("svg", _extends({
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, p), /*#__PURE__*/React.createElement("line", {
+      x1: "16.5",
+      y1: "9.4",
+      x2: "7.5",
+      y2: "4.21"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+    }), /*#__PURE__*/React.createElement("polyline", {
+      points: "3.27 6.96 12 12.01 20.73 6.96"
+    }), /*#__PURE__*/React.createElement("line", {
+      x1: "12",
+      y1: "22.08",
+      x2: "12",
+      y2: "12"
+    }));
+  },
+  Database: function Database(p) {
+    return /*#__PURE__*/React.createElement("svg", _extends({
+      viewBox: "0 0 24 24",
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: "2",
+      strokeLinecap: "round",
+      strokeLinejoin: "round"
+    }, p), /*#__PURE__*/React.createElement("ellipse", {
+      cx: "12",
+      cy: "5",
+      rx: "9",
+      ry: "3"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M3 5v14a9 3 0 0 0 18 0V5"
+    }), /*#__PURE__*/React.createElement("path", {
+      d: "M3 12a9 3 0 0 0 18 0"
+    }));
+  },
   Filter: function Filter(p) {
     return /*#__PURE__*/React.createElement("svg", _extends({
       viewBox: "0 0 24 24",
@@ -2081,45 +2227,45 @@ function apiFetch(_x2) {
 //  AUTH PROVIDER - server-side users, JWT in localStorage
 // ============================================================================
 function _apiFetch() {
-  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24(path) {
+  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(path) {
     var opts,
       token,
       headers,
       res,
       body,
-      _args24 = arguments;
-    return _regenerator().w(function (_context24) {
-      while (1) switch (_context24.n) {
+      _args29 = arguments;
+    return _regenerator().w(function (_context29) {
+      while (1) switch (_context29.n) {
         case 0:
-          opts = _args24.length > 1 && _args24[1] !== undefined ? _args24[1] : {};
+          opts = _args29.length > 1 && _args29[1] !== undefined ? _args29[1] : {};
           token = localStorage.getItem(TOKEN_KEY);
           headers = _objectSpread({
             "Content-Type": "application/json"
           }, opts.headers || {});
           if (token) headers.Authorization = "Bearer ".concat(token);
-          _context24.n = 1;
+          _context29.n = 1;
           return fetch(apiBase + path, _objectSpread(_objectSpread({}, opts), {}, {
             headers: headers
           }));
         case 1:
-          res = _context24.v;
+          res = _context29.v;
           if (res.ok) {
-            _context24.n = 3;
+            _context29.n = 3;
             break;
           }
-          _context24.n = 2;
+          _context29.n = 2;
           return res.json()["catch"](function () {
             return {
               error: res.statusText
             };
           });
         case 2:
-          body = _context24.v;
+          body = _context29.v;
           throw new Error(body.error || res.statusText);
         case 3:
-          return _context24.a(2, res.json());
+          return _context29.a(2, res.json());
       }
-    }, _callee24);
+    }, _callee29);
   }));
   return _apiFetch.apply(this, arguments);
 }
@@ -3777,6 +3923,16 @@ function StoreProvider(_ref43) {
     });
   };
 
+  // -------- Products (catalogue)
+  var upsertProduct = function upsertProduct(data) {
+    return dispatch("upsertProduct", data);
+  };
+  var deleteProduct = function deleteProduct(id) {
+    return dispatch("deleteProduct", {
+      id: id
+    });
+  };
+
   // -------- Settings
   var updateSettings = function updateSettings(patch) {
     return dispatch("updateSettings", patch);
@@ -3830,6 +3986,8 @@ function StoreProvider(_ref43) {
     markNotifRead: markNotifRead,
     markAllNotifsRead: markAllNotifsRead,
     deleteNotif: deleteNotif,
+    upsertProduct: upsertProduct,
+    deleteProduct: deleteProduct,
     updateSettings: updateSettings,
     exportJson: exportJson,
     importJson: importJson,
@@ -9535,215 +9693,99 @@ function SettingsPage() {
   var _useStore18 = useStore(),
     state = _useStore18.state,
     updateSettings = _useStore18.updateSettings,
+    upsertProduct = _useStore18.upsertProduct,
+    deleteProduct = _useStore18.deleteProduct,
     exportJson = _useStore18.exportJson,
-    importJson = _useStore18.importJson,
     resetAll = _useStore18.resetAll;
+  var _useAuth7 = useAuth(),
+    currentUser = _useAuth7.currentUser;
   var toast = useToast();
-  var _useState133 = useState(state.settings.company),
+  var _useState133 = useState("societe"),
     _useState134 = _slicedToArray(_useState133, 2),
-    company = _useState134[0],
-    setCompany = _useState134[1];
+    tab = _useState134[0],
+    setTab = _useState134[1];
   var _useState135 = useState(false),
     _useState136 = _slicedToArray(_useState135, 2),
     confirmReset = _useState136[0],
     setConfirmReset = _useState136[1];
-  var fileRef = useRef();
-  var onImport = function onImport(e) {
-    var _e$target$files;
-    var file = (_e$target$files = e.target.files) === null || _e$target$files === void 0 ? void 0 : _e$target$files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function (ev) {
-      try {
-        var data = JSON.parse(ev.target.result);
-        if (importJson(data)) toast.push({
-          type: "success",
-          title: "Import réussi"
-        });else toast.push({
-          type: "error",
-          title: "Format invalide"
-        });
-      } catch (err) {
-        toast.push({
-          type: "error",
-          title: "Fichier invalide"
-        });
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
+  var tabs = [{
+    id: "societe",
+    label: "Société",
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-4 h-4"
+    })
+  }, {
+    id: "catalogue",
+    label: "Catalogue",
+    icon: /*#__PURE__*/React.createElement(Ic.Package, {
+      className: "w-4 h-4"
+    })
+  }, {
+    id: "documents",
+    label: "Documents",
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-4 h-4"
+    })
+  }, {
+    id: "notifications",
+    label: "Notifications",
+    icon: /*#__PURE__*/React.createElement(Ic.Bell, {
+      className: "w-4 h-4"
+    })
+  }, {
+    id: "donnees",
+    label: "Données",
+    icon: /*#__PURE__*/React.createElement(Ic.Database, {
+      className: "w-4 h-4"
+    })
+  }];
   return /*#__PURE__*/React.createElement("div", {
-    className: "space-y-6"
+    className: "space-y-5"
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "Param\xE8tres",
-    subtitle: "Configurez votre soci\xE9t\xE9 et g\xE9rez vos donn\xE9es.",
+    subtitle: "Configurez votre soci\xE9t\xE9, votre catalogue et vos pr\xE9f\xE9rences.",
     icon: /*#__PURE__*/React.createElement(Ic.Settings, {
       className: "w-6 h-6"
     })
   }), /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-6"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800 mb-4"
-  }, "Informations de la soci\xE9t\xE9"), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
-  }, /*#__PURE__*/React.createElement(Field, {
-    label: "Nom commercial"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.name,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        name: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Tagline"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.tagline,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        tagline: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Raison sociale"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.legalName,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        legalName: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Adresse"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.address,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        address: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Ville"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.city,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        city: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Pays"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.country,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        country: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "T\xE9l\xE9phone"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.phone,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        phone: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Email"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.email,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        email: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "N\xB0 TVA"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.vat,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        vat: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "N\xB0 RCS"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.rcs,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        rcs: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "IBAN"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.iban,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        iban: e.target.value
-      }));
-    }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "BIC"
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: company.bic,
-    onChange: function onChange(e) {
-      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
-        bic: e.target.value
-      }));
-    }
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-end mt-4"
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    onClick: function onClick() {
-      updateSettings({
-        company: company
-      });
-      toast.push({
-        type: "success",
-        title: "Paramètres enregistrés"
-      });
-    }
-  }, "Enregistrer"))), /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-6"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800 mb-4"
-  }, "Donn\xE9es"), /*#__PURE__*/React.createElement("div", {
-    className: "flex flex-wrap gap-3"
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    icon: /*#__PURE__*/React.createElement(Ic.Download, {
-      className: "w-4 h-4"
-    }),
-    onClick: exportJson
-  }, "Exporter (JSON)"), /*#__PURE__*/React.createElement("input", {
-    ref: fileRef,
-    type: "file",
-    accept: ".json",
-    hidden: true,
-    onChange: onImport
-  }), /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
-    onClick: function onClick() {
-      var _fileRef$current;
-      return (_fileRef$current = fileRef.current) === null || _fileRef$current === void 0 ? void 0 : _fileRef$current.click();
-    }
-  }, "Importer (JSON)"), /*#__PURE__*/React.createElement(Button, {
-    variant: "danger",
-    onClick: function onClick() {
+    className: "card-base p-1 inline-flex flex-wrap gap-1"
+  }, tabs.map(function (t) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: t.id,
+      onClick: function onClick() {
+        return setTab(t.id);
+      },
+      className: "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ".concat(tab === t.id ? "bg-gold-500 text-white" : "text-paper-600 hover:bg-paper-100 hover:text-paper-800")
+    }, t.icon, /*#__PURE__*/React.createElement("span", null, t.label));
+  })), tab === "societe" && /*#__PURE__*/React.createElement(SettingsCompany, {
+    state: state,
+    updateSettings: updateSettings,
+    toast: toast
+  }), tab === "catalogue" && /*#__PURE__*/React.createElement(SettingsCatalogue, {
+    state: state,
+    upsertProduct: upsertProduct,
+    deleteProduct: deleteProduct,
+    toast: toast
+  }), tab === "documents" && /*#__PURE__*/React.createElement(SettingsDocuments, {
+    state: state,
+    updateSettings: updateSettings,
+    toast: toast
+  }), tab === "notifications" && /*#__PURE__*/React.createElement(SettingsNotifPrefs, {
+    state: state,
+    updateSettings: updateSettings,
+    toast: toast
+  }), tab === "donnees" && /*#__PURE__*/React.createElement(SettingsData, {
+    state: state,
+    exportJson: exportJson,
+    onReset: function onReset() {
       return setConfirmReset(true);
-    }
-  }, "R\xE9initialiser (d\xE9mo)")), /*#__PURE__*/React.createElement("p", {
-    className: "text-xs text-paper-500 mt-3"
-  }, "Vos donn\xE9es sont stock\xE9es localement (LocalStorage). Pensez \xE0 exporter r\xE9guli\xE8rement pour faire des sauvegardes.")), confirmReset && /*#__PURE__*/React.createElement(ConfirmModal, {
+    },
+    currentUser: currentUser
+  }), confirmReset && /*#__PURE__*/React.createElement(ConfirmModal, {
     title: "R\xE9initialiser toutes les donn\xE9es ?",
-    message: "Toutes vos donn\xE9es actuelles seront remplac\xE9es par les donn\xE9es de d\xE9monstration. Cette action est irr\xE9versible.",
+    message: "Toutes les donn\xE9es m\xE9tier (clients, prospects, devis, factures, catalogue) seront effac\xE9es. Cette action est irr\xE9versible.",
     danger: true,
-    confirmLabel: "R\xE9initialiser",
+    confirmLabel: "Tout effacer",
     onCancel: function onCancel() {
       return setConfirmReset(false);
     },
@@ -9757,45 +9799,916 @@ function SettingsPage() {
     }
   }));
 }
+
+// ---------------- Société tab ----------------
+function SettingsCompany(_ref86) {
+  var state = _ref86.state,
+    updateSettings = _ref86.updateSettings,
+    toast = _ref86.toast;
+  var _useState137 = useState(state.settings.company || {}),
+    _useState138 = _slicedToArray(_useState137, 2),
+    company = _useState138[0],
+    setCompany = _useState138[1];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "Informations de la soci\xE9t\xE9"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-5"
+  }, "Ces informations apparaissent sur tous les devis et factures envoy\xE9s \xE0 vos clients."), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom commercial"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.name || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        name: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Tagline"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.tagline || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        tagline: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Raison sociale"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.legalName || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        legalName: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Adresse"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.address || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        address: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Ville"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.city || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        city: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Pays"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.country || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        country: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "T\xE9l\xE9phone"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.phone || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        phone: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Email"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.email || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        email: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 TVA"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.vat || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        vat: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 RCS"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.rcs || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        rcs: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "IBAN"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.iban || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        iban: e.target.value
+      }));
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "BIC"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: company.bic || "",
+    onChange: function onChange(e) {
+      return setCompany(_objectSpread(_objectSpread({}, company), {}, {
+        bic: e.target.value
+      }));
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mt-5"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-4 h-4"
+    }),
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
+      return _regenerator().w(function (_context22) {
+        while (1) switch (_context22.n) {
+          case 0:
+            _context22.n = 1;
+            return updateSettings({
+              company: company
+            });
+          case 1:
+            toast.push({
+              type: "success",
+              title: "Société enregistrée"
+            });
+          case 2:
+            return _context22.a(2);
+        }
+      }, _callee22);
+    }))
+  }, "Enregistrer")));
+}
+
+// ---------------- Catalogue tab ----------------
+function SettingsCatalogue(_ref88) {
+  var state = _ref88.state,
+    upsertProduct = _ref88.upsertProduct,
+    deleteProduct = _ref88.deleteProduct,
+    toast = _ref88.toast;
+  var _useState139 = useState(null),
+    _useState140 = _slicedToArray(_useState139, 2),
+    edit = _useState140[0],
+    setEdit = _useState140[1];
+  var _useState141 = useState(""),
+    _useState142 = _slicedToArray(_useState141, 2),
+    filterCat = _useState142[0],
+    setFilterCat = _useState142[1];
+  var _useState143 = useState(""),
+    _useState144 = _slicedToArray(_useState143, 2),
+    search = _useState144[0],
+    setSearch = _useState144[1];
+  var _useState145 = useState(null),
+    _useState146 = _slicedToArray(_useState145, 2),
+    confirmDel = _useState146[0],
+    setConfirmDel = _useState146[1];
+  var products = state.products || [];
+  var filtered = products.filter(function (p) {
+    if (filterCat && p.category !== filterCat) return false;
+    if (search && !"".concat(p.name, " ").concat(p.description || "").toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-4 border-b border-paper-200 flex flex-wrap items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800"
+  }, "Catalogue prestations & produits"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-500 mt-0.5"
+  }, products.length, " prestation", products.length > 1 ? "s" : "", " \xB7 ajoutez vos services pour les ins\xE9rer rapidement dans les devis.")), /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+      className: "w-4 h-4"
+    }),
+    onClick: function onClick() {
+      return setEdit({});
+    }
+  }, "Nouvelle prestation")), /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-3 border-b border-paper-200 bg-paper-50/40 flex flex-wrap items-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-[200px]"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: search,
+    onChange: function onChange(e) {
+      return setSearch(e.target.value);
+    },
+    placeholder: "Rechercher une prestation\u2026"
+  })), /*#__PURE__*/React.createElement(Select, {
+    value: filterCat,
+    onChange: function onChange(e) {
+      return setFilterCat(e.target.value);
+    },
+    className: "w-auto"
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Toutes cat\xE9gories"), PRODUCT_CATEGORIES.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 border-b border-paper-200"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Nom"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold"
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold text-right"
+  }, "Prix HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold text-center"
+  }, "Unit\xE9"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold text-center"
+  }, "TVA"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3 font-semibold w-24 text-right"
+  }, "Actions"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: "6"
+  }, /*#__PURE__*/React.createElement(Empty, {
+    icon: /*#__PURE__*/React.createElement(Ic.Package, {
+      className: "w-8 h-8"
+    }),
+    title: products.length === 0 ? "Aucune prestation" : "Aucun résultat",
+    description: products.length === 0 ? "Créez votre première prestation pour gagner du temps lors de la création de devis." : "Aucune prestation ne correspond à votre recherche.",
+    action: products.length === 0 ? /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEdit({});
+      }
+    }, "Nouvelle prestation") : null
+  }))), filtered.map(function (p) {
+    var _p$vat;
+    var cat = PRODUCT_CATEGORIES.find(function (c) {
+      return c.id === p.category;
+    });
+    var unit = PRODUCT_UNITS.find(function (u) {
+      return u.id === p.unit;
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: p.id,
+      className: "table-row"
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-paper-800"
+    }, p.name), p.description && /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-500 mt-0.5 line-clamp-1"
+    }, p.description)), /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5"
+    }, cat ? /*#__PURE__*/React.createElement(Badge, {
+      color: cat.color
+    }, cat.label) : /*#__PURE__*/React.createElement("span", {
+      className: "text-paper-400"
+    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5 text-right font-semibold text-gold-700 tabular-nums"
+    }, fmtMoney(p.price || 0)), /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5 text-center text-paper-700"
+    }, (unit === null || unit === void 0 ? void 0 : unit.label) || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5 text-center text-paper-700 tabular-nums"
+    }, (_p$vat = p.vat) !== null && _p$vat !== void 0 ? _p$vat : 17, " %"), /*#__PURE__*/React.createElement("td", {
+      className: "px-5 py-3.5 text-right"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 justify-end"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setEdit(p);
+      },
+      title: "Modifier",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.Edit, {
+      className: "w-4 h-4"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setConfirmDel(p);
+      },
+      title: "Supprimer",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600"
+    }, /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-4 h-4"
+    })))));
+  }))))), edit && /*#__PURE__*/React.createElement(ProductFormModal, {
+    product: edit,
+    onClose: function onClose() {
+      return setEdit(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref89 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23(data) {
+        return _regenerator().w(function (_context23) {
+          while (1) switch (_context23.n) {
+            case 0:
+              _context23.n = 1;
+              return upsertProduct(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: data.id ? "Prestation mise à jour" : "Prestation créée",
+                message: data.name
+              });
+              setEdit(null);
+            case 2:
+              return _context23.a(2);
+          }
+        }, _callee23);
+      }));
+      return function (_x18) {
+        return _ref89.apply(this, arguments);
+      };
+    }())
+  }), confirmDel && /*#__PURE__*/React.createElement(ConfirmModal, {
+    title: "Supprimer \"".concat(confirmDel.name, "\" ?"),
+    message: "Cette prestation sera retir\xE9e du catalogue. Les devis qui l'utilisent d\xE9j\xE0 ne seront pas modifi\xE9s.",
+    danger: true,
+    confirmLabel: "Supprimer",
+    onCancel: function onCancel() {
+      return setConfirmDel(null);
+    },
+    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24() {
+      return _regenerator().w(function (_context24) {
+        while (1) switch (_context24.n) {
+          case 0:
+            _context24.n = 1;
+            return deleteProduct(confirmDel.id);
+          case 1:
+            setConfirmDel(null);
+            toast.push({
+              type: "warning",
+              title: "Prestation supprimée"
+            });
+          case 2:
+            return _context24.a(2);
+        }
+      }, _callee24);
+    }))
+  }));
+}
+function ProductFormModal(_ref91) {
+  var _product$price, _product$vat;
+  var product = _ref91.product,
+    onClose = _ref91.onClose,
+    onSave = _ref91.onSave;
+  var isNew = !product.id;
+  var _useState147 = useState({
+      name: product.name || "",
+      category: product.category || "formation_secu",
+      description: product.description || "",
+      price: (_product$price = product.price) !== null && _product$price !== void 0 ? _product$price : 0,
+      unit: product.unit || "forfait",
+      vat: (_product$vat = product.vat) !== null && _product$vat !== void 0 ? _product$vat : 17
+    }),
+    _useState148 = _slicedToArray(_useState147, 2),
+    form = _useState148[0],
+    setForm = _useState148[1];
+  var set = function set(k, v) {
+    return setForm(_objectSpread(_objectSpread({}, form), {}, _defineProperty({}, k, v)));
+  };
+  var submit = function submit(e) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onSave(_objectSpread(_objectSpread(_objectSpread({}, product), form), {}, {
+      price: Number(form.price) || 0,
+      vat: Number(form.vat) || 0
+    }));
+  };
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    title: isNew ? "Nouvelle prestation" : "Modifier la prestation",
+    onClose: onClose,
+    size: "md"
+  }, /*#__PURE__*/React.createElement("form", {
+    onSubmit: submit,
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom de la prestation",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.name,
+    onChange: function onChange(e) {
+      return set("name", e.target.value);
+    },
+    placeholder: "Ex : Formation SSIAP 1 (initiale)",
+    autoFocus: true
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Cat\xE9gorie"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.category,
+    onChange: function onChange(e) {
+      return set("category", e.target.value);
+    }
+  }, PRODUCT_CATEGORIES.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Description (optionnel)"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: "w-full px-3 py-2 border border-paper-300 rounded-md focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-sm",
+    rows: 2,
+    value: form.description,
+    onChange: function onChange(e) {
+      return set("description", e.target.value);
+    },
+    placeholder: "Appara\xEEtra par d\xE9faut dans la description du devis."
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Prix HT (\u20AC)",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    step: "0.01",
+    min: "0",
+    value: form.price,
+    onChange: function onChange(e) {
+      return set("price", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Unit\xE9"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.unit,
+    onChange: function onChange(e) {
+      return set("unit", e.target.value);
+    }
+  }, PRODUCT_UNITS.map(function (u) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: u.id,
+      value: u.id
+    }, u.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vat,
+    onChange: function onChange(e) {
+      return set("vat", e.target.value);
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end gap-2 pt-2 border-t border-paper-200"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    type: "button",
+    onClick: onClose
+  }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    type: "submit",
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-4 h-4"
+    })
+  }, isNew ? "Créer" : "Mettre à jour"))));
+}
+
+// ---------------- Documents tab ----------------
+function SettingsDocuments(_ref92) {
+  var _init$paymentTermsDay, _state$settings$vat;
+  var state = _ref92.state,
+    updateSettings = _ref92.updateSettings,
+    toast = _ref92.toast;
+  var init = state.settings.documents || {};
+  var _useState149 = useState({
+      quotePrefix: init.quotePrefix || "DEV",
+      invoicePrefix: init.invoicePrefix || "FACT",
+      quoteCounter: init.quoteCounter || 1,
+      invoiceCounter: init.invoiceCounter || 1,
+      paymentTermsDays: (_init$paymentTermsDay = init.paymentTermsDays) !== null && _init$paymentTermsDay !== void 0 ? _init$paymentTermsDay : 30,
+      defaultNotes: init.defaultNotes || "",
+      defaultTerms: init.defaultTerms || ""
+    }),
+    _useState150 = _slicedToArray(_useState149, 2),
+    docs = _useState150[0],
+    setDocs = _useState150[1];
+  var _useState151 = useState((_state$settings$vat = state.settings.vat) !== null && _state$settings$vat !== void 0 ? _state$settings$vat : 17),
+    _useState152 = _slicedToArray(_useState151, 2),
+    defaultVat = _useState152[0],
+    setDefaultVat = _useState152[1];
+  var set = function set(k, v) {
+    return setDocs(_objectSpread(_objectSpread({}, docs), {}, _defineProperty({}, k, v)));
+  };
+  var year = new Date().getFullYear();
+  var previewQuote = "".concat(docs.quotePrefix, "-").concat(year, "-").concat(String(docs.quoteCounter).padStart(4, "0"));
+  var previewInvoice = "".concat(docs.invoicePrefix, "-").concat(year, "-").concat(String(docs.invoiceCounter).padStart(4, "0"));
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "Num\xE9rotation des documents"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-5"
+  }, "Personnalisez les pr\xE9fixes et compteurs utilis\xE9s pour g\xE9n\xE9rer les num\xE9ros de devis et factures."), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold"
+  }, "Devis"), /*#__PURE__*/React.createElement(Field, {
+    label: "Pr\xE9fixe"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: docs.quotePrefix,
+    onChange: function onChange(e) {
+      return set("quotePrefix", e.target.value.toUpperCase());
+    },
+    placeholder: "DEV"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Prochain compteur"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    min: "1",
+    value: docs.quoteCounter,
+    onChange: function onChange(e) {
+      return set("quoteCounter", parseInt(e.target.value) || 1);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md bg-paper-50 border border-paper-200 px-3 py-2 text-sm"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-500"
+  }, "Aper\xE7u : "), /*#__PURE__*/React.createElement("span", {
+    className: "font-mono font-semibold text-gold-700"
+  }, previewQuote))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold"
+  }, "Factures"), /*#__PURE__*/React.createElement(Field, {
+    label: "Pr\xE9fixe"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: docs.invoicePrefix,
+    onChange: function onChange(e) {
+      return set("invoicePrefix", e.target.value.toUpperCase());
+    },
+    placeholder: "FACT"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Prochain compteur"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    min: "1",
+    value: docs.invoiceCounter,
+    onChange: function onChange(e) {
+      return set("invoiceCounter", parseInt(e.target.value) || 1);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md bg-paper-50 border border-paper-200 px-3 py-2 text-sm"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-500"
+  }, "Aper\xE7u : "), /*#__PURE__*/React.createElement("span", {
+    className: "font-mono font-semibold text-gold-700"
+  }, previewInvoice))))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "Param\xE8tres par d\xE9faut"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-5"
+  }, "Ces valeurs sont pr\xE9-remplies lors de la cr\xE9ation de chaque devis ou facture."), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "TVA par d\xE9faut"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: defaultVat,
+    onChange: function onChange(e) {
+      return setDefaultVat(Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "D\xE9lai de paiement (jours)"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    min: "0",
+    value: docs.paymentTermsDays,
+    onChange: function onChange(e) {
+      return set("paymentTermsDays", parseInt(e.target.value) || 0);
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 space-y-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Notes par d\xE9faut (devis)",
+    hint: "Visible sur les devis envoy\xE9s."
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: "w-full px-3 py-2 border border-paper-300 rounded-md focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-sm",
+    rows: 2,
+    value: docs.defaultNotes,
+    onChange: function onChange(e) {
+      return set("defaultNotes", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Conditions de paiement (factures)",
+    hint: "Mentions l\xE9gales et conditions g\xE9n\xE9rales."
+  }, /*#__PURE__*/React.createElement("textarea", {
+    className: "w-full px-3 py-2 border border-paper-300 rounded-md focus:border-gold-500 focus:ring-1 focus:ring-gold-500 text-sm",
+    rows: 3,
+    value: docs.defaultTerms,
+    onChange: function onChange(e) {
+      return set("defaultTerms", e.target.value);
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mt-5"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-4 h-4"
+    }),
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25() {
+      return _regenerator().w(function (_context25) {
+        while (1) switch (_context25.n) {
+          case 0:
+            _context25.n = 1;
+            return updateSettings({
+              documents: docs,
+              vat: defaultVat
+            });
+          case 1:
+            toast.push({
+              type: "success",
+              title: "Paramètres documents enregistrés"
+            });
+          case 2:
+            return _context25.a(2);
+        }
+      }, _callee25);
+    }))
+  }, "Enregistrer"))));
+}
+
+// ---------------- Notifications prefs tab ----------------
+function SettingsNotifPrefs(_ref94) {
+  var _init$quoteSigned, _init$quoteSent, _init$invoicePaid, _init$invoiceOverdue, _init$taskDue, _init$newClient, _init$newProspect;
+  var state = _ref94.state,
+    updateSettings = _ref94.updateSettings,
+    toast = _ref94.toast;
+  var init = state.settings.notifPrefs || {};
+  var _useState153 = useState({
+      quoteSigned: (_init$quoteSigned = init.quoteSigned) !== null && _init$quoteSigned !== void 0 ? _init$quoteSigned : true,
+      quoteSent: (_init$quoteSent = init.quoteSent) !== null && _init$quoteSent !== void 0 ? _init$quoteSent : true,
+      invoicePaid: (_init$invoicePaid = init.invoicePaid) !== null && _init$invoicePaid !== void 0 ? _init$invoicePaid : true,
+      invoiceOverdue: (_init$invoiceOverdue = init.invoiceOverdue) !== null && _init$invoiceOverdue !== void 0 ? _init$invoiceOverdue : true,
+      taskDue: (_init$taskDue = init.taskDue) !== null && _init$taskDue !== void 0 ? _init$taskDue : true,
+      newClient: (_init$newClient = init.newClient) !== null && _init$newClient !== void 0 ? _init$newClient : false,
+      newProspect: (_init$newProspect = init.newProspect) !== null && _init$newProspect !== void 0 ? _init$newProspect : false
+    }),
+    _useState154 = _slicedToArray(_useState153, 2),
+    prefs = _useState154[0],
+    setPrefs = _useState154[1];
+  var opts = [{
+    key: "quoteSigned",
+    label: "Devis signé",
+    desc: "Quand un client signe électroniquement un devis.",
+    color: "green"
+  }, {
+    key: "quoteSent",
+    label: "Devis envoyé",
+    desc: "Quand un devis passe en statut envoyé.",
+    color: "blue"
+  }, {
+    key: "invoicePaid",
+    label: "Facture payée",
+    desc: "Quand une facture est marquée comme payée.",
+    color: "green"
+  }, {
+    key: "invoiceOverdue",
+    label: "Facture en retard",
+    desc: "Quand l'échéance d'une facture est dépassée.",
+    color: "red"
+  }, {
+    key: "taskDue",
+    label: "Tâche due aujourd'hui",
+    desc: "Rappel pour les tâches en retard ou du jour.",
+    color: "amber"
+  }, {
+    key: "newClient",
+    label: "Nouveau client créé",
+    desc: "Quand un collègue ajoute un client.",
+    color: "slate"
+  }, {
+    key: "newProspect",
+    label: "Nouveau prospect créé",
+    desc: "Quand un collègue ajoute une opportunité.",
+    color: "slate"
+  }];
+  var toggle = function toggle(k) {
+    return setPrefs(_objectSpread(_objectSpread({}, prefs), {}, _defineProperty({}, k, !prefs[k])));
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "Pr\xE9f\xE9rences de notifications"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-5"
+  }, "Choisissez les \xE9v\xE8nements pour lesquels vous souhaitez recevoir une notification dans l'app."), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, opts.map(function (o) {
+    return /*#__PURE__*/React.createElement("label", {
+      key: o.key,
+      className: "flex items-start gap-3 p-3 rounded-md border border-paper-200 hover:bg-paper-50 cursor-pointer transition-colors"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: prefs[o.key],
+      onChange: function onChange() {
+        return toggle(o.key);
+      },
+      className: "mt-1 w-4 h-4 rounded text-gold-600 border-paper-300 focus:ring-gold-500"
+    }), /*#__PURE__*/React.createElement("div", {
+      className: "flex-1"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-medium text-paper-800 text-sm flex items-center gap-2"
+    }, o.label, /*#__PURE__*/React.createElement(Badge, {
+      color: o.color
+    }, prefs[o.key] ? "Activé" : "Désactivé")), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-500 mt-0.5"
+    }, o.desc)));
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mt-5"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-4 h-4"
+    }),
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26() {
+      return _regenerator().w(function (_context26) {
+        while (1) switch (_context26.n) {
+          case 0:
+            _context26.n = 1;
+            return updateSettings({
+              notifPrefs: prefs
+            });
+          case 1:
+            toast.push({
+              type: "success",
+              title: "Préférences enregistrées"
+            });
+          case 2:
+            return _context26.a(2);
+        }
+      }, _callee26);
+    }))
+  }, "Enregistrer")));
+}
+
+// ---------------- Data tab ----------------
+function SettingsData(_ref96) {
+  var state = _ref96.state,
+    exportJson = _ref96.exportJson,
+    onReset = _ref96.onReset,
+    currentUser = _ref96.currentUser;
+  var isAdmin = (currentUser === null || currentUser === void 0 ? void 0 : currentUser.role) === "admin";
+  var counts = [{
+    label: "Clients",
+    value: state.clients.length,
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-4 h-4"
+    })
+  }, {
+    label: "Prospects",
+    value: state.prospects.length,
+    icon: /*#__PURE__*/React.createElement(Ic.Target, {
+      className: "w-4 h-4"
+    })
+  }, {
+    label: "Devis",
+    value: state.quotes.length,
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-4 h-4"
+    })
+  }, {
+    label: "Factures",
+    value: state.invoices.length,
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-4 h-4"
+    })
+  }, {
+    label: "Catalogue",
+    value: (state.products || []).length,
+    icon: /*#__PURE__*/React.createElement(Ic.Package, {
+      className: "w-4 h-4"
+    })
+  }, {
+    label: "Notifications",
+    value: state.notifications.length,
+    icon: /*#__PURE__*/React.createElement(Ic.Bell, {
+      className: "w-4 h-4"
+    })
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "\xC9tat de votre base"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-5"
+  }, "Vue d'ensemble des donn\xE9es partag\xE9es entre tous les utilisateurs."), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-3 gap-3"
+  }, counts.map(function (c) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: c.label,
+      className: "rounded-md border border-paper-200 bg-paper-50/60 p-3 flex items-center gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "w-9 h-9 rounded-md bg-white border border-paper-200 flex items-center justify-center text-gold-700"
+    }, c.icon), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-500"
+    }, c.label), /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-paper-800 text-lg tabular-nums leading-none mt-0.5"
+    }, c.value)));
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, "Export & sauvegarde"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-500 mb-4"
+  }, "Exportez la totalit\xE9 de vos donn\xE9es en JSON pour archivage ou migration."), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap gap-3"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      className: "w-4 h-4"
+    }),
+    onClick: exportJson
+  }, "Exporter en JSON")), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-500 mt-3"
+  }, "Les donn\xE9es sont stock\xE9es en s\xE9curit\xE9 sur un volume persistant Railway. Une sauvegarde r\xE9guli\xE8re reste recommand\xE9e.")), isAdmin && /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6 border-red-200/60"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-red-700 mb-1 flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), "Zone dangereuse"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-600 mb-4"
+  }, "Effacer toutes les donn\xE9es m\xE9tier de l'organisation. ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-red-600"
+  }, "Cette action est irr\xE9versible"), "."), /*#__PURE__*/React.createElement(Button, {
+    variant: "danger",
+    icon: /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-4 h-4"
+    }),
+    onClick: onReset
+  }, "R\xE9initialiser toutes les donn\xE9es")));
+}
 // ============================================================================
 //  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
 // ============================================================================
-function SignaturePage(_ref86) {
-  var quoteId = _ref86.quoteId,
-    onClose = _ref86.onClose;
+function SignaturePage(_ref97) {
+  var quoteId = _ref97.quoteId,
+    onClose = _ref97.onClose;
   var toast = useToast();
-  var _useState137 = useState(null),
-    _useState138 = _slicedToArray(_useState137, 2),
-    quote = _useState138[0],
-    setQuote = _useState138[1];
-  var _useState139 = useState(null),
-    _useState140 = _slicedToArray(_useState139, 2),
-    recipient = _useState140[0],
-    setRecipient = _useState140[1];
-  var _useState141 = useState(COMPANY),
-    _useState142 = _slicedToArray(_useState141, 2),
-    company = _useState142[0],
-    setCompany = _useState142[1];
-  var _useState143 = useState(true),
-    _useState144 = _slicedToArray(_useState143, 2),
-    loading = _useState144[0],
-    setLoading = _useState144[1];
-  var _useState145 = useState(false),
-    _useState146 = _slicedToArray(_useState145, 2),
-    notFound = _useState146[0],
-    setNotFound = _useState146[1];
-  var _useState147 = useState(""),
-    _useState148 = _slicedToArray(_useState147, 2),
-    name = _useState148[0],
-    setName = _useState148[1];
-  var _useState149 = useState(false),
-    _useState150 = _slicedToArray(_useState149, 2),
-    accept = _useState150[0],
-    setAccept = _useState150[1];
-  var _useState151 = useState(false),
-    _useState152 = _slicedToArray(_useState151, 2),
-    signed = _useState152[0],
-    setSigned = _useState152[1];
+  var _useState155 = useState(null),
+    _useState156 = _slicedToArray(_useState155, 2),
+    quote = _useState156[0],
+    setQuote = _useState156[1];
+  var _useState157 = useState(null),
+    _useState158 = _slicedToArray(_useState157, 2),
+    recipient = _useState158[0],
+    setRecipient = _useState158[1];
+  var _useState159 = useState(COMPANY),
+    _useState160 = _slicedToArray(_useState159, 2),
+    company = _useState160[0],
+    setCompany = _useState160[1];
+  var _useState161 = useState(true),
+    _useState162 = _slicedToArray(_useState161, 2),
+    loading = _useState162[0],
+    setLoading = _useState162[1];
+  var _useState163 = useState(false),
+    _useState164 = _slicedToArray(_useState163, 2),
+    notFound = _useState164[0],
+    setNotFound = _useState164[1];
+  var _useState165 = useState(""),
+    _useState166 = _slicedToArray(_useState165, 2),
+    name = _useState166[0],
+    setName = _useState166[1];
+  var _useState167 = useState(false),
+    _useState168 = _slicedToArray(_useState167, 2),
+    accept = _useState168[0],
+    setAccept = _useState168[1];
+  var _useState169 = useState(false),
+    _useState170 = _slicedToArray(_useState169, 2),
+    signed = _useState170[0],
+    setSigned = _useState170[1];
   useEffect(function () {
     fetch("/api/public/quote/".concat(quoteId)).then(function (r) {
       if (!r.ok) throw new Error("not found");
@@ -9836,19 +10749,19 @@ function SignaturePage(_ref86) {
     }, "Retour au CRM")));
   }
   var onSign = /*#__PURE__*/function () {
-    var _ref87 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
+    var _ref98 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee27() {
       var res, _t10;
-      return _regenerator().w(function (_context22) {
-        while (1) switch (_context22.p = _context22.n) {
+      return _regenerator().w(function (_context27) {
+        while (1) switch (_context27.p = _context27.n) {
           case 0:
             if (!(!name.trim() || !accept)) {
-              _context22.n = 1;
+              _context27.n = 1;
               break;
             }
-            return _context22.a(2);
+            return _context27.a(2);
           case 1:
-            _context22.p = 1;
-            _context22.n = 2;
+            _context27.p = 1;
+            _context27.n = 2;
             return fetch("/api/public/quote/".concat(quote.id, "/sign"), {
               method: "POST",
               headers: {
@@ -9860,9 +10773,9 @@ function SignaturePage(_ref86) {
               })
             });
           case 2:
-            res = _context22.v;
+            res = _context27.v;
             if (res.ok) {
-              _context22.n = 3;
+              _context27.n = 3;
               break;
             }
             throw new Error("Signature échouée");
@@ -9878,23 +10791,23 @@ function SignaturePage(_ref86) {
               title: "Devis signé !",
               message: "Cerberion a été notifié."
             });
-            _context22.n = 5;
+            _context27.n = 5;
             break;
           case 4:
-            _context22.p = 4;
-            _t10 = _context22.v;
+            _context27.p = 4;
+            _t10 = _context27.v;
             toast.push({
               type: "error",
               title: "Erreur",
               message: String(_t10.message || _t10)
             });
           case 5:
-            return _context22.a(2);
+            return _context27.a(2);
         }
-      }, _callee22, null, [[1, 4]]);
+      }, _callee27, null, [[1, 4]]);
     }));
     return function onSign() {
-      return _ref87.apply(this, arguments);
+      return _ref98.apply(this, arguments);
     };
   }();
   if (signed || quote.signedAt) {
@@ -10037,10 +10950,10 @@ function SignaturePage(_ref86) {
 //  MAIN APP
 // ============================================================================
 function App() {
-  var _useState153 = useState(window.location.hash),
-    _useState154 = _slicedToArray(_useState153, 2),
-    hash = _useState154[0],
-    setHash = _useState154[1];
+  var _useState171 = useState(window.location.hash),
+    _useState172 = _slicedToArray(_useState171, 2),
+    hash = _useState172[0],
+    setHash = _useState172[1];
   useEffect(function () {
     var onHash = function onHash() {
       return setHash(window.location.hash);
@@ -10063,59 +10976,59 @@ function App() {
 }
 function Shell() {
   // Routing in-app (state-driven, single page)
-  var _useState155 = useState("dashboard"),
-    _useState156 = _slicedToArray(_useState155, 2),
-    page = _useState156[0],
-    setPage = _useState156[1];
-  var _useState157 = useState({
+  var _useState173 = useState("dashboard"),
+    _useState174 = _slicedToArray(_useState173, 2),
+    page = _useState174[0],
+    setPage = _useState174[1];
+  var _useState175 = useState({
       kind: "list"
     }),
-    _useState158 = _slicedToArray(_useState157, 2),
-    view = _useState158[0],
-    setView = _useState158[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
-  var _useState159 = useState(false),
-    _useState160 = _slicedToArray(_useState159, 2),
-    collapsed = _useState160[0],
-    setCollapsed = _useState160[1];
-  var _useState161 = useState(""),
-    _useState162 = _slicedToArray(_useState161, 2),
-    search = _useState162[0],
-    setSearch = _useState162[1];
-  var _useState163 = useState(false),
-    _useState164 = _slicedToArray(_useState163, 2),
-    mobileMenu = _useState164[0],
-    setMobileMenu = _useState164[1];
+    _useState176 = _slicedToArray(_useState175, 2),
+    view = _useState176[0],
+    setView = _useState176[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
+  var _useState177 = useState(false),
+    _useState178 = _slicedToArray(_useState177, 2),
+    collapsed = _useState178[0],
+    setCollapsed = _useState178[1];
+  var _useState179 = useState(""),
+    _useState180 = _slicedToArray(_useState179, 2),
+    search = _useState180[0],
+    setSearch = _useState180[1];
+  var _useState181 = useState(false),
+    _useState182 = _slicedToArray(_useState181, 2),
+    mobileMenu = _useState182[0],
+    setMobileMenu = _useState182[1];
 
   // Filter for devis/factures pages (set when navigating from a profile)
-  var _useState165 = useState({
+  var _useState183 = useState({
       clientId: null,
       prospectId: null
     }),
-    _useState166 = _slicedToArray(_useState165, 2),
-    devisFilter = _useState166[0],
-    setDevisFilter = _useState166[1];
-  var _useState167 = useState({
+    _useState184 = _slicedToArray(_useState183, 2),
+    devisFilter = _useState184[0],
+    setDevisFilter = _useState184[1];
+  var _useState185 = useState({
       clientId: null
     }),
-    _useState168 = _slicedToArray(_useState167, 2),
-    facturesFilter = _useState168[0],
-    setFacturesFilter = _useState168[1];
+    _useState186 = _slicedToArray(_useState185, 2),
+    facturesFilter = _useState186[0],
+    setFacturesFilter = _useState186[1];
 
   // Modals managed at shell level
-  var _useState169 = useState(null),
-    _useState170 = _slicedToArray(_useState169, 2),
-    quoteEditor = _useState170[0],
-    setQuoteEditor = _useState170[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
-  var _useState171 = useState(null),
-    _useState172 = _slicedToArray(_useState171, 2),
-    quoteViewer = _useState172[0],
-    setQuoteViewer = _useState172[1]; // null | quoteId
+  var _useState187 = useState(null),
+    _useState188 = _slicedToArray(_useState187, 2),
+    quoteEditor = _useState188[0],
+    setQuoteEditor = _useState188[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
+  var _useState189 = useState(null),
+    _useState190 = _slicedToArray(_useState189, 2),
+    quoteViewer = _useState190[0],
+    setQuoteViewer = _useState190[1]; // null | quoteId
 
   // Invoice viewer state
-  var _useState173 = useState(null),
-    _useState174 = _slicedToArray(_useState173, 2),
-    invoiceViewer = _useState174[0],
-    setInvoiceViewer = _useState174[1];
+  var _useState191 = useState(null),
+    _useState192 = _slicedToArray(_useState191, 2),
+    invoiceViewer = _useState192[0],
+    setInvoiceViewer = _useState192[1];
 
   // Helpers
   var goTo = function goTo(newPage) {
@@ -10349,10 +11262,10 @@ function Shell() {
     }
   }));
 }
-function QuoteEditorWrapper(_ref88) {
-  var editor = _ref88.editor,
-    onClose = _ref88.onClose,
-    onAfterSave = _ref88.onAfterSave;
+function QuoteEditorWrapper(_ref99) {
+  var editor = _ref99.editor,
+    onClose = _ref99.onClose,
+    onAfterSave = _ref99.onAfterSave;
   var _useStore19 = useStore(),
     state = _useStore19.state,
     upsertQuote = _useStore19.upsertQuote,
@@ -10399,10 +11312,10 @@ function QuoteEditorWrapper(_ref88) {
     }
   });
 }
-function QuoteViewerWrapper(_ref89) {
-  var quoteId = _ref89.quoteId,
-    onClose = _ref89.onClose,
-    _onEdit = _ref89.onEdit;
+function QuoteViewerWrapper(_ref100) {
+  var quoteId = _ref100.quoteId,
+    onClose = _ref100.onClose,
+    _onEdit = _ref100.onEdit;
   return /*#__PURE__*/React.createElement(QuoteViewer, {
     quoteId: quoteId,
     onClose: onClose,

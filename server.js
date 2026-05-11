@@ -60,11 +60,14 @@ const emptyState = () => ({
   version: 3,
   clients: [], prospects: [], quotes: [], invoices: [],
   tasks: [], activities: [], notifications: [],
+  products: [],
   settings: { vat: 17 },
   updatedAt: nowISO(),
 });
 let stateCache = readJson(STATE_FILE, null);
 if (!stateCache) { stateCache = emptyState(); writeJsonAtomic(STATE_FILE, stateCache); }
+// Backfill new fields if state was created with an older shape
+if (!Array.isArray(stateCache.products)) stateCache.products = [];
 
 // ---------- Auth (users + invitations) ----------
 const emptyAuth = () => ({ users: [], invitations: [], sessions: [] });
@@ -391,6 +394,21 @@ app.post("/api/state/dispatch", authRequired, (req, res) => {
       }
       case "deleteNotif": {
         stateCache.notifications = stateCache.notifications.filter(n => n.id !== payload.id);
+        break;
+      }
+      // Products (catalogue)
+      case "upsertProduct": {
+        const data = payload;
+        const products = stateCache.products || [];
+        if (data.id) {
+          stateCache.products = products.map(p => p.id === data.id ? { ...p, ...data, updatedAt: now } : p);
+        } else {
+          stateCache.products = [...products, { ...data, id: uid("prod"), createdAt: now, updatedAt: now, createdBy: req.user.id }];
+        }
+        break;
+      }
+      case "deleteProduct": {
+        stateCache.products = (stateCache.products || []).filter(p => p.id !== payload.id);
         break;
       }
       // Settings
