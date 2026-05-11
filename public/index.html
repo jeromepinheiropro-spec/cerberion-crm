@@ -1905,7 +1905,32 @@ function PageHeader({
 }
 
 // ============================================================================
-//  AUTH PROVIDER & GATE - with roles, positions, invitations
+//  API HELPER - JWT + fetch
+// ============================================================================
+const TOKEN_KEY = "cerberion-jwt-v1";
+const apiBase = "";
+async function apiFetch(path, opts = {}) {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const headers = {
+    "Content-Type": "application/json",
+    ...(opts.headers || {})
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(apiBase + path, {
+    ...opts,
+    headers
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({
+      error: res.statusText
+    }));
+    throw new Error(body.error || res.statusText);
+  }
+  return res.json();
+}
+
+// ============================================================================
+//  AUTH PROVIDER - server-side users, JWT in localStorage
 // ============================================================================
 const AuthCtx = createContext(null);
 function useAuth() {
@@ -1914,167 +1939,176 @@ function useAuth() {
 function AuthProvider({
   children
 }) {
-  const [auth, setAuth] = useState(() => {
-    const loaded = loadAuth();
-    return {
-      users: loaded?.users || [],
-      invitations: loaded?.invitations || []
-    };
-  });
-  const [sessionUserId, setSessionUserId] = useState(() => loadSession());
-  const currentUser = auth.users.find(u => u.id === sessionUserId) || null;
-  useEffect(() => {
-    saveAuth(auth);
-  }, [auth]);
-  useEffect(() => {
-    if (sessionUserId) saveSession(sessionUserId);else clearSession();
-  }, [sessionUserId]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [bootLoading, setBootLoading] = useState(true);
+  const [pendingInvite, setPendingInvite] = useState(null);
+  const [authError, setAuthError] = useState(null);
 
   // Check URL hash for invitation token on mount
-  const [pendingInvite, setPendingInvite] = useState(() => {
+  useEffect(() => {
     const m = window.location.hash.match(/^#invite\/(.+)$/);
     if (m) {
-      const inv = (loadAuth()?.invitations || []).find(i => i.token === m[1] && !i.usedAt);
-      return inv || null;
+      apiFetch(`/api/invitations/check/${m[1]}`).then(r => setPendingInvite({
+        ...r.invitation,
+        token: m[1]
+      })).catch(() => setPendingInvite(null));
     }
-    return null;
-  });
+  }, []);
+
+  // Boot: if token, validate
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      setBootLoading(false);
+      return;
+    }
+    apiFetch("/api/auth/me").then(r => {
+      setCurrentUser(r.user);
+    }).catch(() => {
+      localStorage.removeItem(TOKEN_KEY);
+    }).finally(() => setBootLoading(false));
+  }, []);
+
+  // Load users list (for backend admin + display purposes)
+  useEffect(() => {
+    if (!currentUser) return;
+    apiFetch("/api/auth/users").then(r => setUsers(r.users)).catch(() => {});
+    if (currentUser.role === "admin") {
+      apiFetch("/api/invitations").then(r => setInvitations(r.invitations)).catch(() => {});
+    }
+  }, [currentUser]);
+  const refreshUsers = async () => {
+    try {
+      const r = await apiFetch("/api/auth/users");
+      setUsers(r.users);
+    } catch (e) {}
+  };
+  const refreshInvitations = async () => {
+    try {
+      const r = await apiFetch("/api/invitations");
+      setInvitations(r.invitations);
+    } catch (e) {}
+  };
   const signup = async ({
     email,
     name,
     password,
     position,
     role,
-    fromInvite
+    inviteToken
   }) => {
-    const e = (email || "").trim().toLowerCase();
-    if (!e || !name.trim() || !password) return {
-      ok: false,
-      error: "Tous les champs sont requis"
-    };
-    if (password.length < 6) return {
-      ok: false,
-      error: "Mot de passe trop court (6 caractères min)"
-    };
-    if (auth.users.find(u => u.email === e)) return {
-      ok: false,
-      error: "Email déjà utilisé"
-    };
-    const hash = await hashPassword(password);
-    const isFirst = auth.users.length === 0;
-    // First user is always admin. Invited users get the role from invitation. Others get "commercial" by default.
-    const finalRole = isFirst ? "admin" : fromInvite?.role || role || "commercial";
-    const finalPosition = (position || "").trim() || fromInvite?.position || "";
-    const user = {
-      id: uid("usr"),
-      email: e,
-      name: name.trim(),
-      role: finalRole,
-      position: finalPosition,
-      passwordHash: hash,
-      createdAt: nowISO(),
-      lastLogin: nowISO(),
-      invitedBy: fromInvite?.createdBy || null
-    };
-    setAuth(a => ({
-      ...a,
-      users: [...a.users, user],
-      invitations: fromInvite ? a.invitations.map(i => i.id === fromInvite.id ? {
-        ...i,
-        usedAt: nowISO(),
-        usedBy: user.id
-      } : i) : a.invitations
-    }));
-    setSessionUserId(user.id);
-    if (fromInvite) {
-      window.location.hash = "";
-      setPendingInvite(null);
+    try {
+      const r = await apiFetch("/api/auth/signup", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          name,
+          password,
+          position,
+          role,
+          inviteToken
+        })
+      });
+      localStorage.setItem(TOKEN_KEY, r.token);
+      setCurrentUser(r.user);
+      if (inviteToken) {
+        window.location.hash = "";
+        setPendingInvite(null);
+      }
+      return {
+        ok: true,
+        user: r.user
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e.message
+      };
     }
-    return {
-      ok: true,
-      user
-    };
   };
   const login = async ({
     email,
     password
   }) => {
-    const e = (email || "").trim().toLowerCase();
-    const user = auth.users.find(u => u.email === e);
-    if (!user) return {
-      ok: false,
-      error: "Email introuvable"
-    };
-    const hash = await hashPassword(password);
-    if (hash !== user.passwordHash) return {
-      ok: false,
-      error: "Mot de passe incorrect"
-    };
-    setAuth(a => ({
-      ...a,
-      users: a.users.map(u => u.id === user.id ? {
-        ...u,
-        lastLogin: nowISO()
-      } : u)
-    }));
-    setSessionUserId(user.id);
-    return {
-      ok: true,
-      user
-    };
+    try {
+      const r = await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password
+        })
+      });
+      localStorage.setItem(TOKEN_KEY, r.token);
+      setCurrentUser(r.user);
+      return {
+        ok: true,
+        user: r.user
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e.message
+      };
+    }
   };
-  const logout = () => setSessionUserId(null);
-  const updateUser = (id, patch) => setAuth(a => ({
-    ...a,
-    users: a.users.map(u => u.id === id ? {
-      ...u,
-      ...patch
-    } : u)
-  }));
-  const deleteUser = id => setAuth(a => ({
-    ...a,
-    users: a.users.filter(u => u.id !== id)
-  }));
-  const changePassword = async (id, newPassword) => {
-    const hash = await hashPassword(newPassword);
-    updateUser(id, {
-      passwordHash: hash
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    setCurrentUser(null);
+  };
+  const updateUser = async (id, patch) => {
+    await apiFetch(`/api/auth/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch)
+    });
+    await refreshUsers();
+  };
+  const deleteUser = async id => {
+    await apiFetch(`/api/auth/users/${id}`, {
+      method: "DELETE"
+    });
+    await refreshUsers();
+  };
+  const changePassword = async (id, password) => {
+    await apiFetch(`/api/auth/users/${id}/password`, {
+      method: "POST",
+      body: JSON.stringify({
+        password
+      })
     });
   };
-
-  // Invitations
-  const createInvitation = ({
+  const createInvitation = async ({
     email,
     role,
     position
   }) => {
-    const token = uid("inv").slice(4) + Math.random().toString(36).slice(2, 10);
-    const invitation = {
-      id: uid("inv"),
-      email: (email || "").trim().toLowerCase(),
-      role: role || "commercial",
-      position: (position || "").trim(),
-      token,
-      createdAt: nowISO(),
-      createdBy: currentUser?.id,
-      usedAt: null,
-      usedBy: null
-    };
-    setAuth(a => ({
-      ...a,
-      invitations: [...a.invitations, invitation]
-    }));
-    return invitation;
+    const r = await apiFetch("/api/invitations", {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        role,
+        position
+      })
+    });
+    await refreshInvitations();
+    return r.invitation;
   };
-  const revokeInvitation = id => setAuth(a => ({
-    ...a,
-    invitations: a.invitations.filter(i => i.id !== id)
-  }));
+  const revokeInvitation = async id => {
+    await apiFetch(`/api/invitations/${id}`, {
+      method: "DELETE"
+    });
+    await refreshInvitations();
+  };
   const inviteLink = token => `${location.origin}${location.pathname}#invite/${token}`;
   const api = {
-    auth,
+    auth: {
+      users,
+      invitations
+    },
     currentUser,
     pendingInvite,
+    bootLoading,
     signup,
     login,
     logout,
@@ -2083,7 +2117,9 @@ function AuthProvider({
     changePassword,
     createInvitation,
     revokeInvitation,
-    inviteLink
+    inviteLink,
+    refreshUsers,
+    refreshInvitations
   };
   return /*#__PURE__*/React.createElement(AuthCtx.Provider, {
     value: api
@@ -2099,12 +2135,25 @@ function AuthGate({
   const {
     auth,
     currentUser,
-    pendingInvite
+    pendingInvite,
+    bootLoading
   } = useAuth();
-  const [mode, setMode] = useState(() => {
-    if (pendingInvite) return "signup";
-    return auth.users.length === 0 ? "signup" : "login";
-  });
+  const [mode, setMode] = useState(() => pendingInvite ? "signup" : auth.users.length === 0 ? "signup" : "login");
+
+  // Auto-switch mode based on invitation
+  useEffect(() => {
+    if (pendingInvite) setMode("signup");
+  }, [pendingInvite]);
+  if (bootLoading) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "min-h-screen flex items-center justify-center",
+      style: {
+        background: "linear-gradient(135deg, #0a0c10 0%, #151922 100%)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-paper-300"
+    }, "Chargement\u2026"));
+  }
   if (currentUser) return children;
   return /*#__PURE__*/React.createElement("div", {
     className: "min-h-screen flex items-center justify-center p-4",
@@ -2125,9 +2174,9 @@ function AuthGate({
     className: "font-display text-2xl tracking-[0.3em] text-gold-200"
   }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-paper-400 tracking-wider uppercase mt-1"
-  }, "Security CRM \xB7 Espace de connexion")), pendingInvite && /*#__PURE__*/React.createElement("div", {
+  }, "Security CRM")), pendingInvite && /*#__PURE__*/React.createElement("div", {
     className: "mb-4 p-3 rounded-lg bg-gold-500/10 border border-gold-500/30 text-gold-200 text-sm text-center"
-  }, "\uD83C\uDF89 Invitation re\xE7ue pour rejoindre Cerberion \xB7 R\xF4le : ", /*#__PURE__*/React.createElement("span", {
+  }, "\uD83C\uDF89 Invitation re\xE7ue \u2014 R\xF4le : ", /*#__PURE__*/React.createElement("span", {
     className: "font-semibold"
   }, USER_ROLES[pendingInvite.role]?.label || pendingInvite.role)), mode === "login" ? /*#__PURE__*/React.createElement(LoginForm, {
     onSwitchToSignup: () => setMode("signup")
@@ -2227,7 +2276,7 @@ function SignupForm({
       password,
       position,
       role,
-      fromInvite: invitation
+      inviteToken: invitation?.token
     });
     setLoading(false);
     if (!res.ok) setError(res.error);
@@ -2240,7 +2289,7 @@ function SignupForm({
     className: "text-xl font-bold text-paper-800 mb-1"
   }, firstUser ? "Créer le compte administrateur" : invitation ? "Finaliser votre inscription" : "Créer un compte"), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-paper-600 mb-5"
-  }, firstUser ? "Vous êtes le premier utilisateur. Votre compte aura les droits d'administration." : invitation ? `Compte créé avec le rôle ${USER_ROLES[invitation.role]?.label}.` : "Créez votre compte pour rejoindre l'équipe Cerberion. L'administrateur pourra modifier votre rôle ensuite."), /*#__PURE__*/React.createElement("div", {
+  }, firstUser ? "Premier utilisateur · droits administrateur." : invitation ? `Compte créé avec le rôle ${USER_ROLES[invitation.role]?.label}.` : "L'administrateur pourra modifier votre rôle ensuite."), /*#__PURE__*/React.createElement("div", {
     className: "space-y-4"
   }, /*#__PURE__*/React.createElement(Field, {
     label: "Nom complet",
@@ -2258,13 +2307,13 @@ function SignupForm({
     value: email,
     onChange: e => setEmail(e.target.value),
     placeholder: "prenom.nom@cerberion.lu",
-    disabled: !!invitation
+    disabled: !!invitation && !!invitation.email
   })), /*#__PURE__*/React.createElement(Field, {
-    label: "Poste / Fonction dans la soci\xE9t\xE9"
+    label: "Poste / Fonction"
   }, /*#__PURE__*/React.createElement(Input, {
     value: position,
     onChange: e => setPosition(e.target.value),
-    placeholder: "Ex : Charg\xE9 de comptes, Agent SSIAP1, Directeur op\xE9rationnel\u2026"
+    placeholder: "Ex : Charg\xE9 d'affaires, Agent SSIAP1\u2026"
   })), showRoleSelect && /*#__PURE__*/React.createElement(Field, {
     label: "Type de compte",
     hint: "L'administrateur pourra modifier votre r\xF4le apr\xE8s inscription"
@@ -2286,7 +2335,7 @@ function SignupForm({
     value: password,
     onChange: e => setPassword(e.target.value)
   })), /*#__PURE__*/React.createElement(Field, {
-    label: "Confirmer le mot de passe",
+    label: "Confirmer",
     required: true
   }, /*#__PURE__*/React.createElement(Input, {
     type: "password",
@@ -2310,7 +2359,7 @@ function SignupForm({
 }
 
 // ============================================================================
-//  BACKEND PAGE - admin only - users + invitations + stats
+//  BACKEND PAGE
 // ============================================================================
 function BackendPage() {
   const {
@@ -2321,7 +2370,8 @@ function BackendPage() {
     changePassword,
     createInvitation,
     revokeInvitation,
-    inviteLink
+    inviteLink,
+    refreshInvitations
   } = useAuth();
   const {
     state
@@ -2343,7 +2393,6 @@ function BackendPage() {
     }, "Cette page est r\xE9serv\xE9e aux administrateurs."));
   }
   const totalSigned = state.quotes.filter(q => q.status === "signe").reduce((s, q) => s + (q.ttc || 0), 0);
-  const totalOpen = state.quotes.filter(q => q.status === "envoye").reduce((s, q) => s + (q.ttc || 0), 0);
   const sortedUsers = [...auth.users].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const pendingInvitations = auth.invitations.filter(i => !i.usedAt);
   const usedInvitations = auth.invitations.filter(i => i.usedAt);
@@ -2421,7 +2470,7 @@ function BackendPage() {
     className: "px-5 py-3 font-semibold"
   }, "Email"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3 font-semibold"
-  }, "R\xF4le propos\xE9"), /*#__PURE__*/React.createElement("th", {
+  }, "R\xF4le"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3 font-semibold"
   }, "Poste"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3 font-semibold"
@@ -2454,8 +2503,8 @@ function BackendPage() {
     }),
     onClick: () => copyLink(inviteLink(inv.token))
   }, "Copier lien"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      revokeInvitation(inv.id);
+    onClick: async () => {
+      await revokeInvitation(inv.id);
       toast.push({
         type: "warning",
         title: "Invitation annulée"
@@ -2470,9 +2519,7 @@ function BackendPage() {
     className: "px-5 py-4 border-b border-paper-200 flex items-center justify-between"
   }, /*#__PURE__*/React.createElement("h3", {
     className: "font-semibold text-paper-800"
-  }, "Utilisateurs (", auth.users.length, ")"), /*#__PURE__*/React.createElement("span", {
-    className: "text-xs text-paper-500"
-  }, "Premi\xE8re inscription = admin \xB7 invitations cibl\xE9es r\xF4le")), /*#__PURE__*/React.createElement("div", {
+  }, "Utilisateurs (", auth.users.length, ")")), /*#__PURE__*/React.createElement("div", {
     className: "overflow-x-auto"
   }, /*#__PURE__*/React.createElement("table", {
     className: "w-full text-sm"
@@ -2517,13 +2564,13 @@ function BackendPage() {
   }, /*#__PURE__*/React.createElement(Select, {
     value: u.role,
     disabled: u.id === currentUser.id,
-    onChange: e => {
-      updateUser(u.id, {
+    onChange: async e => {
+      await updateUser(u.id, {
         role: e.target.value
       });
       toast.push({
         type: "success",
-        title: `Rôle modifié`,
+        title: "Rôle modifié",
         message: `${u.name} → ${USER_ROLES[e.target.value]?.label}`
       });
     },
@@ -2550,25 +2597,7 @@ function BackendPage() {
     className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
   }, /*#__PURE__*/React.createElement(Ic.Trash, {
     className: "w-4 h-4"
-  })))))))))), usedInvitations.length > 0 && /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-5"
-  }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800 mb-3"
-  }, "Historique des invitations utilis\xE9es (", usedInvitations.length, ")"), /*#__PURE__*/React.createElement("div", {
-    className: "space-y-2"
-  }, usedInvitations.slice(0, 5).map(inv => {
-    const usedByUser = auth.users.find(u => u.id === inv.usedBy);
-    return /*#__PURE__*/React.createElement("div", {
-      key: inv.id,
-      className: "flex items-center justify-between text-sm py-2 border-b border-paper-100 last:border-0"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "text-paper-700"
-    }, inv.email, " \xB7 ", /*#__PURE__*/React.createElement(Badge, {
-      color: USER_ROLES[inv.role]?.badgeColor
-    }, USER_ROLES[inv.role]?.label)), /*#__PURE__*/React.createElement("div", {
-      className: "text-xs text-paper-500"
-    }, "Accept\xE9e par ", usedByUser?.name || "—", " \xB7 ", fmtDate(inv.usedAt)));
-  }))), /*#__PURE__*/React.createElement("div", {
+  })))))))))), /*#__PURE__*/React.createElement("div", {
     className: "card-base p-5"
   }, /*#__PURE__*/React.createElement("h3", {
     className: "font-semibold text-paper-800 mb-2"
@@ -2586,8 +2615,8 @@ function BackendPage() {
     message: `Le compte de "${confirmDelete.name}" (${confirmDelete.email}) sera définitivement supprimé.`,
     danger: true,
     onCancel: () => setConfirmDelete(null),
-    onConfirm: () => {
-      deleteUser(confirmDelete.id);
+    onConfirm: async () => {
+      await deleteUser(confirmDelete.id);
       toast.push({
         type: "warning",
         title: "Utilisateur supprimé"
@@ -2610,12 +2639,12 @@ function BackendPage() {
       setShowInvite(false);
       setGeneratedLink(null);
     },
-    onCreate: ({
+    onCreate: async ({
       email,
       role,
       position
     }) => {
-      const inv = createInvitation({
+      const inv = await createInvitation({
         email,
         role,
         position
@@ -2626,7 +2655,9 @@ function BackendPage() {
         email,
         role
       });
-      copyLink(link);
+      try {
+        await navigator.clipboard.writeText(link);
+      } catch (e) {}
       toast.push({
         type: "success",
         title: "Invitation créée",
@@ -2737,8 +2768,7 @@ function InviteModal({
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
-      onClick: submit,
-      disabled: !email && !role
+      onClick: submit
     }, "G\xE9n\xE9rer le lien"))
   }, generatedLink ? /*#__PURE__*/React.createElement("div", {
     className: "space-y-4"
@@ -2752,7 +2782,7 @@ function InviteModal({
     className: "card-soft p-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-[11px] uppercase tracking-wider text-paper-500 font-semibold mb-2"
-  }, "Lien d'invitation (\xE0 partager par email ou messagerie)"), /*#__PURE__*/React.createElement("div", {
+  }, "Lien d'invitation \xE0 partager"), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2"
   }, /*#__PURE__*/React.createElement("code", {
     className: "flex-1 text-xs bg-white border border-paper-200 rounded-md px-3 py-2 truncate select-all"
@@ -2765,11 +2795,11 @@ function InviteModal({
     onClick: () => navigator.clipboard?.writeText(generatedLink.link)
   }, "Copier")), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-paper-500 mt-2"
-  }, "Le lien est unique et \xE0 usage unique. La personne pourra cr\xE9er son compte avec le r\xF4le assign\xE9."))) : /*#__PURE__*/React.createElement("div", {
+  }, "Lien unique \xE0 usage unique. Le destinataire pourra cr\xE9er son compte avec le r\xF4le assign\xE9."))) : /*#__PURE__*/React.createElement("div", {
     className: "space-y-4"
   }, /*#__PURE__*/React.createElement(Field, {
     label: "Email du destinataire",
-    hint: "Pour identifier l'invitation. Le lien fonctionnera m\xEAme sans email v\xE9rifi\xE9."
+    hint: "Pour identifier l'invitation"
   }, /*#__PURE__*/React.createElement(Input, {
     type: "email",
     value: email,
@@ -2777,8 +2807,7 @@ function InviteModal({
     placeholder: "prenom.nom@cerberion.lu",
     autoFocus: true
   })), /*#__PURE__*/React.createElement(Field, {
-    label: "Poste / Fonction (suggestion)",
-    hint: "Pr\xE9-rempli sur le formulaire d'inscription"
+    label: "Poste / Fonction (suggestion)"
   }, /*#__PURE__*/React.createElement(Input, {
     value: position,
     onChange: e => setPosition(e.target.value),
@@ -2877,413 +2906,155 @@ function StoreProvider({
   children
 }) {
   const authCtx = useAuth();
-  const currentUserId = authCtx?.currentUser?.id || null;
-  const [state, setState] = useState(() => {
-    const loaded = loadState();
-    if (!loaded || !loaded.invoices) return emptyData();
-    return loaded;
-  });
+  const currentUser = authCtx?.currentUser;
+  const currentUserId = currentUser?.id || null;
+  const [state, setState] = useState(() => ({
+    ...emptyData(),
+    updatedAt: null
+  }));
+  const [loading, setLoading] = useState(true);
+  const lastFetchRef = useRef(null);
+
+  // Initial load + polling for synchronization across users
   useEffect(() => {
-    saveState(state);
-  }, [state]);
-  const update = useCallback(patch => setState(s => ({
-    ...s,
-    ...(typeof patch === "function" ? patch(s) : patch)
-  })), []);
+    if (!currentUser) return;
+    let cancelled = false;
+    const fetchState = async () => {
+      try {
+        const r = await apiFetch("/api/state");
+        if (cancelled) return;
+        // Only update if server is newer than what we have
+        if (!lastFetchRef.current || r.state.updatedAt !== lastFetchRef.current) {
+          setState(r.state);
+          lastFetchRef.current = r.state.updatedAt;
+        }
+      } catch (e) {
+        console.error("fetch state failed", e);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetchState();
+    const interval = setInterval(fetchState, 5000); // poll every 5s for team sync
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [currentUser]);
+
+  // All actions dispatch to server, which returns updated state
+  const dispatch = useCallback(async (action, payload) => {
+    try {
+      const r = await apiFetch("/api/state/dispatch", {
+        method: "POST",
+        body: JSON.stringify({
+          action,
+          payload
+        })
+      });
+      setState(r.state);
+      lastFetchRef.current = r.state.updatedAt;
+      return r.state;
+    } catch (e) {
+      console.error("dispatch failed", action, e);
+      throw e;
+    }
+  }, []);
+  const update = useCallback(() => {}, []); // no-op for compat
 
   // -------- Clients
-  const upsertClient = data => {
-    setState(s => {
-      const exists = s.clients.find(c => c.id === data.id);
-      const clients = exists ? s.clients.map(c => c.id === data.id ? {
-        ...c,
-        ...data
-      } : c) : [...s.clients, {
-        ...data,
-        id: data.id || uid("cli"),
-        createdAt: nowISO()
-      }];
-      const activities = exists ? s.activities : [{
-        id: uid("a"),
-        type: "client_created",
-        title: "Nouveau client",
-        description: `${data.name} ajouté au portefeuille`,
-        clientId: data.id || clients[clients.length - 1].id,
-        createdAt: nowISO()
-      }, ...s.activities];
-      return {
-        ...s,
-        clients,
-        activities
-      };
-    });
-  };
-  const deleteClient = id => setState(s => ({
-    ...s,
-    clients: s.clients.filter(c => c.id !== id),
-    quotes: s.quotes.map(q => q.clientId === id ? {
-      ...q,
-      clientId: null
-    } : q),
-    tasks: s.tasks.map(t => t.clientId === id ? {
-      ...t,
-      clientId: null
-    } : t)
-  }));
+  const upsertClient = data => dispatch("upsertClient", data);
+  const deleteClient = id => dispatch("deleteClient", {
+    id
+  });
 
   // -------- Prospects
-  const upsertProspect = data => {
-    setState(s => {
-      const exists = s.prospects.find(p => p.id === data.id);
-      const prospects = exists ? s.prospects.map(p => p.id === data.id ? {
-        ...p,
-        ...data
-      } : p) : [...s.prospects, {
-        ...data,
-        id: data.id || uid("pro"),
-        createdAt: nowISO(),
-        stage: data.stage || "contact"
-      }];
-      const activities = exists ? s.activities : [{
-        id: uid("a"),
-        type: "prospect_created",
-        title: "Nouveau prospect",
-        description: `${data.name} ajouté au pipeline`,
-        prospectId: data.id || prospects[prospects.length - 1].id,
-        createdAt: nowISO()
-      }, ...s.activities];
-      return {
-        ...s,
-        prospects,
-        activities
-      };
-    });
-  };
-  const deleteProspect = id => setState(s => ({
-    ...s,
-    prospects: s.prospects.filter(p => p.id !== id),
-    quotes: s.quotes.map(q => q.prospectId === id ? {
-      ...q,
-      prospectId: null
-    } : q),
-    tasks: s.tasks.map(t => t.prospectId === id ? {
-      ...t,
-      prospectId: null
-    } : t)
-  }));
-  const moveProspectStage = (id, stage) => setState(s => {
-    const p = s.prospects.find(x => x.id === id);
-    if (!p || p.stage === stage) return s;
-    const prospects = s.prospects.map(x => x.id === id ? {
-      ...x,
-      stage
-    } : x);
-    const activities = [{
-      id: uid("a"),
-      type: "stage_changed",
-      title: "Étape changée",
-      description: `${p.name} déplacé vers "${PROSPECT_STAGES.find(st => st.id === stage).label}"`,
-      prospectId: id,
-      createdAt: nowISO()
-    }, ...s.activities];
-    let clients = s.clients;
-    let notifications = s.notifications;
-    if (stage === "gagne") {
-      // Convert to client too
-      if (!s.clients.find(c => c.id === p.id)) {
-        clients = [...s.clients, {
-          id: p.id,
-          name: p.name,
-          type: p.type,
-          contact: p.contact,
-          email: p.email,
-          phone: p.phone,
-          address: p.address,
-          city: p.city,
-          zip: p.zip,
-          country: p.country,
-          vat: p.vat || "",
-          tags: p.tags || [],
-          notes: p.notes || "",
-          createdAt: nowISO()
-        }];
-      }
-      notifications = [{
-        id: uid("n"),
-        type: "prospect_won",
-        title: "Prospect converti",
-        message: `${p.name} est devenu client !`,
-        read: false,
-        createdAt: nowISO(),
-        link: {
-          page: "clients",
-          id: p.id
-        }
-      }, ...s.notifications];
-    }
-    return {
-      ...s,
-      prospects,
-      activities,
-      clients,
-      notifications
-    };
+  const upsertProspect = data => dispatch("upsertProspect", data);
+  const deleteProspect = id => dispatch("deleteProspect", {
+    id
+  });
+  const moveProspectStage = (id, stage) => dispatch("moveProspectStage", {
+    id,
+    stage
   });
 
   // -------- Quotes
   const upsertQuote = data => {
-    setState(s => {
-      const exists = s.quotes.find(q => q.id === data.id);
-      const totals = calcQuoteTotals(data.lines || [], data.discount || 0);
-      const merged = {
-        ...data,
-        ...totals
-      };
-      const quotes = exists ? s.quotes.map(q => q.id === data.id ? {
-        ...q,
-        ...merged
-      } : q) : [...s.quotes, {
-        ...merged,
-        id: data.id || uid("q"),
-        number: data.number || generateQuoteNumber(s.quotes),
-        createdAt: nowISO(),
-        createdBy: data.createdBy || currentUserId,
-        status: data.status || "brouillon"
-      }];
-      return {
-        ...s,
-        quotes
-      };
+    const totals = calcQuoteTotals(data.lines || [], data.discount || 0);
+    return dispatch("upsertQuote", {
+      ...data,
+      ...totals,
+      number: data.number || generateQuoteNumber(state.quotes)
     });
   };
-  const deleteQuote = id => setState(s => ({
-    ...s,
-    quotes: s.quotes.filter(q => q.id !== id)
-  }));
-  const setQuoteStatus = (id, status, extra = {}) => setState(s => {
-    const q = s.quotes.find(x => x.id === id);
-    if (!q) return s;
-    const next = {
-      ...q,
-      status,
-      ...extra
-    };
-    const quotes = s.quotes.map(x => x.id === id ? next : x);
-    let activities = s.activities;
-    let notifications = s.notifications;
-    if (status === "envoye" && q.status !== "envoye") {
-      activities = [{
-        id: uid("a"),
-        type: "quote_sent",
-        title: "Devis envoyé",
-        description: `Devis ${q.number} envoyé`,
-        clientId: q.clientId,
-        prospectId: q.prospectId,
-        quoteId: q.id,
-        createdAt: nowISO()
-      }, ...activities];
-    } else if (status === "signe") {
-      activities = [{
-        id: uid("a"),
-        type: "quote_signed",
-        title: "Devis signé",
-        description: `Devis ${q.number} signé par ${extra.signedBy || "client"}`,
-        clientId: q.clientId,
-        prospectId: q.prospectId,
-        quoteId: q.id,
-        createdAt: nowISO()
-      }, ...activities];
-      notifications = [{
-        id: uid("n"),
-        type: "quote_signed",
-        title: "Devis signé !",
-        message: `${extra.signedBy || "Le client"} a signé le devis ${q.number} (${fmtMoney(q.ttc)})`,
-        read: false,
-        createdAt: nowISO(),
-        link: {
-          page: "devis",
-          id: q.id
-        }
-      }, ...notifications];
-    } else if (status === "perdu") {
-      activities = [{
-        id: uid("a"),
-        type: "quote_lost",
-        title: "Devis perdu",
-        description: `Devis ${q.number} perdu — ${extra.lostReason || "raison non précisée"}`,
-        clientId: q.clientId,
-        prospectId: q.prospectId,
-        quoteId: q.id,
-        createdAt: nowISO()
-      }, ...activities];
-    }
-    return {
-      ...s,
-      quotes,
-      activities,
-      notifications
-    };
+  const deleteQuote = id => dispatch("deleteQuote", {
+    id
+  });
+  const setQuoteStatus = (id, status, extra = {}) => dispatch("setQuoteStatus", {
+    id,
+    status,
+    extra
   });
   const signQuote = (id, {
     signedBy,
     signatureMethod = "lien",
     signatureData
-  }) => {
-    setQuoteStatus(id, "signe", {
-      signedAt: nowISO(),
-      signedBy,
-      signatureMethod,
-      signatureData
-    });
-  };
+  }) => setQuoteStatus(id, "signe", {
+    signedAt: nowISO(),
+    signedBy,
+    signatureMethod,
+    signatureData
+  });
 
   // -------- Tasks
-  const upsertTask = data => setState(s => {
-    const exists = s.tasks.find(t => t.id === data.id);
-    const tasks = exists ? s.tasks.map(t => t.id === data.id ? {
-      ...t,
-      ...data
-    } : t) : [...s.tasks, {
-      ...data,
-      id: data.id || uid("t"),
-      status: data.status || "open"
-    }];
-    return {
-      ...s,
-      tasks
-    };
+  const upsertTask = data => dispatch("upsertTask", data);
+  const deleteTask = id => dispatch("deleteTask", {
+    id
   });
-  const deleteTask = id => setState(s => ({
-    ...s,
-    tasks: s.tasks.filter(t => t.id !== id)
-  }));
-  const toggleTask = id => setState(s => ({
-    ...s,
-    tasks: s.tasks.map(t => t.id === id ? {
-      ...t,
-      status: t.status === "done" ? "open" : "done"
-    } : t)
-  }));
+  const toggleTask = id => dispatch("toggleTask", {
+    id
+  });
 
   // -------- Invoices
-  const upsertInvoice = data => setState(s => {
-    const exists = (s.invoices || []).find(inv => inv.id === data.id);
+  const upsertInvoice = data => {
     const totals = calcQuoteTotals(data.lines || [], data.discount || 0);
-    const merged = {
+    return dispatch("upsertInvoice", {
       ...data,
-      ...totals
-    };
-    const invoices = exists ? s.invoices.map(inv => inv.id === data.id ? {
-      ...inv,
-      ...merged
-    } : inv) : [...(s.invoices || []), {
-      ...merged,
-      id: data.id || uid("inv"),
-      number: data.number || generateInvoiceNumber(s.invoices || []),
-      createdAt: nowISO(),
-      status: data.status || "brouillon"
-    }];
-    return {
-      ...s,
-      invoices
-    };
+      ...totals,
+      number: data.number || generateInvoiceNumber(state.invoices)
+    });
+  };
+  const deleteInvoice = id => dispatch("deleteInvoice", {
+    id
   });
-  const deleteInvoice = id => setState(s => ({
-    ...s,
-    invoices: (s.invoices || []).filter(inv => inv.id !== id)
-  }));
-  const setInvoiceStatus = (id, status, extra = {}) => setState(s => {
-    const inv = (s.invoices || []).find(x => x.id === id);
-    if (!inv) return s;
-    const next = {
-      ...inv,
-      status,
-      ...extra
-    };
-    const invoices = s.invoices.map(x => x.id === id ? next : x);
-    let activities = s.activities;
-    if (status === "payee") {
-      activities = [{
-        id: uid("a"),
-        type: "invoice_paid",
-        title: "Facture payée",
-        description: `Facture ${inv.number} encaissée (${fmtMoney(inv.ttc)})`,
-        clientId: inv.clientId,
-        createdAt: nowISO()
-      }, ...activities];
-    }
-    return {
-      ...s,
-      invoices,
-      activities
-    };
+  const setInvoiceStatus = (id, status, extra = {}) => dispatch("setInvoiceStatus", {
+    id,
+    status,
+    extra
   });
   const generateInvoiceFromQuote = quoteId => {
-    setState(s => {
-      const q = s.quotes.find(x => x.id === quoteId);
-      if (!q) return s;
-      const exists = (s.invoices || []).find(inv => inv.quoteId === quoteId);
-      if (exists) return s;
-      const number = generateInvoiceNumber(s.invoices || []);
-      const now = nowISO();
-      const dueDate = new Date(Date.now() + 30 * 86400000).toISOString();
-      const inv = {
-        id: uid("inv"),
-        number,
-        quoteId: q.id,
-        clientId: q.clientId,
-        prospectId: q.prospectId,
-        title: q.title,
-        lines: q.lines,
-        discount: q.discount || 0,
-        subTotal: q.subTotal,
-        ht: q.ht,
-        tva: q.tva,
-        ttc: q.ttc,
-        issueDate: now,
-        dueDate,
-        status: "brouillon",
-        paidAt: null,
-        paymentMethod: null,
-        notes: q.notes,
-        terms: `Paiement à 30 jours fin de mois. IBAN ${s.settings.company.iban}`,
-        createdAt: now
-      };
-      return {
-        ...s,
-        invoices: [...(s.invoices || []), inv]
-      };
+    const number = generateInvoiceNumber(state.invoices);
+    const dueDate = new Date(Date.now() + 30 * 86400000).toISOString();
+    const terms = `Paiement à 30 jours fin de mois. IBAN ${state.settings?.company?.iban || ""}`;
+    return dispatch("generateInvoiceFromQuote", {
+      quoteId,
+      number,
+      dueDate,
+      terms
     });
   };
 
   // -------- Notifications
-  const markNotifRead = id => setState(s => ({
-    ...s,
-    notifications: s.notifications.map(n => n.id === id ? {
-      ...n,
-      read: true
-    } : n)
-  }));
-  const markAllNotifsRead = () => setState(s => ({
-    ...s,
-    notifications: s.notifications.map(n => ({
-      ...n,
-      read: true
-    }))
-  }));
-  const deleteNotif = id => setState(s => ({
-    ...s,
-    notifications: s.notifications.filter(n => n.id !== id)
-  }));
+  const markNotifRead = id => dispatch("markNotifRead", {
+    id
+  });
+  const markAllNotifsRead = () => dispatch("markAllNotifsRead", {});
+  const deleteNotif = id => dispatch("deleteNotif", {
+    id
+  });
 
   // -------- Settings
-  const updateSettings = patch => setState(s => ({
-    ...s,
-    settings: {
-      ...s.settings,
-      ...patch
-    }
-  }));
+  const updateSettings = patch => dispatch("updateSettings", patch);
 
   // -------- Reset / Export
   const exportJson = () => {
@@ -3297,21 +3068,19 @@ function StoreProvider({
     a.click();
     URL.revokeObjectURL(url);
   };
-  const importJson = data => {
-    try {
-      setState({
-        ...emptyData(),
-        ...data
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
+  const importJson = () => {
+    /* import via API not implemented yet */return false;
   };
-  const resetAll = () => setState(emptyData());
+  const resetAll = () => dispatch("resetAll", {});
+
+  // Notification helpers (using readBy array)
+  const isNotifRead = n => (n.readBy || []).includes(currentUserId);
   const api = {
     state,
+    loading,
     update,
+    currentUserId,
+    isNotifRead,
     upsertClient,
     deleteClient,
     upsertProspect,
@@ -3351,12 +3120,13 @@ function Sidebar({
   setCollapsed
 }) {
   const {
-    state
+    state,
+    isNotifRead
   } = useStore();
   const {
     currentUser
   } = useAuth();
-  const unread = state.notifications.filter(n => !n.read).length;
+  const unread = state.notifications.filter(n => !isNotifRead(n)).length;
   const overdueTasks = state.tasks.filter(t => t.status !== "done" && isOverdue(t.dueDate)).length;
   const unpaidInvoices = (state.invoices || []).filter(i => ["envoyee", "retard"].includes(i.status)).length;
   const items = [{
@@ -3497,7 +3267,8 @@ function TopBar({
   const {
     state,
     markAllNotifsRead,
-    markNotifRead
+    markNotifRead,
+    isNotifRead
   } = useStore();
   const [openNotifs, setOpenNotifs] = useState(false);
   const [openSearch, setOpenSearch] = useState(false);
@@ -3515,7 +3286,7 @@ function TopBar({
     settings: "Paramètres",
     backend: "Backend"
   };
-  const unread = state.notifications.filter(n => !n.read).length;
+  const unread = state.notifications.filter(n => !isNotifRead(n)).length;
   const recent = [...state.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 6);
 
   // Close popovers on outside click + Esc
@@ -3714,10 +3485,10 @@ function TopBar({
         setOpenNotifs(false);
       }
     },
-    className: `px-4 py-3 border-b border-paper-100 cursor-pointer hover:bg-paper-50 ${!n.read ? "bg-gold-50/50" : ""}`
+    className: `px-4 py-3 border-b border-paper-100 cursor-pointer hover:bg-paper-50 ${!isNotifRead(n) ? "bg-gold-50/50" : ""}`
   }, /*#__PURE__*/React.createElement("div", {
     className: "flex items-start gap-3"
-  }, !n.read && /*#__PURE__*/React.createElement("span", {
+  }, !isNotifRead(n) && /*#__PURE__*/React.createElement("span", {
     className: "w-2 h-2 rounded-full bg-gold-500 mt-1.5 flex-none"
   }), /*#__PURE__*/React.createElement("div", {
     className: "flex-1 min-w-0"
@@ -8099,7 +7870,8 @@ function NotificationsPage({
     state,
     markNotifRead,
     markAllNotifsRead,
-    deleteNotif
+    deleteNotif,
+    isNotifRead
   } = useStore();
   const list = [...state.notifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   return /*#__PURE__*/React.createElement("div", {
@@ -8154,7 +7926,7 @@ function NotificationsPage({
     };
     return /*#__PURE__*/React.createElement("div", {
       key: n.id,
-      className: `card-base p-4 flex items-start gap-3 cursor-pointer hover:border-gold-400/50 transition-all ${!n.read ? "border-l-4 border-l-gold-500" : ""}`,
+      className: `card-base p-4 flex items-start gap-3 cursor-pointer hover:border-gold-400/50 transition-all ${!isNotifRead(n) ? "border-l-4 border-l-gold-500" : ""}`,
       onClick: () => {
         markNotifRead(n.id);
         if (n.link?.id && n.link?.page === "devis") {
@@ -8171,7 +7943,7 @@ function NotificationsPage({
       className: "flex items-center gap-2"
     }, /*#__PURE__*/React.createElement("span", {
       className: "font-semibold text-paper-800"
-    }, n.title), !n.read && /*#__PURE__*/React.createElement("span", {
+    }, n.title), !isNotifRead(n) && /*#__PURE__*/React.createElement("span", {
       className: "w-2 h-2 rounded-full bg-gold-500"
     })), /*#__PURE__*/React.createElement("div", {
       className: "text-sm text-paper-700 mt-0.5"
@@ -8401,17 +8173,33 @@ function SignaturePage({
   quoteId,
   onClose
 }) {
-  const {
-    state,
-    signQuote
-  } = useStore();
   const toast = useToast();
-  const quote = state.quotes.find(q => q.id === quoteId);
-  const recipient = quote?.clientId ? state.clients.find(c => c.id === quote.clientId) : quote?.prospectId ? state.prospects.find(p => p.id === quote.prospectId) : null;
-  const company = state.settings.company;
-  const [name, setName] = useState(recipient?.contact || "");
+  const [quote, setQuote] = useState(null);
+  const [recipient, setRecipient] = useState(null);
+  const [company, setCompany] = useState(COMPANY);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [name, setName] = useState("");
   const [accept, setAccept] = useState(false);
   const [signed, setSigned] = useState(false);
+  useEffect(() => {
+    fetch(`/api/public/quote/${quoteId}`).then(r => {
+      if (!r.ok) throw new Error("not found");
+      return r.json();
+    }).then(d => {
+      setQuote(d.quote);
+      setRecipient(d.recipient);
+      if (d.settings?.company) setCompany(d.settings.company);
+      setName(d.recipient?.contact || "");
+    }).catch(() => setNotFound(true)).finally(() => setLoading(false));
+  }, [quoteId]);
+  if (loading) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "min-h-screen flex items-center justify-center"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-paper-500"
+    }, "Chargement du devis\u2026"));
+  }
   if (!quote) {
     return /*#__PURE__*/React.createElement("div", {
       className: "min-h-screen flex items-center justify-center p-6"
@@ -8428,19 +8216,39 @@ function SignaturePage({
       onClick: onClose
     }, "Retour au CRM")));
   }
-  const onSign = () => {
+  const onSign = async () => {
     if (!name.trim() || !accept) return;
-    signQuote(quote.id, {
-      signedBy: name.trim(),
-      signatureMethod: "lien",
-      signatureData: name.trim()
-    });
-    setSigned(true);
-    toast.push({
-      type: "success",
-      title: "Devis signé !",
-      message: "Cerberion a été notifié et reviendra vers vous rapidement."
-    });
+    try {
+      const res = await fetch(`/api/public/quote/${quote.id}/sign`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          signedBy: name.trim(),
+          signatureData: name.trim()
+        })
+      });
+      if (!res.ok) throw new Error("Signature échouée");
+      setQuote({
+        ...quote,
+        signedAt: new Date().toISOString(),
+        signedBy: name.trim(),
+        signatureData: name.trim()
+      });
+      setSigned(true);
+      toast.push({
+        type: "success",
+        title: "Devis signé !",
+        message: "Cerberion a été notifié."
+      });
+    } catch (e) {
+      toast.push({
+        type: "error",
+        title: "Erreur",
+        message: String(e.message || e)
+      });
+    }
   };
   if (signed || quote.signedAt) {
     return /*#__PURE__*/React.createElement("div", {
@@ -8586,12 +8394,12 @@ function App() {
   }, []);
   if (hash.startsWith("#sign/")) {
     const quoteId = hash.replace("#sign/", "");
-    return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(SignaturePage, {
+    return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(SignaturePage, {
       quoteId: quoteId,
       onClose: () => {
         window.location.hash = "";
       }
-    })));
+    }));
   }
   return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(AuthGate, null, /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(Shell, null)))));
 }
