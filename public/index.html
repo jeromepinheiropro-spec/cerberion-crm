@@ -2883,15 +2883,15 @@ function SignupForm(_ref24) {
     autoFocus: true
   })), /*#__PURE__*/React.createElement(Field, {
     label: "Email",
-    required: true
+    required: true,
+    hint: invitation !== null && invitation !== void 0 && invitation.email ? "Pré-rempli depuis l'invitation — modifiable si nécessaire." : null
   }, /*#__PURE__*/React.createElement(Input, {
     type: "email",
     value: email,
     onChange: function onChange(e) {
       return setEmail(e.target.value);
     },
-    placeholder: "prenom.nom@cerberion.lu",
-    disabled: !!invitation && !!invitation.email
+    placeholder: "prenom.nom@cerberion.lu"
   })), /*#__PURE__*/React.createElement(Field, {
     label: "Poste / Fonction"
   }, /*#__PURE__*/React.createElement(Input, {
