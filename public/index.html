@@ -5185,7 +5185,8 @@ function ClientsPage(_ref52) {
   var _useStore5 = useStore(),
     state = _useStore5.state,
     upsertClient = _useStore5.upsertClient,
-    deleteClient = _useStore5.deleteClient;
+    deleteClient = _useStore5.deleteClient,
+    exportClientsCsv = _useStore5.exportClientsCsv;
   var toast = useToast();
   var clients = state.clients,
     quotes = state.quotes;
@@ -5229,7 +5230,26 @@ function ClientsPage(_ref52) {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-6 h-6"
     }),
-    actions: /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (clients.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucun client à exporter"
+        });
+        exportClientsCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(clients.length, " client").concat(clients.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -5237,7 +5257,7 @@ function ClientsPage(_ref52) {
       onClick: function onClick() {
         return setEdit({});
       }
-    }, "Nouveau client")
+    }, "Nouveau client"))
   }), /*#__PURE__*/React.createElement("div", {
     className: "card-base p-0 overflow-hidden"
   }, /*#__PURE__*/React.createElement("div", {
@@ -6321,7 +6341,8 @@ function ProspectsPage(_ref62) {
   var _useStore9 = useStore(),
     state = _useStore9.state,
     upsertProspect = _useStore9.upsertProspect,
-    deleteProspect = _useStore9.deleteProspect;
+    deleteProspect = _useStore9.deleteProspect,
+    exportProspectsCsv = _useStore9.exportProspectsCsv;
   var toast = useToast();
   var prospects = state.prospects;
   var _useState85 = useState(null),
@@ -6359,7 +6380,26 @@ function ProspectsPage(_ref62) {
     icon: /*#__PURE__*/React.createElement(Ic.Target, {
       className: "w-6 h-6"
     }),
-    actions: /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (prospects.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucun prospect à exporter"
+        });
+        exportProspectsCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(prospects.length, " prospect").concat(prospects.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -6367,7 +6407,7 @@ function ProspectsPage(_ref62) {
       onClick: function onClick() {
         return setEdit({});
       }
-    }, "Nouveau prospect")
+    }, "Nouveau prospect"))
   }), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-wrap"
   }, /*#__PURE__*/React.createElement("button", {
@@ -7160,7 +7200,8 @@ function PipelinePage(_ref65) {
   var _useStore1 = useStore(),
     state = _useStore1.state,
     moveProspectStage = _useStore1.moveProspectStage,
-    upsertProspect = _useStore1.upsertProspect;
+    upsertProspect = _useStore1.upsertProspect,
+    exportProspectsCsv = _useStore1.exportProspectsCsv;
   var toast = useToast();
   var _useState103 = useState(null),
     _useState104 = _slicedToArray(_useState103, 2),
@@ -7220,7 +7261,26 @@ function PipelinePage(_ref65) {
     icon: /*#__PURE__*/React.createElement(Ic.Kanban, {
       className: "w-6 h-6"
     }),
-    actions: /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (state.prospects.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucun prospect à exporter"
+        });
+        exportProspectsCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(state.prospects.length, " prospect").concat(state.prospects.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -7228,7 +7288,7 @@ function PipelinePage(_ref65) {
       onClick: function onClick() {
         return setEditProspect({});
       }
-    }, "Nouveau prospect")
+    }, "Nouveau prospect"))
   }), /*#__PURE__*/React.createElement("div", {
     className: "overflow-x-auto pb-4 -mx-1 px-1"
   }, /*#__PURE__*/React.createElement("div", {
@@ -7346,7 +7406,8 @@ function DevisPage(_ref66) {
     upsertQuote = _useStore10.upsertQuote,
     deleteQuote = _useStore10.deleteQuote,
     setQuoteStatus = _useStore10.setQuoteStatus,
-    generateInvoiceFromQuote = _useStore10.generateInvoiceFromQuote;
+    generateInvoiceFromQuote = _useStore10.generateInvoiceFromQuote,
+    exportQuotesCsv = _useStore10.exportQuotesCsv;
   var toast = useToast();
   var quotes = state.quotes;
   var _useState107 = useState(null),
@@ -7401,10 +7462,29 @@ function DevisPage(_ref66) {
       className: "w-6 h-6"
     }),
     back: filterEntity ? clearFilter : null,
-    actions: /*#__PURE__*/React.createElement(React.Fragment, null, filterEntity && /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, filterEntity && /*#__PURE__*/React.createElement(Button, {
       variant: "ghost",
       onClick: clearFilter
     }, "Voir tous les devis"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (quotes.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucun devis à exporter"
+        });
+        exportQuotesCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(quotes.length, " devis")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -8826,7 +8906,8 @@ function InvoicesPage(_ref75) {
   var _useStore13 = useStore(),
     state = _useStore13.state,
     setInvoiceStatus = _useStore13.setInvoiceStatus,
-    deleteInvoice = _useStore13.deleteInvoice;
+    deleteInvoice = _useStore13.deleteInvoice,
+    exportInvoicesCsv = _useStore13.exportInvoicesCsv;
   var toast = useToast();
   var invoices = state.invoices || [];
   var _useState119 = useState("all"),
@@ -8871,10 +8952,29 @@ function InvoicesPage(_ref75) {
       className: "w-6 h-6"
     }),
     back: filterEntity ? clearFilter : null,
-    actions: filterEntity ? /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, filterEntity && /*#__PURE__*/React.createElement(Button, {
       variant: "ghost",
       onClick: clearFilter
-    }, "Toutes les factures") : null
+    }, "Toutes les factures"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (invoices.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucune facture à exporter"
+        });
+        exportInvoicesCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(invoices.length, " facture").concat(invoices.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"))
   }), !filterEntity && /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-wrap"
   }, /*#__PURE__*/React.createElement("button", {
@@ -9529,7 +9629,8 @@ function TasksPage(_ref81) {
     state = _useStore15.state,
     upsertTask = _useStore15.upsertTask,
     deleteTask = _useStore15.deleteTask,
-    toggleTask = _useStore15.toggleTask;
+    toggleTask = _useStore15.toggleTask,
+    exportTasksCsv = _useStore15.exportTasksCsv;
   var toast = useToast();
   var tasks = state.tasks;
   var _useState127 = useState(null),
@@ -9570,7 +9671,26 @@ function TasksPage(_ref81) {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-6 h-6"
     }),
-    actions: /*#__PURE__*/React.createElement(Button, {
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (tasks.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucune tâche à exporter"
+        });
+        exportTasksCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(tasks.length, " t\xE2che").concat(tasks.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -9578,7 +9698,7 @@ function TasksPage(_ref81) {
       onClick: function onClick() {
         return setEdit({});
       }
-    }, "Nouvelle t\xE2che")
+    }, "Nouvelle t\xE2che"))
   }), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-wrap"
   }, [{
