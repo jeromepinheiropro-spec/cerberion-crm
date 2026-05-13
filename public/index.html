@@ -583,21 +583,21 @@ function hashPassword(_x) {
   return _hashPassword.apply(this, arguments);
 } // ---------- Utils ----------
 function _hashPassword() {
-  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28(password) {
+  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(password) {
     var enc, hash;
-    return _regenerator().w(function (_context28) {
-      while (1) switch (_context28.n) {
+    return _regenerator().w(function (_context29) {
+      while (1) switch (_context29.n) {
         case 0:
           enc = new TextEncoder().encode(password + "::cerberion-salt");
-          _context28.n = 1;
+          _context29.n = 1;
           return crypto.subtle.digest('SHA-256', enc);
         case 1:
-          hash = _context28.v;
-          return _context28.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
+          hash = _context29.v;
+          return _context29.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
             return b.toString(16).padStart(2, '0');
           }).join(''));
       }
-    }, _callee28);
+    }, _callee29);
   }));
   return _hashPassword.apply(this, arguments);
 }
@@ -2227,45 +2227,45 @@ function apiFetch(_x2) {
 //  AUTH PROVIDER - server-side users, JWT in localStorage
 // ============================================================================
 function _apiFetch() {
-  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(path) {
+  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30(path) {
     var opts,
       token,
       headers,
       res,
       body,
-      _args29 = arguments;
-    return _regenerator().w(function (_context29) {
-      while (1) switch (_context29.n) {
+      _args30 = arguments;
+    return _regenerator().w(function (_context30) {
+      while (1) switch (_context30.n) {
         case 0:
-          opts = _args29.length > 1 && _args29[1] !== undefined ? _args29[1] : {};
+          opts = _args30.length > 1 && _args30[1] !== undefined ? _args30[1] : {};
           token = localStorage.getItem(TOKEN_KEY);
           headers = _objectSpread({
             "Content-Type": "application/json"
           }, opts.headers || {});
           if (token) headers.Authorization = "Bearer ".concat(token);
-          _context29.n = 1;
+          _context30.n = 1;
           return fetch(apiBase + path, _objectSpread(_objectSpread({}, opts), {}, {
             headers: headers
           }));
         case 1:
-          res = _context29.v;
+          res = _context30.v;
           if (res.ok) {
-            _context29.n = 3;
+            _context30.n = 3;
             break;
           }
-          _context29.n = 2;
+          _context30.n = 2;
           return res.json()["catch"](function () {
             return {
               error: res.statusText
             };
           });
         case 2:
-          body = _context29.v;
+          body = _context30.v;
           throw new Error(body.error || res.statusText);
         case 3:
-          return _context29.a(2, res.json());
+          return _context30.a(2, res.json());
       }
-    }, _callee29);
+    }, _callee30);
   }));
   return _apiFetch.apply(this, arguments);
 }
@@ -8075,7 +8075,7 @@ function QuoteEditor(_ref69) {
 
 // ----------- Quote Viewer (modal with branded preview + actions) -----------
 function QuoteViewer(_ref71) {
-  var _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
+  var _state$settings2, _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
   var quoteId = _ref71.quoteId,
     onClose = _ref71.onClose,
     onEdit = _ref71.onEdit,
@@ -8086,15 +8086,7 @@ function QuoteViewer(_ref71) {
     setQuoteStatus = _useStore12.setQuoteStatus,
     generateInvoiceFromQuote = _useStore12.generateInvoiceFromQuote;
   var toast = useToast();
-  var quote = state.quotes.find(function (q) {
-    return q.id === quoteId;
-  });
-  if (!quote) return null;
-  var recipient = quote.clientId ? state.clients.find(function (c) {
-    return c.id === quote.clientId;
-  }) : quote.prospectId ? state.prospects.find(function (p) {
-    return p.id === quote.prospectId;
-  }) : null;
+  // All hooks must be called BEFORE any conditional return (React Hooks Rules)
   var printRef = useRef(null);
   var _useState113 = useState(false),
     _useState114 = _slicedToArray(_useState113, 2),
@@ -8108,6 +8100,16 @@ function QuoteViewer(_ref71) {
     _useState118 = _slicedToArray(_useState117, 2),
     lostReason = _useState118[0],
     setLostReason = _useState118[1];
+  var quote = state.quotes.find(function (q) {
+    return q.id === quoteId;
+  });
+  if (!quote) return null;
+  var recipient = quote.clientId ? state.clients.find(function (c) {
+    return c.id === quote.clientId;
+  }) : quote.prospectId ? state.prospects.find(function (p) {
+    return p.id === quote.prospectId;
+  }) : null;
+  var company = ((_state$settings2 = state.settings) === null || _state$settings2 === void 0 ? void 0 : _state$settings2.company) || {};
   var link = shareableLink(quote.id);
   var copyLink = /*#__PURE__*/function () {
     var _ref72 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
@@ -8311,7 +8313,7 @@ function QuoteViewer(_ref71) {
   }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
     quote: quote,
     recipient: recipient,
-    company: state.settings.company
+    company: company
   }))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8385,6 +8387,7 @@ function BrandedQuoteDocument(_ref74) {
   var quote = _ref74.quote,
     recipient = _ref74.recipient,
     company = _ref74.company;
+  company = company || {};
   var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -8905,6 +8908,7 @@ function InvoicesPage(_ref75) {
     clearFilter = _ref75.clearFilter;
   var _useStore13 = useStore(),
     state = _useStore13.state,
+    upsertInvoice = _useStore13.upsertInvoice,
     setInvoiceStatus = _useStore13.setInvoiceStatus,
     deleteInvoice = _useStore13.deleteInvoice,
     exportInvoicesCsv = _useStore13.exportInvoicesCsv;
@@ -8922,6 +8926,11 @@ function InvoicesPage(_ref75) {
     _useState124 = _slicedToArray(_useState123, 2),
     viewer = _useState124[0],
     setViewer = _useState124[1];
+  var _useState125 = useState(null),
+    _useState126 = _slicedToArray(_useState125, 2),
+    editor = _useState126[0],
+    setEditor = _useState126[1]; // null | "new" | invoiceObject
+
   var filterEntity = filterClient ? state.clients.find(function (c) {
     return c.id === filterClient;
   }) : null;
@@ -8974,7 +8983,17 @@ function InvoicesPage(_ref75) {
           message: "".concat(invoices.length, " facture").concat(invoices.length > 1 ? "s" : "")
         });
       }
-    }, "Exporter CSV"))
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEditor({
+          clientId: filterClient || null
+        });
+      }
+    }, "Nouvelle facture"))
   }), !filterEntity && /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-2 flex-wrap"
   }, /*#__PURE__*/React.createElement("button", {
@@ -9029,7 +9048,18 @@ function InvoicesPage(_ref75) {
       className: "w-8 h-8"
     }),
     title: "Aucune facture",
-    description: "Les factures se g\xE9n\xE8rent automatiquement depuis les devis sign\xE9s."
+    description: "Cr\xE9ez une facture directement, ou g\xE9n\xE9rez-la depuis un devis sign\xE9.",
+    action: /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEditor({
+          clientId: filterClient || null
+        });
+      }
+    }, "Nouvelle facture")
   }))), filtered.map(function (inv) {
     var _INVOICE_STATUS$inv$s5, _INVOICE_STATUS$inv$s6;
     var client = state.clients.find(function (c) {
@@ -9098,6 +9128,14 @@ function InvoicesPage(_ref75) {
       className: "w-4 h-4"
     })), /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
+        return setEditor(inv);
+      },
+      title: "Modifier",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.Edit, {
+      className: "w-4 h-4"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
         return setConfirmDelete(inv);
       },
       title: "Supprimer",
@@ -9110,6 +9148,43 @@ function InvoicesPage(_ref75) {
     onClose: function onClose() {
       return setViewer(null);
     }
+  }), editor && /*#__PURE__*/React.createElement(InvoiceEditor, {
+    invoice: editor.id ? editor : {
+      clientId: editor.clientId || filterClient || null
+    },
+    onClose: function onClose() {
+      return setEditor(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref78 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(data) {
+        var opts,
+          finalData,
+          _args21 = arguments;
+        return _regenerator().w(function (_context21) {
+          while (1) switch (_context21.n) {
+            case 0:
+              opts = _args21.length > 1 && _args21[1] !== undefined ? _args21[1] : {};
+              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
+                status: "envoyee"
+              }) : data;
+              _context21.n = 1;
+              return upsertInvoice(finalData);
+            case 1:
+              toast.push({
+                type: "success",
+                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
+                message: finalData.number
+              });
+              setEditor(null);
+            case 2:
+              return _context21.a(2);
+          }
+        }, _callee21);
+      }));
+      return function (_x18) {
+        return _ref78.apply(this, arguments);
+      };
+    }())
   }), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
     title: "Supprimer cette facture ?",
     message: "La facture \"".concat(confirmDelete.number, "\" sera d\xE9finitivement supprim\xE9e."),
@@ -9127,44 +9202,47 @@ function InvoicesPage(_ref75) {
     }
   }));
 }
-function InvoiceViewer(_ref78) {
-  var _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
-  var invoice = _ref78.invoice,
-    onClose = _ref78.onClose;
+function InvoiceViewer(_ref79) {
+  var _state$settings3, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
+  var invoice = _ref79.invoice,
+    onClose = _ref79.onClose;
   var _useStore14 = useStore(),
     state = _useStore14.state,
     setInvoiceStatus = _useStore14.setInvoiceStatus;
   var toast = useToast();
+  // Hooks first (Hooks Rules)
+  var printRef = useRef(null);
+  var _useState127 = useState(false),
+    _useState128 = _slicedToArray(_useState127, 2),
+    exporting = _useState128[0],
+    setExporting = _useState128[1];
+  if (!invoice) return null;
   var client = state.clients.find(function (c) {
     return c.id === invoice.clientId;
   });
-  var printRef = useRef(null);
-  var _useState125 = useState(false),
-    _useState126 = _slicedToArray(_useState125, 2),
-    exporting = _useState126[0],
-    setExporting = _useState126[1];
+  var company = ((_state$settings3 = state.settings) === null || _state$settings3 === void 0 ? void 0 : _state$settings3.company) || {};
   var exportPDF = /*#__PURE__*/function () {
-    var _ref79 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21() {
+    var _ref80 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
       var canvas, img, jsPDF, pdf, pageW, ratio, imgH, _t1;
-      return _regenerator().w(function (_context21) {
-        while (1) switch (_context21.p = _context21.n) {
+      return _regenerator().w(function (_context22) {
+        while (1) switch (_context22.p = _context22.n) {
           case 0:
             if (printRef.current) {
-              _context21.n = 1;
+              _context22.n = 1;
               break;
             }
-            return _context21.a(2);
+            return _context22.a(2);
           case 1:
             setExporting(true);
-            _context21.p = 2;
-            _context21.n = 3;
+            _context22.p = 2;
+            _context22.n = 3;
             return html2canvas(printRef.current, {
               scale: 2,
               backgroundColor: "#ffffff",
               useCORS: true
             });
           case 3:
-            canvas = _context21.v;
+            canvas = _context22.v;
             img = canvas.toDataURL("image/jpeg", 0.92);
             jsPDF = window.jspdf.jsPDF;
             pdf = new jsPDF({
@@ -9180,26 +9258,26 @@ function InvoiceViewer(_ref78) {
               type: "success",
               title: "PDF généré"
             });
-            _context21.n = 5;
+            _context22.n = 5;
             break;
           case 4:
-            _context21.p = 4;
-            _t1 = _context21.v;
+            _context22.p = 4;
+            _t1 = _context22.v;
             toast.push({
               type: "error",
               title: "Erreur PDF"
             });
           case 5:
-            _context21.p = 5;
+            _context22.p = 5;
             setExporting(false);
-            return _context21.f(5);
+            return _context22.f(5);
           case 6:
-            return _context21.a(2);
+            return _context22.a(2);
         }
-      }, _callee21, null, [[2, 4, 5, 6]]);
+      }, _callee22, null, [[2, 4, 5, 6]]);
     }));
     return function exportPDF() {
-      return _ref79.apply(this, arguments);
+      return _ref80.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(Modal, {
@@ -9259,13 +9337,411 @@ function InvoiceViewer(_ref78) {
   }, /*#__PURE__*/React.createElement(BrandedInvoiceDocument, {
     invoice: invoice,
     client: client,
-    company: state.settings.company
+    company: company
   }))));
 }
-function BrandedInvoiceDocument(_ref80) {
-  var invoice = _ref80.invoice,
-    client = _ref80.client,
-    company = _ref80.company;
+
+// ----------- Invoice Editor (create / edit invoice directly, no quote needed) -----------
+function InvoiceEditor(_ref81) {
+  var _state$settings$docum, _state$settings4, _state$settings5;
+  var invoice = _ref81.invoice,
+    onClose = _ref81.onClose,
+    onSave = _ref81.onSave;
+  var _useStore15 = useStore(),
+    state = _useStore15.state;
+  var isNew = !invoice.id;
+  var paymentDays = (_state$settings$docum = (_state$settings4 = state.settings) === null || _state$settings4 === void 0 || (_state$settings4 = _state$settings4.documents) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
+  var defaultTerms = ((_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.defaultTerms) || "Paiement à 30 jours fin de mois.";
+  var _useState129 = useState(function () {
+      return {
+        id: invoice.id || uid("inv"),
+        number: invoice.number || generateInvoiceNumber(state.invoices),
+        title: invoice.title || "",
+        clientId: invoice.clientId || null,
+        status: invoice.status || "brouillon",
+        issueDate: invoice.issueDate ? invoice.issueDate.slice(0, 10) : todayISO(),
+        dueDate: invoice.dueDate ? invoice.dueDate.slice(0, 10) : new Date(Date.now() + paymentDays * 86400000).toISOString().slice(0, 10),
+        discount: invoice.discount || 0,
+        lines: invoice.lines && invoice.lines.length > 0 ? invoice.lines : [{
+          id: uid("ln"),
+          description: "",
+          qty: 1,
+          unitPrice: 0,
+          ref: ""
+        }],
+        notes: invoice.notes || "",
+        terms: invoice.terms || defaultTerms,
+        paidAt: invoice.paidAt || null,
+        paymentMethod: invoice.paymentMethod || null,
+        createdAt: invoice.createdAt || nowISO(),
+        quoteId: invoice.quoteId || null
+      };
+    }),
+    _useState130 = _slicedToArray(_useState129, 2),
+    form = _useState130[0],
+    setForm = _useState130[1];
+  var set = function set(k, v) {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
+    });
+  };
+  var totals = calcQuoteTotals(form.lines, form.discount);
+  var setLine = function setLine(i, patch) {
+    return setForm(function (f) {
+      var lines = _toConsumableArray(f.lines);
+      lines[i] = _objectSpread(_objectSpread({}, lines[i]), patch);
+      return _objectSpread(_objectSpread({}, f), {}, {
+        lines: lines
+      });
+    });
+  };
+  var addLine = function addLine() {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, {
+        lines: [].concat(_toConsumableArray(f.lines), [{
+          id: uid("ln"),
+          description: "",
+          qty: 1,
+          unitPrice: 0,
+          ref: ""
+        }])
+      });
+    });
+  };
+  var removeLine = function removeLine(i) {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, {
+        lines: f.lines.filter(function (_, idx) {
+          return idx !== i;
+        })
+      });
+    });
+  };
+  var moveLine = function moveLine(i, dir) {
+    return setForm(function (f) {
+      var lines = _toConsumableArray(f.lines);
+      var j = i + dir;
+      if (j < 0 || j >= lines.length) return f;
+      var _ref82 = [lines[j], lines[i]];
+      lines[i] = _ref82[0];
+      lines[j] = _ref82[1];
+      return _objectSpread(_objectSpread({}, f), {}, {
+        lines: lines
+      });
+    });
+  };
+  var insertCatalogue = function insertCatalogue(i, ref) {
+    // Try user catalog first, fall back to built-in SERVICE_CATALOGUE
+    var prod = (state.products || []).find(function (p) {
+      return p.id === ref || p.ref === ref;
+    });
+    if (prod) return setLine(i, {
+      description: prod.name + (prod.description ? " \u2014 ".concat(prod.description) : ""),
+      unitPrice: prod.price || 0,
+      ref: prod.id
+    });
+    var item = SERVICE_CATALOGUE.find(function (s) {
+      return s.ref === ref;
+    });
+    if (item) return setLine(i, {
+      description: item.label,
+      unitPrice: item.price,
+      ref: item.ref
+    });
+  };
+  var valid = form.clientId && form.lines.length > 0 && form.lines.every(function (l) {
+    return l.description.trim();
+  });
+  var clientOptions = state.clients.map(function (c) {
+    return {
+      id: c.id,
+      label: c.name
+    };
+  });
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: isNew ? "Nouvelle facture" : "Modifier \xB7 ".concat(form.number),
+    size: "xl",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between flex-wrap gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-600"
+    }, "Total TTC : ", /*#__PURE__*/React.createElement("span", {
+      className: "font-bold text-paper-800 text-base"
+    }, fmtMoney(totals.ttc))), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-2 flex-wrap"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(form);
+      },
+      disabled: !valid
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      onClick: function onClick() {
+        return onSave(form, {
+          thenSend: true
+        });
+      },
+      disabled: !valid,
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
+        className: "w-4 h-4"
+      })
+    }, "Enregistrer & envoyer")))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 de facture"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.number,
+    onChange: function onChange(e) {
+      return set("number", e.target.value);
+    },
+    className: "font-mono"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Titre"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.title,
+    onChange: function onChange(e) {
+      return set("title", e.target.value);
+    },
+    placeholder: "Ex : Prestation de s\xE9curit\xE9 Q2 2026"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Client",
+    required: true
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.clientId || "",
+    onChange: function onChange(e) {
+      return set("clientId", e.target.value || null);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner un client \u2014"), clientOptions.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Date d'\xE9mission"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.issueDate,
+    onChange: function onChange(e) {
+      return set("issueDate", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "\xC9ch\xE9ance"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.dueDate,
+    onChange: function onChange(e) {
+      return set("dueDate", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Remise globale (%)"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    min: "0",
+    max: "100",
+    step: "1",
+    value: form.discount,
+    onChange: function onChange(e) {
+      return set("discount", parseFloat(e.target.value) || 0);
+    }
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-semibold text-paper-800"
+  }, "Lignes de la facture"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+      className: "w-3 h-3"
+    }),
+    onClick: addLine
+  }, "Ajouter une ligne")), /*#__PURE__*/React.createElement("div", {
+    className: "card-base overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left font-semibold w-[42%]"
+  }, "Description"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left font-semibold w-[16%]"
+  }, "Catalogue"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right font-semibold w-[10%]"
+  }, "Qt\xE9"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right font-semibold w-[14%]"
+  }, "PU HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right font-semibold w-[12%]"
+  }, "Total HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-[6%]"
+  }))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, form.lines.map(function (l, i) {
+    return /*#__PURE__*/React.createElement("tr", {
+      key: l.id
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-2 py-1.5"
+    }, /*#__PURE__*/React.createElement("input", {
+      value: l.description,
+      onChange: function onChange(e) {
+        return setLine(i, {
+          description: e.target.value
+        });
+      },
+      className: "w-full bg-transparent border border-transparent hover:border-paper-200 focus:border-gold-500 rounded px-2 py-1.5 text-sm outline-none text-paper-800",
+      placeholder: "Description\u2026"
+    })), /*#__PURE__*/React.createElement("td", {
+      className: "px-2 py-1.5"
+    }, /*#__PURE__*/React.createElement("select", {
+      value: l.ref || "",
+      onChange: function onChange(e) {
+        return insertCatalogue(i, e.target.value);
+      },
+      className: "w-full bg-transparent border border-transparent hover:border-paper-200 focus:border-gold-500 rounded px-2 py-1.5 text-xs outline-none text-paper-700"
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "\u2014"), (state.products || []).length > 0 && /*#__PURE__*/React.createElement("optgroup", {
+      label: "Mon catalogue"
+    }, (state.products || []).map(function (p) {
+      return /*#__PURE__*/React.createElement("option", {
+        key: p.id,
+        value: p.id
+      }, p.name);
+    })), /*#__PURE__*/React.createElement("optgroup", {
+      label: "Catalogue pr\xE9d\xE9fini"
+    }, SERVICE_CATALOGUE.map(function (s) {
+      return /*#__PURE__*/React.createElement("option", {
+        key: s.ref,
+        value: s.ref
+      }, s.ref);
+    })))), /*#__PURE__*/React.createElement("td", {
+      className: "px-2 py-1.5"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.qty,
+      onChange: function onChange(e) {
+        return setLine(i, {
+          qty: parseFloat(e.target.value) || 0
+        });
+      },
+      className: "w-full bg-transparent border border-transparent hover:border-paper-200 focus:border-gold-500 rounded px-2 py-1.5 text-sm outline-none text-right text-paper-800"
+    })), /*#__PURE__*/React.createElement("td", {
+      className: "px-2 py-1.5"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      step: "0.01",
+      value: l.unitPrice,
+      onChange: function onChange(e) {
+        return setLine(i, {
+          unitPrice: parseFloat(e.target.value) || 0
+        });
+      },
+      className: "w-full bg-transparent border border-transparent hover:border-paper-200 focus:border-gold-500 rounded px-2 py-1.5 text-sm outline-none text-right text-paper-800"
+    })), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right font-semibold text-paper-800"
+    }, fmtMoney((l.qty || 0) * (l.unitPrice || 0))), /*#__PURE__*/React.createElement("td", {
+      className: "px-2 py-1.5"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-end gap-0.5"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return moveLine(i, -1);
+      },
+      className: "p-1 rounded hover:bg-paper-100 text-paper-400 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.ArrowUp, {
+      className: "w-3.5 h-3.5"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return moveLine(i, 1);
+      },
+      className: "p-1 rounded hover:bg-paper-100 text-paper-400 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.ArrowDown, {
+      className: "w-3.5 h-3.5"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return removeLine(i);
+      },
+      className: "p-1 rounded hover:bg-paper-100 text-paper-400 hover:text-red-600"
+    }, /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-3.5 h-3.5"
+    })))));
+  })))))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Notes (visibles sur la facture)"
+  }, /*#__PURE__*/React.createElement(Textarea, {
+    rows: 3,
+    value: form.notes,
+    onChange: function onChange(e) {
+      return set("notes", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Conditions de paiement"
+  }, /*#__PURE__*/React.createElement(Textarea, {
+    rows: 3,
+    value: form.terms,
+    onChange: function onChange(e) {
+      return set("terms", e.target.value);
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold text-paper-800 mb-3"
+  }, "R\xE9capitulatif"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2 text-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600"
+  }, "Sous-total HT"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium text-paper-800"
+  }, fmtMoney(totals.subTotal))), form.discount > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600"
+  }, "Remise (", form.discount, "%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium text-red-600"
+  }, "\u2212", fmtMoney(totals.discount))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600"
+  }, "Total HT"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium text-paper-800"
+  }, fmtMoney(totals.ht))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600"
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium text-paper-800"
+  }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
+    className: "divider my-2"
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-lg font-bold"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-800"
+  }, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+    className: "gold-text"
+  }, fmtMoney(totals.ttc))))))));
+}
+function BrandedInvoiceDocument(_ref83) {
+  var invoice = _ref83.invoice,
+    client = _ref83.client,
+    company = _ref83.company;
+  company = company || {};
   var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
@@ -9621,26 +10097,26 @@ function BrandedInvoiceDocument(_ref80) {
 // ============================================================================
 //  TASKS PAGE
 // ============================================================================
-function TasksPage(_ref81) {
-  var search = _ref81.search,
-    openClientProfile = _ref81.openClientProfile,
-    openProspectProfile = _ref81.openProspectProfile;
-  var _useStore15 = useStore(),
-    state = _useStore15.state,
-    upsertTask = _useStore15.upsertTask,
-    deleteTask = _useStore15.deleteTask,
-    toggleTask = _useStore15.toggleTask,
-    exportTasksCsv = _useStore15.exportTasksCsv;
+function TasksPage(_ref84) {
+  var search = _ref84.search,
+    openClientProfile = _ref84.openClientProfile,
+    openProspectProfile = _ref84.openProspectProfile;
+  var _useStore16 = useStore(),
+    state = _useStore16.state,
+    upsertTask = _useStore16.upsertTask,
+    deleteTask = _useStore16.deleteTask,
+    toggleTask = _useStore16.toggleTask,
+    exportTasksCsv = _useStore16.exportTasksCsv;
   var toast = useToast();
   var tasks = state.tasks;
-  var _useState127 = useState(null),
-    _useState128 = _slicedToArray(_useState127, 2),
-    edit = _useState128[0],
-    setEdit = _useState128[1];
-  var _useState129 = useState("all"),
-    _useState130 = _slicedToArray(_useState129, 2),
-    filter = _useState130[0],
-    setFilter = _useState130[1];
+  var _useState131 = useState(null),
+    _useState132 = _slicedToArray(_useState131, 2),
+    edit = _useState132[0],
+    setEdit = _useState132[1];
+  var _useState133 = useState("all"),
+    _useState134 = _slicedToArray(_useState133, 2),
+    filter = _useState134[0],
+    setFilter = _useState134[1];
   var filtered = useMemo(function () {
     var q = (search || "").toLowerCase().trim();
     var arr = tasks;
@@ -9827,13 +10303,13 @@ function TasksPage(_ref81) {
     }
   }));
 }
-function TaskFormModal(_ref82) {
-  var task = _ref82.task,
-    onClose = _ref82.onClose,
-    onSave = _ref82.onSave;
-  var _useStore16 = useStore(),
-    state = _useStore16.state;
-  var _useState131 = useState({
+function TaskFormModal(_ref85) {
+  var task = _ref85.task,
+    onClose = _ref85.onClose,
+    onSave = _ref85.onSave;
+  var _useStore17 = useStore(),
+    state = _useStore17.state;
+  var _useState135 = useState({
       id: task.id || null,
       title: task.title || "",
       clientId: task.clientId || null,
@@ -9843,9 +10319,9 @@ function TaskFormModal(_ref82) {
       status: task.status || "open",
       notes: task.notes || ""
     }),
-    _useState132 = _slicedToArray(_useState131, 2),
-    form = _useState132[0],
-    setForm = _useState132[1];
+    _useState136 = _slicedToArray(_useState135, 2),
+    form = _useState136[0],
+    setForm = _useState136[1];
   var set = function set(k, v) {
     return setForm(function (f) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
@@ -9920,10 +10396,10 @@ function TaskFormModal(_ref82) {
     onChange: function onChange(e) {
       return set("priority", e.target.value);
     }
-  }, Object.entries(TASK_PRIORITY).map(function (_ref83) {
-    var _ref84 = _slicedToArray(_ref83, 2),
-      k = _ref84[0],
-      v = _ref84[1];
+  }, Object.entries(TASK_PRIORITY).map(function (_ref86) {
+    var _ref87 = _slicedToArray(_ref86, 2),
+      k = _ref87[0],
+      v = _ref87[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
@@ -9965,15 +10441,15 @@ function TaskFormModal(_ref82) {
 // ============================================================================
 //  NOTIFICATIONS PAGE
 // ============================================================================
-function NotificationsPage(_ref85) {
-  var setPage = _ref85.setPage,
-    openQuoteViewer = _ref85.openQuoteViewer;
-  var _useStore17 = useStore(),
-    state = _useStore17.state,
-    markNotifRead = _useStore17.markNotifRead,
-    markAllNotifsRead = _useStore17.markAllNotifsRead,
-    deleteNotif = _useStore17.deleteNotif,
-    isNotifRead = _useStore17.isNotifRead;
+function NotificationsPage(_ref88) {
+  var setPage = _ref88.setPage,
+    openQuoteViewer = _ref88.openQuoteViewer;
+  var _useStore18 = useStore(),
+    state = _useStore18.state,
+    markNotifRead = _useStore18.markNotifRead,
+    markAllNotifsRead = _useStore18.markAllNotifsRead,
+    deleteNotif = _useStore18.deleteNotif,
+    isNotifRead = _useStore18.isNotifRead;
   var list = _toConsumableArray(state.notifications).sort(function (a, b) {
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
@@ -10079,14 +10555,14 @@ function SettingsPage() {
   var _useAuth7 = useAuth(),
     currentUser = _useAuth7.currentUser;
   var toast = useToast();
-  var _useState133 = useState("societe"),
-    _useState134 = _slicedToArray(_useState133, 2),
-    tab = _useState134[0],
-    setTab = _useState134[1];
-  var _useState135 = useState(false),
-    _useState136 = _slicedToArray(_useState135, 2),
-    confirmReset = _useState136[0],
-    setConfirmReset = _useState136[1];
+  var _useState137 = useState("societe"),
+    _useState138 = _slicedToArray(_useState137, 2),
+    tab = _useState138[0],
+    setTab = _useState138[1];
+  var _useState139 = useState(false),
+    _useState140 = _slicedToArray(_useState139, 2),
+    confirmReset = _useState140[0],
+    setConfirmReset = _useState140[1];
   var tabs = [{
     id: "societe",
     label: "Société",
@@ -10182,14 +10658,14 @@ function SettingsPage() {
 }
 
 // ---------------- Société tab ----------------
-function SettingsCompany(_ref86) {
-  var state = _ref86.state,
-    updateSettings = _ref86.updateSettings,
-    toast = _ref86.toast;
-  var _useState137 = useState(state.settings.company || {}),
-    _useState138 = _slicedToArray(_useState137, 2),
-    company = _useState138[0],
-    setCompany = _useState138[1];
+function SettingsCompany(_ref89) {
+  var state = _ref89.state,
+    updateSettings = _ref89.updateSettings,
+    toast = _ref89.toast;
+  var _useState141 = useState(state.settings.company || {}),
+    _useState142 = _slicedToArray(_useState141, 2),
+    company = _useState142[0],
+    setCompany = _useState142[1];
   return /*#__PURE__*/React.createElement("div", {
     className: "card-base p-6"
   }, /*#__PURE__*/React.createElement("h3", {
@@ -10313,11 +10789,11 @@ function SettingsCompany(_ref86) {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-4 h-4"
     }),
-    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
-      return _regenerator().w(function (_context22) {
-        while (1) switch (_context22.n) {
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23() {
+      return _regenerator().w(function (_context23) {
+        while (1) switch (_context23.n) {
           case 0:
-            _context22.n = 1;
+            _context23.n = 1;
             return updateSettings({
               company: company
             });
@@ -10327,35 +10803,35 @@ function SettingsCompany(_ref86) {
               title: "Société enregistrée"
             });
           case 2:
-            return _context22.a(2);
+            return _context23.a(2);
         }
-      }, _callee22);
+      }, _callee23);
     }))
   }, "Enregistrer")));
 }
 
 // ---------------- Catalogue tab ----------------
-function SettingsCatalogue(_ref88) {
-  var state = _ref88.state,
-    upsertProduct = _ref88.upsertProduct,
-    deleteProduct = _ref88.deleteProduct,
-    toast = _ref88.toast;
-  var _useState139 = useState(null),
-    _useState140 = _slicedToArray(_useState139, 2),
-    edit = _useState140[0],
-    setEdit = _useState140[1];
-  var _useState141 = useState(""),
-    _useState142 = _slicedToArray(_useState141, 2),
-    filterCat = _useState142[0],
-    setFilterCat = _useState142[1];
-  var _useState143 = useState(""),
+function SettingsCatalogue(_ref91) {
+  var state = _ref91.state,
+    upsertProduct = _ref91.upsertProduct,
+    deleteProduct = _ref91.deleteProduct,
+    toast = _ref91.toast;
+  var _useState143 = useState(null),
     _useState144 = _slicedToArray(_useState143, 2),
-    search = _useState144[0],
-    setSearch = _useState144[1];
-  var _useState145 = useState(null),
+    edit = _useState144[0],
+    setEdit = _useState144[1];
+  var _useState145 = useState(""),
     _useState146 = _slicedToArray(_useState145, 2),
-    confirmDel = _useState146[0],
-    setConfirmDel = _useState146[1];
+    filterCat = _useState146[0],
+    setFilterCat = _useState146[1];
+  var _useState147 = useState(""),
+    _useState148 = _slicedToArray(_useState147, 2),
+    search = _useState148[0],
+    setSearch = _useState148[1];
+  var _useState149 = useState(null),
+    _useState150 = _slicedToArray(_useState149, 2),
+    confirmDel = _useState150[0],
+    setConfirmDel = _useState150[1];
   var products = state.products || [];
   var filtered = products.filter(function (p) {
     if (filterCat && p.category !== filterCat) return false;
@@ -10496,11 +10972,11 @@ function SettingsCatalogue(_ref88) {
       return setEdit(null);
     },
     onSave: (/*#__PURE__*/function () {
-      var _ref89 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee23(data) {
-        return _regenerator().w(function (_context23) {
-          while (1) switch (_context23.n) {
+      var _ref92 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24(data) {
+        return _regenerator().w(function (_context24) {
+          while (1) switch (_context24.n) {
             case 0:
-              _context23.n = 1;
+              _context24.n = 1;
               return upsertProduct(data);
             case 1:
               toast.push({
@@ -10510,12 +10986,12 @@ function SettingsCatalogue(_ref88) {
               });
               setEdit(null);
             case 2:
-              return _context23.a(2);
+              return _context24.a(2);
           }
-        }, _callee23);
+        }, _callee24);
       }));
-      return function (_x18) {
-        return _ref89.apply(this, arguments);
+      return function (_x19) {
+        return _ref92.apply(this, arguments);
       };
     }())
   }), confirmDel && /*#__PURE__*/React.createElement(ConfirmModal, {
@@ -10526,11 +11002,11 @@ function SettingsCatalogue(_ref88) {
     onCancel: function onCancel() {
       return setConfirmDel(null);
     },
-    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee24() {
-      return _regenerator().w(function (_context24) {
-        while (1) switch (_context24.n) {
+    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25() {
+      return _regenerator().w(function (_context25) {
+        while (1) switch (_context25.n) {
           case 0:
-            _context24.n = 1;
+            _context25.n = 1;
             return deleteProduct(confirmDel.id);
           case 1:
             setConfirmDel(null);
@@ -10539,19 +11015,19 @@ function SettingsCatalogue(_ref88) {
               title: "Prestation supprimée"
             });
           case 2:
-            return _context24.a(2);
+            return _context25.a(2);
         }
-      }, _callee24);
+      }, _callee25);
     }))
   }));
 }
-function ProductFormModal(_ref91) {
+function ProductFormModal(_ref94) {
   var _product$price, _product$vat;
-  var product = _ref91.product,
-    onClose = _ref91.onClose,
-    onSave = _ref91.onSave;
+  var product = _ref94.product,
+    onClose = _ref94.onClose,
+    onSave = _ref94.onSave;
   var isNew = !product.id;
-  var _useState147 = useState({
+  var _useState151 = useState({
       name: product.name || "",
       category: product.category || "formation_secu",
       description: product.description || "",
@@ -10559,9 +11035,9 @@ function ProductFormModal(_ref91) {
       unit: product.unit || "forfait",
       vat: (_product$vat = product.vat) !== null && _product$vat !== void 0 ? _product$vat : 17
     }),
-    _useState148 = _slicedToArray(_useState147, 2),
-    form = _useState148[0],
-    setForm = _useState148[1];
+    _useState152 = _slicedToArray(_useState151, 2),
+    form = _useState152[0],
+    setForm = _useState152[1];
   var set = function set(k, v) {
     return setForm(_objectSpread(_objectSpread({}, form), {}, _defineProperty({}, k, v)));
   };
@@ -10666,13 +11142,13 @@ function ProductFormModal(_ref91) {
 }
 
 // ---------------- Documents tab ----------------
-function SettingsDocuments(_ref92) {
+function SettingsDocuments(_ref95) {
   var _init$paymentTermsDay, _state$settings$vat;
-  var state = _ref92.state,
-    updateSettings = _ref92.updateSettings,
-    toast = _ref92.toast;
+  var state = _ref95.state,
+    updateSettings = _ref95.updateSettings,
+    toast = _ref95.toast;
   var init = state.settings.documents || {};
-  var _useState149 = useState({
+  var _useState153 = useState({
       quotePrefix: init.quotePrefix || "DEV",
       invoicePrefix: init.invoicePrefix || "FACT",
       quoteCounter: init.quoteCounter || 1,
@@ -10681,13 +11157,13 @@ function SettingsDocuments(_ref92) {
       defaultNotes: init.defaultNotes || "",
       defaultTerms: init.defaultTerms || ""
     }),
-    _useState150 = _slicedToArray(_useState149, 2),
-    docs = _useState150[0],
-    setDocs = _useState150[1];
-  var _useState151 = useState((_state$settings$vat = state.settings.vat) !== null && _state$settings$vat !== void 0 ? _state$settings$vat : 17),
-    _useState152 = _slicedToArray(_useState151, 2),
-    defaultVat = _useState152[0],
-    setDefaultVat = _useState152[1];
+    _useState154 = _slicedToArray(_useState153, 2),
+    docs = _useState154[0],
+    setDocs = _useState154[1];
+  var _useState155 = useState((_state$settings$vat = state.settings.vat) !== null && _state$settings$vat !== void 0 ? _state$settings$vat : 17),
+    _useState156 = _slicedToArray(_useState155, 2),
+    defaultVat = _useState156[0],
+    setDefaultVat = _useState156[1];
   var set = function set(k, v) {
     return setDocs(_objectSpread(_objectSpread({}, docs), {}, _defineProperty({}, k, v)));
   };
@@ -10816,11 +11292,11 @@ function SettingsDocuments(_ref92) {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-4 h-4"
     }),
-    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee25() {
-      return _regenerator().w(function (_context25) {
-        while (1) switch (_context25.n) {
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26() {
+      return _regenerator().w(function (_context26) {
+        while (1) switch (_context26.n) {
           case 0:
-            _context25.n = 1;
+            _context26.n = 1;
             return updateSettings({
               documents: docs,
               vat: defaultVat
@@ -10831,21 +11307,21 @@ function SettingsDocuments(_ref92) {
               title: "Paramètres documents enregistrés"
             });
           case 2:
-            return _context25.a(2);
+            return _context26.a(2);
         }
-      }, _callee25);
+      }, _callee26);
     }))
   }, "Enregistrer"))));
 }
 
 // ---------------- Notifications prefs tab ----------------
-function SettingsNotifPrefs(_ref94) {
+function SettingsNotifPrefs(_ref97) {
   var _init$quoteSigned, _init$quoteSent, _init$invoicePaid, _init$invoiceOverdue, _init$taskDue, _init$newClient, _init$newProspect;
-  var state = _ref94.state,
-    updateSettings = _ref94.updateSettings,
-    toast = _ref94.toast;
+  var state = _ref97.state,
+    updateSettings = _ref97.updateSettings,
+    toast = _ref97.toast;
   var init = state.settings.notifPrefs || {};
-  var _useState153 = useState({
+  var _useState157 = useState({
       quoteSigned: (_init$quoteSigned = init.quoteSigned) !== null && _init$quoteSigned !== void 0 ? _init$quoteSigned : true,
       quoteSent: (_init$quoteSent = init.quoteSent) !== null && _init$quoteSent !== void 0 ? _init$quoteSent : true,
       invoicePaid: (_init$invoicePaid = init.invoicePaid) !== null && _init$invoicePaid !== void 0 ? _init$invoicePaid : true,
@@ -10854,9 +11330,9 @@ function SettingsNotifPrefs(_ref94) {
       newClient: (_init$newClient = init.newClient) !== null && _init$newClient !== void 0 ? _init$newClient : false,
       newProspect: (_init$newProspect = init.newProspect) !== null && _init$newProspect !== void 0 ? _init$newProspect : false
     }),
-    _useState154 = _slicedToArray(_useState153, 2),
-    prefs = _useState154[0],
-    setPrefs = _useState154[1];
+    _useState158 = _slicedToArray(_useState157, 2),
+    prefs = _useState158[0],
+    setPrefs = _useState158[1];
   var opts = [{
     key: "quoteSigned",
     label: "Devis signé",
@@ -10931,11 +11407,11 @@ function SettingsNotifPrefs(_ref94) {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-4 h-4"
     }),
-    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee26() {
-      return _regenerator().w(function (_context26) {
-        while (1) switch (_context26.n) {
+    onClick: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee27() {
+      return _regenerator().w(function (_context27) {
+        while (1) switch (_context27.n) {
           case 0:
-            _context26.n = 1;
+            _context27.n = 1;
             return updateSettings({
               notifPrefs: prefs
             });
@@ -10945,21 +11421,21 @@ function SettingsNotifPrefs(_ref94) {
               title: "Préférences enregistrées"
             });
           case 2:
-            return _context26.a(2);
+            return _context27.a(2);
         }
-      }, _callee26);
+      }, _callee27);
     }))
   }, "Enregistrer")));
 }
 
 // ---------------- Data tab ----------------
-function SettingsData(_ref96) {
-  var state = _ref96.state,
-    exportJson = _ref96.exportJson,
-    store = _ref96.store,
-    onReset = _ref96.onReset,
-    currentUser = _ref96.currentUser,
-    toast = _ref96.toast;
+function SettingsData(_ref99) {
+  var state = _ref99.state,
+    exportJson = _ref99.exportJson,
+    store = _ref99.store,
+    onReset = _ref99.onReset,
+    currentUser = _ref99.currentUser,
+    toast = _ref99.toast;
   var isAdmin = (currentUser === null || currentUser === void 0 ? void 0 : currentUser.role) === "admin";
   var counts = [{
     label: "Clients",
@@ -11166,42 +11642,42 @@ function SettingsData(_ref96) {
 // ============================================================================
 //  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
 // ============================================================================
-function SignaturePage(_ref97) {
-  var quoteId = _ref97.quoteId,
-    onClose = _ref97.onClose;
+function SignaturePage(_ref100) {
+  var quoteId = _ref100.quoteId,
+    onClose = _ref100.onClose;
   var toast = useToast();
-  var _useState155 = useState(null),
-    _useState156 = _slicedToArray(_useState155, 2),
-    quote = _useState156[0],
-    setQuote = _useState156[1];
-  var _useState157 = useState(null),
-    _useState158 = _slicedToArray(_useState157, 2),
-    recipient = _useState158[0],
-    setRecipient = _useState158[1];
-  var _useState159 = useState(COMPANY),
+  var _useState159 = useState(null),
     _useState160 = _slicedToArray(_useState159, 2),
-    company = _useState160[0],
-    setCompany = _useState160[1];
-  var _useState161 = useState(true),
+    quote = _useState160[0],
+    setQuote = _useState160[1];
+  var _useState161 = useState(null),
     _useState162 = _slicedToArray(_useState161, 2),
-    loading = _useState162[0],
-    setLoading = _useState162[1];
-  var _useState163 = useState(false),
+    recipient = _useState162[0],
+    setRecipient = _useState162[1];
+  var _useState163 = useState(COMPANY),
     _useState164 = _slicedToArray(_useState163, 2),
-    notFound = _useState164[0],
-    setNotFound = _useState164[1];
-  var _useState165 = useState(""),
+    company = _useState164[0],
+    setCompany = _useState164[1];
+  var _useState165 = useState(true),
     _useState166 = _slicedToArray(_useState165, 2),
-    name = _useState166[0],
-    setName = _useState166[1];
+    loading = _useState166[0],
+    setLoading = _useState166[1];
   var _useState167 = useState(false),
     _useState168 = _slicedToArray(_useState167, 2),
-    accept = _useState168[0],
-    setAccept = _useState168[1];
-  var _useState169 = useState(false),
+    notFound = _useState168[0],
+    setNotFound = _useState168[1];
+  var _useState169 = useState(""),
     _useState170 = _slicedToArray(_useState169, 2),
-    signed = _useState170[0],
-    setSigned = _useState170[1];
+    name = _useState170[0],
+    setName = _useState170[1];
+  var _useState171 = useState(false),
+    _useState172 = _slicedToArray(_useState171, 2),
+    accept = _useState172[0],
+    setAccept = _useState172[1];
+  var _useState173 = useState(false),
+    _useState174 = _slicedToArray(_useState173, 2),
+    signed = _useState174[0],
+    setSigned = _useState174[1];
   useEffect(function () {
     fetch("/api/public/quote/".concat(quoteId)).then(function (r) {
       if (!r.ok) throw new Error("not found");
@@ -11242,19 +11718,19 @@ function SignaturePage(_ref97) {
     }, "Retour au CRM")));
   }
   var onSign = /*#__PURE__*/function () {
-    var _ref98 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee27() {
+    var _ref101 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28() {
       var res, _t10;
-      return _regenerator().w(function (_context27) {
-        while (1) switch (_context27.p = _context27.n) {
+      return _regenerator().w(function (_context28) {
+        while (1) switch (_context28.p = _context28.n) {
           case 0:
             if (!(!name.trim() || !accept)) {
-              _context27.n = 1;
+              _context28.n = 1;
               break;
             }
-            return _context27.a(2);
+            return _context28.a(2);
           case 1:
-            _context27.p = 1;
-            _context27.n = 2;
+            _context28.p = 1;
+            _context28.n = 2;
             return fetch("/api/public/quote/".concat(quote.id, "/sign"), {
               method: "POST",
               headers: {
@@ -11266,9 +11742,9 @@ function SignaturePage(_ref97) {
               })
             });
           case 2:
-            res = _context27.v;
+            res = _context28.v;
             if (res.ok) {
-              _context27.n = 3;
+              _context28.n = 3;
               break;
             }
             throw new Error("Signature échouée");
@@ -11284,23 +11760,23 @@ function SignaturePage(_ref97) {
               title: "Devis signé !",
               message: "Cerberion a été notifié."
             });
-            _context27.n = 5;
+            _context28.n = 5;
             break;
           case 4:
-            _context27.p = 4;
-            _t10 = _context27.v;
+            _context28.p = 4;
+            _t10 = _context28.v;
             toast.push({
               type: "error",
               title: "Erreur",
               message: String(_t10.message || _t10)
             });
           case 5:
-            return _context27.a(2);
+            return _context28.a(2);
         }
-      }, _callee27, null, [[1, 4]]);
+      }, _callee28, null, [[1, 4]]);
     }));
     return function onSign() {
-      return _ref98.apply(this, arguments);
+      return _ref101.apply(this, arguments);
     };
   }();
   if (signed || quote.signedAt) {
@@ -11443,10 +11919,10 @@ function SignaturePage(_ref97) {
 //  MAIN APP
 // ============================================================================
 function App() {
-  var _useState171 = useState(window.location.hash),
-    _useState172 = _slicedToArray(_useState171, 2),
-    hash = _useState172[0],
-    setHash = _useState172[1];
+  var _useState175 = useState(window.location.hash),
+    _useState176 = _slicedToArray(_useState175, 2),
+    hash = _useState176[0],
+    setHash = _useState176[1];
   useEffect(function () {
     var onHash = function onHash() {
       return setHash(window.location.hash);
@@ -11469,59 +11945,59 @@ function App() {
 }
 function Shell() {
   // Routing in-app (state-driven, single page)
-  var _useState173 = useState("dashboard"),
-    _useState174 = _slicedToArray(_useState173, 2),
-    page = _useState174[0],
-    setPage = _useState174[1];
-  var _useState175 = useState({
+  var _useState177 = useState("dashboard"),
+    _useState178 = _slicedToArray(_useState177, 2),
+    page = _useState178[0],
+    setPage = _useState178[1];
+  var _useState179 = useState({
       kind: "list"
     }),
-    _useState176 = _slicedToArray(_useState175, 2),
-    view = _useState176[0],
-    setView = _useState176[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
-  var _useState177 = useState(false),
-    _useState178 = _slicedToArray(_useState177, 2),
-    collapsed = _useState178[0],
-    setCollapsed = _useState178[1];
-  var _useState179 = useState(""),
     _useState180 = _slicedToArray(_useState179, 2),
-    search = _useState180[0],
-    setSearch = _useState180[1];
+    view = _useState180[0],
+    setView = _useState180[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
   var _useState181 = useState(false),
     _useState182 = _slicedToArray(_useState181, 2),
-    mobileMenu = _useState182[0],
-    setMobileMenu = _useState182[1];
+    collapsed = _useState182[0],
+    setCollapsed = _useState182[1];
+  var _useState183 = useState(""),
+    _useState184 = _slicedToArray(_useState183, 2),
+    search = _useState184[0],
+    setSearch = _useState184[1];
+  var _useState185 = useState(false),
+    _useState186 = _slicedToArray(_useState185, 2),
+    mobileMenu = _useState186[0],
+    setMobileMenu = _useState186[1];
 
   // Filter for devis/factures pages (set when navigating from a profile)
-  var _useState183 = useState({
+  var _useState187 = useState({
       clientId: null,
       prospectId: null
     }),
-    _useState184 = _slicedToArray(_useState183, 2),
-    devisFilter = _useState184[0],
-    setDevisFilter = _useState184[1];
-  var _useState185 = useState({
+    _useState188 = _slicedToArray(_useState187, 2),
+    devisFilter = _useState188[0],
+    setDevisFilter = _useState188[1];
+  var _useState189 = useState({
       clientId: null
     }),
-    _useState186 = _slicedToArray(_useState185, 2),
-    facturesFilter = _useState186[0],
-    setFacturesFilter = _useState186[1];
+    _useState190 = _slicedToArray(_useState189, 2),
+    facturesFilter = _useState190[0],
+    setFacturesFilter = _useState190[1];
 
   // Modals managed at shell level
-  var _useState187 = useState(null),
-    _useState188 = _slicedToArray(_useState187, 2),
-    quoteEditor = _useState188[0],
-    setQuoteEditor = _useState188[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
-  var _useState189 = useState(null),
-    _useState190 = _slicedToArray(_useState189, 2),
-    quoteViewer = _useState190[0],
-    setQuoteViewer = _useState190[1]; // null | quoteId
-
-  // Invoice viewer state
   var _useState191 = useState(null),
     _useState192 = _slicedToArray(_useState191, 2),
-    invoiceViewer = _useState192[0],
-    setInvoiceViewer = _useState192[1];
+    quoteEditor = _useState192[0],
+    setQuoteEditor = _useState192[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
+  var _useState193 = useState(null),
+    _useState194 = _slicedToArray(_useState193, 2),
+    quoteViewer = _useState194[0],
+    setQuoteViewer = _useState194[1]; // null | quoteId
+
+  // Invoice viewer state
+  var _useState195 = useState(null),
+    _useState196 = _slicedToArray(_useState195, 2),
+    invoiceViewer = _useState196[0],
+    setInvoiceViewer = _useState196[1];
 
   // Helpers
   var goTo = function goTo(newPage) {
@@ -11755,14 +12231,14 @@ function Shell() {
     }
   }));
 }
-function QuoteEditorWrapper(_ref99) {
-  var editor = _ref99.editor,
-    onClose = _ref99.onClose,
-    onAfterSave = _ref99.onAfterSave;
-  var _useStore18 = useStore(),
-    state = _useStore18.state,
-    upsertQuote = _useStore18.upsertQuote,
-    setQuoteStatus = _useStore18.setQuoteStatus;
+function QuoteEditorWrapper(_ref102) {
+  var editor = _ref102.editor,
+    onClose = _ref102.onClose,
+    onAfterSave = _ref102.onAfterSave;
+  var _useStore19 = useStore(),
+    state = _useStore19.state,
+    upsertQuote = _useStore19.upsertQuote,
+    setQuoteStatus = _useStore19.setQuoteStatus;
   var toast = useToast();
   var quote = editor.id ? state.quotes.find(function (q) {
     return q.id === editor.id;
@@ -11805,10 +12281,10 @@ function QuoteEditorWrapper(_ref99) {
     }
   });
 }
-function QuoteViewerWrapper(_ref100) {
-  var quoteId = _ref100.quoteId,
-    onClose = _ref100.onClose,
-    _onEdit = _ref100.onEdit;
+function QuoteViewerWrapper(_ref103) {
+  var quoteId = _ref103.quoteId,
+    onClose = _ref103.onClose,
+    _onEdit = _ref103.onEdit;
   return /*#__PURE__*/React.createElement(QuoteViewer, {
     quoteId: quoteId,
     onClose: onClose,
