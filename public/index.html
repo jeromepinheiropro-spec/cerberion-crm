@@ -185,9 +185,86 @@
   .kpi-accent { position: relative; overflow: hidden; }
   .kpi-accent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
 
-  @media (max-width: 768px) {
-    .sidebar-mobile-hide { display:none; }
+  /* ============================================================
+     RESPONSIVE — Tablette & mobile
+     ============================================================ */
+
+  /* Tablette (≤ 1024px) : sidebar plus compacte, paddings réduits */
+  @media (max-width: 1024px) {
+    .kanban-col { min-width: 260px; }
   }
+
+  /* Mobile (≤ 768px) — affichage à une colonne, sidebar en drawer */
+  @media (max-width: 768px) {
+    .sidebar-mobile-hide { display: none !important; }
+
+    /* TopBar — plus compact, titre masqué (déjà géré par md:hidden côté JSX) */
+    .topbar { height: 56px !important; padding-left: 12px !important; padding-right: 12px !important; gap: 8px !important; }
+    .topbar .input-base { font-size: 14px; height: 38px; }
+
+    /* Cards & paddings */
+    .card-base, .card-soft { border-radius: 12px; }
+
+    /* Boutons — éviter qu'ils débordent */
+    .btn-primary, .btn-ghost, .btn-danger { font-size: 13px; }
+
+    /* Inputs — meilleure cible tactile */
+    .input-base { font-size: 16px; padding: 10px 12px; } /* 16px = pas de zoom iOS */
+
+    /* Tables — déjà dans .overflow-x-auto, on densifie un peu */
+    table { font-size: 13px; }
+    table th, table td { padding: 8px 10px !important; white-space: nowrap; }
+
+    /* Modal — plein écran sur mobile */
+    .modal-shell { padding: 0 !important; align-items: stretch !important; }
+    .modal-card { border-radius: 0 !important; max-height: 100vh !important; min-height: 100vh; width: 100% !important; max-width: 100% !important; }
+    .modal-card .p-6 { padding: 16px !important; }
+
+    /* Kanban — scroll horizontal fluide */
+    .kanban-col { min-width: 78vw; }
+
+    /* Forcer toutes les grilles Tailwind multi-colonnes à 1 colonne sur mobile */
+    [class*="grid-cols-2"],
+    [class*="grid-cols-3"],
+    [class*="grid-cols-4"],
+    [class*="grid-cols-5"],
+    [class*="grid-cols-6"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Headers/titres — réduire un peu */
+    h1, .text-3xl { font-size: 22px !important; line-height: 1.2 !important; }
+    h2, .text-2xl { font-size: 19px !important; line-height: 1.25 !important; }
+    h3, .text-xl  { font-size: 17px !important; }
+
+    /* Flex de boutons d'action en barre — wrap au lieu de déborder */
+    .actions-bar, [data-actions-bar] { flex-wrap: wrap !important; gap: 8px !important; }
+
+    /* KPI accent — étendre sur toute la largeur */
+    .kpi-accent { width: 100%; }
+
+    /* Réduire scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+
+    /* Dropdowns / popovers TopBar — éviter qu'ils sortent de l'écran */
+    .topbar [class*="absolute"][class*="right-"] { right: 8px !important; }
+  }
+
+  /* Mobile très étroit (≤ 480px) — encore plus dense */
+  @media (max-width: 480px) {
+    main { padding-left: 12px !important; padding-right: 12px !important; padding-top: 16px !important; padding-bottom: 16px !important; }
+    .card-base, .card-soft { padding: 12px !important; }
+    .kanban-col { min-width: 85vw; }
+
+    /* Tabs / nav horizontales — taille de texte */
+    .tab-item, [role="tab"] { font-size: 13px !important; padding: 8px 10px !important; }
+  }
+
+  /* Assurer que le drawer mobile (Sidebar overlay) prend toute la hauteur même si .sidebar-mobile-hide existe */
+  @media (max-width: 768px) {
+    .fixed.left-0.top-0.bottom-0 .sidebar-mobile-hide { display: flex !important; }
+  }
+
   @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
@@ -2636,7 +2713,9 @@ function AuthGate(_ref21) {
     pendingInvite = _useAuth.pendingInvite,
     bootLoading = _useAuth.bootLoading;
   var _useState13 = useState(function () {
-      return pendingInvite ? "signup" : auth.users.length === 0 ? "signup" : "login";
+      // Priorité : on affiche toujours l'écran de connexion, sauf en cas d'invitation.
+      // Le lien "Créer un compte" reste accessible sous le bouton "Se connecter".
+      return pendingInvite ? "signup" : "login";
     }),
     _useState14 = _slicedToArray(_useState13, 2),
     mode = _useState14[0],
