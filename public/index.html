@@ -3916,8 +3916,14 @@ function StoreProvider(_ref43) {
     // Priorité : taux porté par le devis, sinon taux par défaut des paramètres, sinon LU.
     var rate = data.vat != null ? Number(data.vat) : (_state$settings_q = state.settings) != null && _state$settings_q.vat != null ? Number(_state$settings_q.vat) : VAT_LU;
     var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
+    // Snapshot du signataire (utilisateur connecté au moment de la création/MAJ) pour les liens publics.
+    var signerSnapshot = data.signer || (currentUser ? {
+      name: currentUser.name || "",
+      position: currentUser.position || ""
+    } : null);
     return dispatch("upsertQuote", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
       vat: rate,
+      signer: signerSnapshot,
       number: data.number || generateQuoteNumber(state.quotes)
     }));
   };
@@ -4822,6 +4828,10 @@ function Dashboard(_ref49) {
   var _useStore4 = useStore(),
     state = _useStore4.state,
     toggleTask = _useStore4.toggleTask;
+  var _useAuth_dash = useAuth(),
+    currentUser_dash = _useAuth_dash.currentUser;
+  // Prénom de l'utilisateur connecté (1er mot du nom complet), fallback prudent.
+  var _greetingName = (currentUser_dash && currentUser_dash.name) ? String(currentUser_dash.name).trim().split(/\s+/)[0] : "";
   var quotes = state.quotes,
     clients = state.clients,
     prospects = state.prospects,
@@ -4962,7 +4972,7 @@ function Dashboard(_ref49) {
     className: "text-xs uppercase tracking-[0.3em] text-gold-700 font-semibold"
   }, "Cerberion \xB7 Tableau de bord"), /*#__PURE__*/React.createElement("h1", {
     className: "text-3xl font-bold text-paper-800 mt-2"
-  }, "Bonjour J\xE9r\xF4me"), /*#__PURE__*/React.createElement("p", {
+  }, _greetingName ? "Bonjour " + _greetingName : "Bonjour"), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-paper-600 mt-1"
   }, new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -8264,6 +8274,9 @@ function QuoteViewer(_ref71) {
     state = _useStore12.state,
     setQuoteStatus = _useStore12.setQuoteStatus,
     generateInvoiceFromQuote = _useStore12.generateInvoiceFromQuote;
+  var _useAuth_qv = useAuth(),
+    currentUser_qv = _useAuth_qv.currentUser;
+  var _signerLive = currentUser_qv ? { name: currentUser_qv.name || "", position: currentUser_qv.position || "" } : null;
   var toast = useToast();
   // All hooks must be called BEFORE any conditional return (React Hooks Rules)
   var printRef = useRef(null);
@@ -8492,7 +8505,8 @@ function QuoteViewer(_ref71) {
   }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
     quote: quote,
     recipient: recipient,
-    company: company
+    company: company,
+    signer: _signerLive
   }))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8565,10 +8579,15 @@ function QuoteViewer(_ref71) {
 function BrandedQuoteDocument(_ref74) {
   var quote = _ref74.quote,
     recipient = _ref74.recipient,
-    company = _ref74.company;
+    company = _ref74.company,
+    signer = _ref74.signer;
   company = company || {};
   var _quoteVat = quote.vat != null ? Number(quote.vat) : VAT_LU;
   var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, _quoteVat);
+  // Signataire : priorité au prop (utilisateur connecté), puis snapshot stocké sur le devis.
+  var _signerObj = signer || quote.signer || null;
+  var _signerName = (_signerObj && _signerObj.name) ? _signerObj.name : "Cerberion";
+  var _signerPos = (_signerObj && _signerObj.position) ? _signerObj.position : "Direction commerciale";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -9061,13 +9080,13 @@ function BrandedQuoteDocument(_ref74) {
       marginTop: 8,
       fontStyle: "italic"
     }
-  }, "J. Pinheiro"), /*#__PURE__*/React.createElement("div", {
+  }, _signerName), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#6b7280",
       marginTop: 2
     }
-  }, "Direction commerciale"))), /*#__PURE__*/React.createElement("div", {
+  }, _signerPos))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 36,
       paddingTop: 14,
