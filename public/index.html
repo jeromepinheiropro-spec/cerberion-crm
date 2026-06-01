@@ -5053,18 +5053,15 @@ function Dashboard(_ref49) {
   }, fmtMoney(months.reduce(function (s, m) {
     return s + m.value;
   }, 0))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-end gap-3 h-56 md:h-72 lg:h-80"
+    className: "flex gap-3 h-56 md:h-72 lg:h-80"
   }, months.map(function (m, i) {
     return /*#__PURE__*/React.createElement("div", {
       key: i,
-      className: "flex-1 flex flex-col items-center gap-2 group"
+      className: "flex-1 flex flex-col items-center gap-2 group h-full"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors"
+      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors h-4"
     }, m.value > 0 ? "".concat(Math.round(m.value / 1000), "k") : ""), /*#__PURE__*/React.createElement("div", {
-      className: "w-full relative",
-      style: {
-        height: "100%"
-      }
+      className: "w-full relative flex-1"
     }, /*#__PURE__*/React.createElement("div", {
       className: "absolute bottom-0 left-0 right-0 rounded-t-md gold-grad transition-all duration-500",
       style: {
