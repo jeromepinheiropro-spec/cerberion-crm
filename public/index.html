@@ -4888,6 +4888,11 @@ function Dashboard(_ref49) {
       }, 0)
     });
   });
+  // CA des 6 derniers mois = total TTC des FACTURES ÉMISES (envoyée, payée ou en retard),
+  // attribué au mois de la date d'émission. On exclut les brouillons.
+  var issuedInvoices = (invoices || []).filter(function (i) {
+    return ["envoyee", "payee", "retard"].includes(i.status);
+  });
   var months = useMemo(function () {
     var arr = [];
     var now = new Date();
@@ -4897,10 +4902,10 @@ function Dashboard(_ref49) {
       var label = d.toLocaleDateString("fr-FR", {
         month: "short"
       });
-      var val = signedQuotes.filter(function (q) {
-        return q.signedAt && q.signedAt.slice(0, 7) === key;
-      }).reduce(function (s, q) {
-        return s + (q.ttc || 0);
+      var val = issuedInvoices.filter(function (inv) {
+        return inv.issueDate && String(inv.issueDate).slice(0, 7) === key;
+      }).reduce(function (s, inv) {
+        return s + (inv.ttc || 0);
       }, 0);
       arr.push({
         label: label,
@@ -4911,7 +4916,7 @@ function Dashboard(_ref49) {
       _loop();
     }
     return arr;
-  }, [signedQuotes]);
+  }, [issuedInvoices]);
   var maxMonth = Math.max.apply(Math, [1].concat(_toConsumableArray(months.map(function (m) {
     return m.value;
   }))));
@@ -5037,9 +5042,9 @@ function Dashboard(_ref49) {
     className: "flex items-center justify-between mb-5"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
     className: "font-semibold text-paper-800"
-  }, "Chiffre d'affaires sign\xE9 \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
+  }, "Chiffre d'affaires \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-paper-500 mt-1"
-  }, "\xC9volution mensuelle des contrats remport\xE9s")), /*#__PURE__*/React.createElement("div", {
+  }, "Total TTC des factures \xE9mises (envoy\xE9es, pay\xE9es ou en retard)")), /*#__PURE__*/React.createElement("div", {
     className: "text-right"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-paper-500"
