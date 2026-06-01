@@ -349,12 +349,15 @@ app.post("/api/state/dispatch", authRequired, (req, res) => {
         if (!q) break;
         const exists = stateCache.invoices.find(inv => inv.quoteId === q.id);
         if (exists) break;
+        // Propagate VAT rate from the source quote (fallback to settings default, then LU 17%)
+        const vatRate = q.vat != null ? Number(q.vat)
+                      : (stateCache.settings && stateCache.settings.vat != null ? Number(stateCache.settings.vat) : 17);
         stateCache.invoices.push({
           id: newUid("inv"),
           number: payload.number,
           quoteId: q.id, clientId: q.clientId, prospectId: q.prospectId,
           title: q.title, lines: q.lines, discount: q.discount || 0,
-          subTotal: q.subTotal, ht: q.ht, tva: q.tva, ttc: q.ttc,
+          subTotal: q.subTotal, ht: q.ht, tva: q.tva, ttc: q.ttc, vat: vatRate,
           issueDate: now, dueDate: payload.dueDate, status: "brouillon",
           paidAt: null, paymentMethod: null,
           notes: q.notes, terms: payload.terms || "Paiement à 30 jours fin de mois.",

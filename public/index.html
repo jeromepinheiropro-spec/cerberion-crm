@@ -732,19 +732,23 @@ var initialsOf = function initialsOf() {
 };
 function calcQuoteTotals(lines) {
   var discountPct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+  // Le 3e paramètre est le taux de TVA. S'il est absent, on retombe sur le taux LU par défaut.
+  var vatRate = arguments.length > 2 && arguments[2] !== undefined ? Number(arguments[2]) : VAT_LU;
+  if (!isFinite(vatRate)) vatRate = VAT_LU;
   var subTotal = lines.reduce(function (s, l) {
     return s + (Number(l.qty) || 0) * (Number(l.unitPrice) || 0);
   }, 0);
   var discount = subTotal * (Number(discountPct) || 0) / 100;
   var ht = subTotal - discount;
-  var tva = ht * VAT_LU / 100;
+  var tva = ht * vatRate / 100;
   var ttc = ht + tva;
   return {
     subTotal: subTotal,
     discount: discount,
     ht: ht,
     tva: tva,
-    ttc: ttc
+    ttc: ttc,
+    vat: vatRate
   };
 }
 function generateQuoteNumber(quotes) {
@@ -3908,8 +3912,12 @@ function StoreProvider(_ref43) {
 
   // -------- Quotes
   var upsertQuote = function upsertQuote(data) {
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
+    var _state$settings_q;
+    // Priorité : taux porté par le devis, sinon taux par défaut des paramètres, sinon LU.
+    var rate = data.vat != null ? Number(data.vat) : (_state$settings_q = state.settings) != null && _state$settings_q.vat != null ? Number(_state$settings_q.vat) : VAT_LU;
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
     return dispatch("upsertQuote", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
+      vat: rate,
       number: data.number || generateQuoteNumber(state.quotes)
     }));
   };
@@ -3956,8 +3964,12 @@ function StoreProvider(_ref43) {
 
   // -------- Invoices
   var upsertInvoice = function upsertInvoice(data) {
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
+    var _state$settings_i;
+    // Priorité : taux porté par la facture, sinon taux par défaut des paramètres, sinon LU.
+    var rate = data.vat != null ? Number(data.vat) : (_state$settings_i = state.settings) != null && _state$settings_i.vat != null ? Number(_state$settings_i.vat) : VAT_LU;
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
     return dispatch("upsertInvoice", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
+      vat: rate,
       number: data.number || generateInvoiceNumber(state.invoices)
     }));
   };
@@ -4854,6 +4866,12 @@ function Dashboard(_ref49) {
   var totalUnpaid = unpaid.reduce(function (s, i) {
     return s + (i.ttc || 0);
   }, 0);
+  var paidInvoices = (invoices || []).filter(function (i) {
+    return i.status === "payee";
+  });
+  var totalPaid = paidInvoices.reduce(function (s, i) {
+    return s + (i.ttc || 0);
+  }, 0);
   var recentActivities = _toConsumableArray(activities).sort(function (a, b) {
     return new Date(b.createdAt) - new Date(a.createdAt);
   }).slice(0, 8);
@@ -5003,27 +5021,23 @@ function Dashboard(_ref49) {
     iconBg: "bg-gold-50",
     accentColor: "gold"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: /*#__PURE__*/React.createElement(Ic.Target, {
+    icon: /*#__PURE__*/React.createElement(Ic.AlertCircle, {
       className: "w-5 h-5"
     }),
-    label: "Prospects actifs",
-    value: activeProspects.length,
-    sub: "".concat(fmtMoney(activeProspects.reduce(function (s, p) {
-      return s + (p.value || 0);
-    }, 0))),
-    iconBg: "bg-amber-50",
-    accentColor: "amber"
+    label: "Factures impay\xE9es",
+    value: fmtMoney(totalUnpaid),
+    sub: "".concat(unpaid.length, " ", unpaid.length > 1 ? "factures" : "facture", " en attente"),
+    iconBg: unpaid.length > 0 ? "bg-amber-50" : "bg-paper-100",
+    accentColor: unpaid.length > 0 ? "amber" : "paper"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: overdueTasks.length > 0 ? /*#__PURE__*/React.createElement(Ic.AlertCircle, {
-      className: "w-5 h-5"
-    }) : /*#__PURE__*/React.createElement(Ic.Check, {
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-5 h-5"
     }),
-    label: "T\xE2ches en retard",
-    value: overdueTasks.length,
-    sub: todayTasks.length > 0 ? "+ ".concat(todayTasks.length, " aujourd'hui") : "Tout à jour",
-    iconBg: overdueTasks.length > 0 ? "bg-red-50" : "bg-emerald-50",
-    accentColor: overdueTasks.length > 0 ? "red" : "emerald"
+    label: "Factures pay\xE9es",
+    value: fmtMoney(totalPaid),
+    sub: "".concat(paidInvoices.length, " ", paidInvoices.length > 1 ? "factures encaiss\xE9es" : "facture encaiss\xE9e"),
+    iconBg: "bg-emerald-50",
+    accentColor: "emerald"
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 lg:grid-cols-3 gap-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -7790,6 +7804,7 @@ function QuoteEditor(_ref69) {
   var _useStore11 = useStore(),
     state = _useStore11.state;
   var isNew = !quote.id;
+  var _defaultVatQ = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState111 = useState(function () {
       return {
         id: quote.id || uid("q"),
@@ -7801,6 +7816,7 @@ function QuoteEditor(_ref69) {
         issueDate: quote.issueDate ? quote.issueDate.slice(0, 10) : todayISO(),
         validUntil: quote.validUntil ? quote.validUntil.slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
         discount: quote.discount || 0,
+        vat: quote.vat != null ? Number(quote.vat) : _defaultVatQ,
         lines: quote.lines && quote.lines.length > 0 ? quote.lines : [{
           id: uid("ln"),
           description: "",
@@ -7825,7 +7841,7 @@ function QuoteEditor(_ref69) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
   var setLine = function setLine(i, patch) {
     setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -8025,7 +8041,20 @@ function QuoteEditor(_ref69) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA applicable",
+    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vat,
+    onChange: function onChange(e) {
+      return set("vat", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -8187,7 +8216,7 @@ function QuoteEditor(_ref69) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -8515,7 +8544,8 @@ function BrandedQuoteDocument(_ref74) {
     recipient = _ref74.recipient,
     company = _ref74.company;
   company = company || {};
-  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
+  var _quoteVat = quote.vat != null ? Number(quote.vat) : VAT_LU;
+  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, _quoteVat);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -8851,7 +8881,7 @@ function BrandedQuoteDocument(_ref74) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", _quoteVat, "%)"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500
     }
@@ -9479,6 +9509,7 @@ function InvoiceEditor(_ref81) {
   var isNew = !invoice.id;
   var paymentDays = (_state$settings$docum = (_state$settings4 = state.settings) === null || _state$settings4 === void 0 || (_state$settings4 = _state$settings4.documents) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
   var defaultTerms = ((_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.defaultTerms) || "Paiement à 30 jours fin de mois.";
+  var _defaultVatI = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState129 = useState(function () {
       return {
         id: invoice.id || uid("inv"),
@@ -9489,6 +9520,7 @@ function InvoiceEditor(_ref81) {
         issueDate: invoice.issueDate ? invoice.issueDate.slice(0, 10) : todayISO(),
         dueDate: invoice.dueDate ? invoice.dueDate.slice(0, 10) : new Date(Date.now() + paymentDays * 86400000).toISOString().slice(0, 10),
         discount: invoice.discount || 0,
+        vat: invoice.vat != null ? Number(invoice.vat) : _defaultVatI,
         lines: invoice.lines && invoice.lines.length > 0 ? invoice.lines : [{
           id: uid("ln"),
           description: "",
@@ -9512,7 +9544,7 @@ function InvoiceEditor(_ref81) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
   var setLine = function setLine(i, patch) {
     return setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -9681,7 +9713,20 @@ function InvoiceEditor(_ref81) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA applicable",
+    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vat,
+    onChange: function onChange(e) {
+      return set("vat", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -9852,7 +9897,7 @@ function InvoiceEditor(_ref81) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -9869,7 +9914,8 @@ function BrandedInvoiceDocument(_ref83) {
     client = _ref83.client,
     company = _ref83.company;
   company = company || {};
-  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0);
+  var _invVat = invoice.vat != null ? Number(invoice.vat) : VAT_LU;
+  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0, _invVat);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -10159,7 +10205,7 @@ function BrandedInvoiceDocument(_ref83) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
+  }, "TVA (", _invVat, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
