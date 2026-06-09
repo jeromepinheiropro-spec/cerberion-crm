@@ -63,6 +63,7 @@ const emptyState = () => ({
   products: [],
   fichesExtra: [],
   notesFrais: [],
+  purchaseInvoices: [],
   settings: { vat: 17 },
   updatedAt: nowISO(),
 });
@@ -72,6 +73,7 @@ if (!stateCache) { stateCache = emptyState(); writeJsonAtomic(STATE_FILE, stateC
 if (!Array.isArray(stateCache.products)) stateCache.products = [];
 if (!Array.isArray(stateCache.fichesExtra)) stateCache.fichesExtra = [];
 if (!Array.isArray(stateCache.notesFrais)) stateCache.notesFrais = [];
+if (!Array.isArray(stateCache.purchaseInvoices)) stateCache.purchaseInvoices = [];
 
 // ---------- Auth (users + invitations) ----------
 const emptyAuth = () => ({ users: [], invitations: [], sessions: [] });
@@ -452,6 +454,28 @@ app.post("/api/state/dispatch", authRequired, (req, res) => {
         const { id, status, extra } = payload;
         stateCache.notesFrais = (stateCache.notesFrais || []).map(n =>
           n.id === id ? { ...n, status, ...(extra || {}), updatedAt: now } : n
+        );
+        break;
+      }
+      // Factures d'achat (côté fournisseur, pour le classeur comptable)
+      case "upsertPurchaseInvoice": {
+        const data = payload;
+        const list = stateCache.purchaseInvoices || [];
+        if (data.id && list.find(p => p.id === data.id)) {
+          stateCache.purchaseInvoices = list.map(p => p.id === data.id ? { ...p, ...data, updatedAt: now } : p);
+        } else {
+          stateCache.purchaseInvoices = [...list, { ...data, id: data.id || uid("pur"), createdAt: now, updatedAt: now, createdBy: req.user.id }];
+        }
+        break;
+      }
+      case "deletePurchaseInvoice": {
+        stateCache.purchaseInvoices = (stateCache.purchaseInvoices || []).filter(p => p.id !== payload.id);
+        break;
+      }
+      case "setPurchaseStatus": {
+        const { id, status, extra } = payload;
+        stateCache.purchaseInvoices = (stateCache.purchaseInvoices || []).map(p =>
+          p.id === id ? { ...p, status, ...(extra || {}), updatedAt: now } : p
         );
         break;
       }

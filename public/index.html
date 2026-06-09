@@ -1024,6 +1024,125 @@ function generateNoteFraisNumber(notes) {
   }).length + 1;
   return "NF-".concat(y, "-").concat(String(next).padStart(4, "0"));
 }
+// ===== Factures d'achat (classeur comptable) =====
+var PURCHASE_CATEGORIES = [{
+  id: "loyer",
+  label: "Loyer / charges immobilières",
+  color: "purple"
+}, {
+  id: "fournitures",
+  label: "Fournitures / matériel",
+  color: "slate"
+}, {
+  id: "equipement",
+  label: "Équipement / immobilisations",
+  color: "amber"
+}, {
+  id: "sous_traitance",
+  label: "Sous-traitance / prestations",
+  color: "blue"
+}, {
+  id: "telecom",
+  label: "Téléphone / internet",
+  color: "blue"
+}, {
+  id: "energie",
+  label: "Énergie (électricité, gaz)",
+  color: "amber"
+}, {
+  id: "assurance",
+  label: "Assurance",
+  color: "green"
+}, {
+  id: "comptable",
+  label: "Honoraires comptables",
+  color: "gold"
+}, {
+  id: "juridique",
+  label: "Honoraires juridiques",
+  color: "gold"
+}, {
+  id: "marketing",
+  label: "Marketing / publicité",
+  color: "amber"
+}, {
+  id: "transport",
+  label: "Transport / logistique",
+  color: "blue"
+}, {
+  id: "vehicule",
+  label: "Véhicule (entretien, leasing)",
+  color: "amber"
+}, {
+  id: "formation",
+  label: "Formation",
+  color: "blue"
+}, {
+  id: "banque",
+  label: "Frais bancaires",
+  color: "slate"
+}, {
+  id: "autre",
+  label: "Autre",
+  color: "slate"
+}];
+var PURCHASE_STATUS = {
+  brouillon: {
+    label: "Brouillon",
+    color: "slate"
+  },
+  a_payer: {
+    label: "À payer",
+    color: "amber"
+  },
+  payee: {
+    label: "Payée",
+    color: "green"
+  },
+  litige: {
+    label: "En litige",
+    color: "red"
+  }
+};
+var PAYMENT_METHODS = [{
+  id: "virement",
+  label: "Virement bancaire"
+}, {
+  id: "prelevement",
+  label: "Prélèvement SEPA"
+}, {
+  id: "carte",
+  label: "Carte bancaire"
+}, {
+  id: "especes",
+  label: "Espèces"
+}, {
+  id: "cheque",
+  label: "Chèque"
+}, {
+  id: "autre",
+  label: "Autre"
+}];
+function calcPurchaseInvoice(p) {
+  var _p$vatRate;
+  var ttc = Number(p.amountTtc || 0);
+  var vat = Number((_p$vatRate = p.vatRate) !== null && _p$vatRate !== void 0 ? _p$vatRate : 17);
+  var ht = vat > 0 ? round2(ttc / (1 + vat / 100)) : round2(ttc);
+  var tva = round2(ttc - ht);
+  return {
+    ttc: ttc,
+    ht: ht,
+    tva: tva,
+    vat: vat
+  };
+}
+function generatePurchaseNumber(purchases) {
+  var y = new Date().getFullYear();
+  var next = (purchases || []).filter(function (p) {
+    return (p.number || "").includes("ACH-".concat(y));
+  }).length + 1;
+  return "ACH-".concat(y, "-").concat(String(next).padStart(4, "0"));
+}
 var PROSPECT_STAGES = [{
   id: "contact",
   label: "Contact",
@@ -1395,6 +1514,7 @@ function emptyData() {
     products: [],
     fichesExtra: [],
     notesFrais: [],
+    purchaseInvoices: [],
     settings: {
       company: COMPANY,
       vat: VAT_LU,
@@ -4659,6 +4779,101 @@ function StoreProvider(_ref43) {
       extra: extra
     });
   };
+  var upsertPurchaseInvoice = function upsertPurchaseInvoice(data) {
+    return dispatch("upsertPurchaseInvoice", data);
+  };
+  var deletePurchaseInvoice = function deletePurchaseInvoice(id) {
+    return dispatch("deletePurchaseInvoice", {
+      id: id
+    });
+  };
+  var setPurchaseStatus = function setPurchaseStatus(id, status) {
+    var extra = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    return dispatch("setPurchaseStatus", {
+      id: id,
+      status: status,
+      extra: extra
+    });
+  };
+  var exportPurchasesCsv = function exportPurchasesCsv() {
+    return csvDownload("cerberion-achats-".concat(todayISO(), ".csv"), state.purchaseInvoices || [], [{
+      key: "number",
+      label: "N° achat"
+    }, {
+      key: "issueDate",
+      label: "Date facture"
+    }, {
+      key: "dueDate",
+      label: "Date échéance"
+    }, {
+      key: "supplierName",
+      label: "Fournisseur"
+    }, {
+      key: "supplierVat",
+      label: "TVA fournisseur"
+    }, {
+      key: "category",
+      label: "Catégorie",
+      value: function value(r) {
+        var _PURCHASE_CATEGORIES$;
+        return ((_PURCHASE_CATEGORIES$ = PURCHASE_CATEGORIES.find(function (c) {
+          return c.id === r.category;
+        })) === null || _PURCHASE_CATEGORIES$ === void 0 ? void 0 : _PURCHASE_CATEGORIES$.label) || r.category || "";
+      }
+    }, {
+      key: "description",
+      label: "Description"
+    }, {
+      key: "amountTtc",
+      label: "TTC €",
+      value: function value(r) {
+        return calcPurchaseInvoice(r).ttc;
+      }
+    }, {
+      key: "vatRate",
+      label: "TVA %",
+      value: function value(r) {
+        return calcPurchaseInvoice(r).vat;
+      }
+    }, {
+      key: "vatAmount",
+      label: "TVA €",
+      value: function value(r) {
+        return calcPurchaseInvoice(r).tva;
+      }
+    }, {
+      key: "ht",
+      label: "HT €",
+      value: function value(r) {
+        return calcPurchaseInvoice(r).ht;
+      }
+    }, {
+      key: "status",
+      label: "Statut",
+      value: function value(r) {
+        var _PURCHASE_STATUS$r$st;
+        return ((_PURCHASE_STATUS$r$st = PURCHASE_STATUS[r.status]) === null || _PURCHASE_STATUS$r$st === void 0 ? void 0 : _PURCHASE_STATUS$r$st.label) || r.status;
+      }
+    }, {
+      key: "paymentMethod",
+      label: "Mode paiement",
+      value: function value(r) {
+        var _PAYMENT_METHODS$find;
+        return ((_PAYMENT_METHODS$find = PAYMENT_METHODS.find(function (m) {
+          return m.id === r.paymentMethod;
+        })) === null || _PAYMENT_METHODS$find === void 0 ? void 0 : _PAYMENT_METHODS$find.label) || r.paymentMethod || "";
+      }
+    }, {
+      key: "paidAt",
+      label: "Payée le"
+    }, {
+      key: "fileName",
+      label: "Justificatif"
+    }, {
+      key: "notes",
+      label: "Notes"
+    }]);
+  };
   var exportNotesFraisCsv = function exportNotesFraisCsv() {
     return csvDownload("cerberion-notes-frais-".concat(todayISO(), ".csv"), state.notesFrais || [], [{
       key: "number",
@@ -5142,6 +5357,9 @@ function StoreProvider(_ref43) {
     upsertNoteFrais: upsertNoteFrais,
     deleteNoteFrais: deleteNoteFrais,
     setNoteFraisStatus: setNoteFraisStatus,
+    upsertPurchaseInvoice: upsertPurchaseInvoice,
+    deletePurchaseInvoice: deletePurchaseInvoice,
+    setPurchaseStatus: setPurchaseStatus,
     updateSettings: updateSettings,
     exportJson: exportJson,
     importJson: importJson,
@@ -5154,6 +5372,7 @@ function StoreProvider(_ref43) {
     exportTasksCsv: exportTasksCsv,
     exportFichesExtraCsv: exportFichesExtraCsv,
     exportNotesFraisCsv: exportNotesFraisCsv,
+    exportPurchasesCsv: exportPurchasesCsv,
     exportAllCsv: exportAllCsv
   };
   return /*#__PURE__*/React.createElement(StoreCtx.Provider, {
@@ -5270,6 +5489,14 @@ function Sidebar(_ref47) {
   }];
   if (can(currentUser === null || currentUser === void 0 ? void 0 : currentUser.role, "seeBackend")) {
     items.push({
+      id: "comptabilite",
+      label: "Comptabilité",
+      icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+        className: "nav-icon"
+      }),
+      adminOnly: true
+    });
+    items.push({
       id: "backend",
       label: "Backend",
       icon: /*#__PURE__*/React.createElement(Ic.Shield, {
@@ -5379,6 +5606,7 @@ function TopBar(_ref48) {
     taches: "Tâches",
     fichesExtra: "Fiches Extra",
     notesFrais: "Notes de frais",
+    comptabilite: "Classeur Comptable",
     notifications: "Notifications",
     settings: "Paramètres",
     backend: "Backend"
@@ -13234,6 +13462,8 @@ function Shell() {
         return /*#__PURE__*/React.createElement(NotesFraisPage, {
           search: pageSearch
         });
+      case "comptabilite":
+        return /*#__PURE__*/React.createElement(ComptabilitePage, null);
       case "notifications":
         return /*#__PURE__*/React.createElement(NotificationsPage, {
           setPage: goTo,
@@ -15180,6 +15410,1083 @@ function NoteFraisEditor(_ref115) {
   })), /*#__PURE__*/React.createElement("div", {
     className: "text-[11px] text-paper-400 leading-relaxed border-t border-paper-100 pt-3"
   }, "R\xE8gles : indemnit\xE9 kilom\xE9trique 0,30 \u20AC/km (depuis 01.08.2015, non index\xE9e) \xB7 forfait jour LU 14 \u20AC \xB7 forfait nuit LU 56 \u20AC \xB7 ch\xE8ques-repas exon\xE9r\xE9s \u2264 10,80 \u20AC (employeur 6,48 \u20AC + employ\xE9 4,32 \u20AC) \xB7 TVA h\xF4tellerie LU 3 % \xB7 conservation des justificatifs 10 ans (art. 16 Code de commerce LU).")));
+}
+
+// ===== Comptabilité UI components =====
+function ComptabilitePage() {
+  var _useStore21 = useStore(),
+    state = _useStore21.state,
+    upsertPurchaseInvoice = _useStore21.upsertPurchaseInvoice,
+    deletePurchaseInvoice = _useStore21.deletePurchaseInvoice,
+    setPurchaseStatus = _useStore21.setPurchaseStatus,
+    exportInvoicesCsv = _useStore21.exportInvoicesCsv,
+    exportPurchasesCsv = _useStore21.exportPurchasesCsv,
+    exportNotesFraisCsv = _useStore21.exportNotesFraisCsv,
+    exportFichesExtraCsv = _useStore21.exportFichesExtraCsv,
+    exportQuotesCsv = _useStore21.exportQuotesCsv;
+  var _useAuth9 = useAuth(),
+    currentUser = _useAuth9.currentUser;
+  var toast = useToast();
+
+  // Hooks must run before any conditional return
+  var today = new Date();
+  var _useState183 = useState(today.getFullYear()),
+    _useState184 = _slicedToArray(_useState183, 2),
+    year = _useState184[0],
+    setYear = _useState184[1];
+  var _useState185 = useState(today.getMonth() + 1),
+    _useState186 = _slicedToArray(_useState185, 2),
+    month = _useState186[0],
+    setMonth = _useState186[1];
+  var _useState187 = useState(null),
+    _useState188 = _slicedToArray(_useState187, 2),
+    editPurchase = _useState188[0],
+    setEditPurchase = _useState188[1];
+  var _useState189 = useState(null),
+    _useState190 = _slicedToArray(_useState189, 2),
+    confirmDelete = _useState190[0],
+    setConfirmDelete = _useState190[1];
+  var _useState191 = useState("apercu"),
+    _useState192 = _slicedToArray(_useState191, 2),
+    activeSection = _useState192[0],
+    setActiveSection = _useState192[1];
+  if (!can(currentUser === null || currentUser === void 0 ? void 0 : currentUser.role, "seeBackend")) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "card-base p-10 text-center"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-10 h-10 text-red-500 mx-auto mb-3"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-xl font-bold text-paper-800 mb-2"
+    }, "Acc\xE8s refus\xE9"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm text-paper-600"
+    }, "Le classeur comptable est r\xE9serv\xE9 aux administrateurs et managers."));
+  }
+  var inPeriod = function inPeriod(dateStr) {
+    if (!dateStr) return false;
+    var d = new Date(dateStr);
+    return d.getFullYear() === year && d.getMonth() + 1 === month;
+  };
+  var ventes = (state.invoices || []).filter(function (i) {
+    return inPeriod(i.issueDate);
+  });
+  var achats = (state.purchaseInvoices || []).filter(function (p) {
+    return inPeriod(p.issueDate);
+  });
+  var notes = (state.notesFrais || []).filter(function (n) {
+    return inPeriod(n.date);
+  });
+  var fiches = (state.fichesExtra || []).filter(function (f) {
+    return inPeriod(f.date);
+  });
+  var devisSigned = (state.quotes || []).filter(function (q) {
+    return q.status === "signe" && inPeriod(q.signedAt || q.issueDate);
+  });
+  var ventesTotals = ventes.reduce(function (acc, i) {
+    acc.ttc += Number(i.ttc || 0);
+    acc.ht += Number(i.ht || 0);
+    acc.tva += Number(i.tva || 0);
+    return acc;
+  }, {
+    ttc: 0,
+    ht: 0,
+    tva: 0
+  });
+  var achatsTotals = achats.reduce(function (acc, p) {
+    var c = calcPurchaseInvoice(p);
+    acc.ttc += c.ttc;
+    acc.ht += c.ht;
+    acc.tva += c.tva;
+    return acc;
+  }, {
+    ttc: 0,
+    ht: 0,
+    tva: 0
+  });
+  var notesTotal = notes.reduce(function (s, n) {
+    return s + calcNoteFrais(n).ttc;
+  }, 0);
+  var fichesTotal = fiches.reduce(function (s, f) {
+    return s + calcFicheExtra(f).totalGross;
+  }, 0);
+  var tvaSolde = ventesTotals.tva - achatsTotals.tva;
+  var years = [];
+  for (var y = today.getFullYear() - 3; y <= today.getFullYear() + 1; y++) years.push(y);
+  var months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  var monthLabel = "".concat(months[month - 1], " ").concat(year);
+  var sections = [{
+    id: "apercu",
+    label: "Aperçu",
+    icon: /*#__PURE__*/React.createElement(Ic.Home, {
+      className: "w-4 h-4"
+    }),
+    count: null
+  }, {
+    id: "ventes",
+    label: "Ventes (factures)",
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-4 h-4"
+    }),
+    count: ventes.length
+  }, {
+    id: "achats",
+    label: "Achats",
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-4 h-4"
+    }),
+    count: achats.length
+  }, {
+    id: "notesFrais",
+    label: "Notes de frais",
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-4 h-4"
+    }),
+    count: notes.length
+  }, {
+    id: "fichesExtra",
+    label: "Fiches Extra",
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "w-4 h-4"
+    }),
+    count: fiches.length
+  }, {
+    id: "devis",
+    label: "Devis signés",
+    icon: /*#__PURE__*/React.createElement(Ic.PenTool, {
+      className: "w-4 h-4"
+    }),
+    count: devisSigned.length
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "Classeur comptable",
+    subtitle: "R\xE9capitulatif mensuel pour l'expert-comptable \xB7 ".concat(monthLabel, " \xB7 donn\xE9es interconnect\xE9es avec tout le CRM."),
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-6 h-6"
+    }),
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2 no-print"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return window.print();
+      }
+    }, "Imprimer dossier"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEditPurchase({});
+      }
+    }, "Nouvelle facture d'achat"))
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-4 no-print"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap items-end gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Ann\xE9e"), /*#__PURE__*/React.createElement(Select, {
+    value: year,
+    onChange: function onChange(e) {
+      return setYear(parseInt(e.target.value));
+    }
+  }, years.map(function (y) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: y,
+      value: y
+    }, y);
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Mois"), /*#__PURE__*/React.createElement(Select, {
+    value: month,
+    onChange: function onChange(e) {
+      return setMonth(parseInt(e.target.value));
+    }
+  }, months.map(function (m, i) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: i,
+      value: i + 1
+    }, m);
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      var m = month - 1,
+        y = year;
+      if (m < 1) {
+        m = 12;
+        y -= 1;
+      }
+      setMonth(m);
+      setYear(y);
+    }
+  }, "\u2190 Mois pr\xE9c."), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      setYear(today.getFullYear());
+      setMonth(today.getMonth() + 1);
+    }
+  }, "Aujourd'hui"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      var m = month + 1,
+        y = year;
+      if (m > 12) {
+        m = 1;
+        y += 1;
+      }
+      setMonth(m);
+      setYear(y);
+    }
+  }, "Mois suiv. \u2192")))), /*#__PURE__*/React.createElement("div", {
+    id: "print-area",
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "hidden print:block mb-6 text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-display text-xl tracking-[0.3em] text-paper-800"
+  }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-paper-600"
+  }, "Classeur comptable \u2014 ", monthLabel), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 mt-1"
+  }, "\xC9dit\xE9 le ", fmtDate(todayISO()), " par ", currentUser === null || currentUser === void 0 ? void 0 : currentUser.name)), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-3"
+  }, /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.TrendingUp, {
+      className: "w-5 h-5"
+    }),
+    label: "CA HT (ventes)",
+    value: fmtMoney(ventesTotals.ht),
+    sub: "".concat(ventes.length, " facture").concat(ventes.length > 1 ? "s" : "")
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.TrendingDown, {
+      className: "w-5 h-5"
+    }),
+    label: "Achats HT",
+    value: fmtMoney(achatsTotals.ht),
+    sub: "".concat(achats.length, " facture").concat(achats.length > 1 ? "s" : "")
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-5 h-5"
+    }),
+    label: "TVA \xE0 reverser",
+    value: fmtMoney(tvaSolde),
+    sub: "Collect\xE9e ".concat(fmtMoney(ventesTotals.tva), " \u2212 D\xE9ductible ").concat(fmtMoney(achatsTotals.tva))
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-5 h-5"
+    }),
+    label: "Marge brute",
+    value: fmtMoney(ventesTotals.ht - achatsTotals.ht)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-1 inline-flex flex-wrap gap-1 no-print"
+  }, sections.map(function (s) {
+    return /*#__PURE__*/React.createElement("button", {
+      key: s.id,
+      onClick: function onClick() {
+        return setActiveSection(s.id);
+      },
+      className: "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ".concat(activeSection === s.id ? "bg-gold-500 text-white" : "text-paper-600 hover:bg-paper-100 hover:text-paper-800")
+    }, s.icon, /*#__PURE__*/React.createElement("span", null, s.label), s.count != null && /*#__PURE__*/React.createElement("span", {
+      className: "text-[10px] px-1.5 py-0.5 rounded-full ".concat(activeSection === s.id ? "bg-white/20" : "bg-paper-100")
+    }, s.count));
+  })), activeSection === "apercu" && /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-5 print:break-inside-avoid"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800 mb-3 flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Ic.Home, {
+    className: "w-4 h-4"
+  }), " Aper\xE7u fiscal du mois"), /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "CA HT factur\xE9"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right font-semibold tabular-nums"
+  }, fmtMoney(ventesTotals.ht))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "TVA collect\xE9e"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right tabular-nums text-blue-700"
+  }, fmtMoney(ventesTotals.tva))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "CA TTC factur\xE9"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right tabular-nums font-semibold text-emerald-700"
+  }, fmtMoney(ventesTotals.ttc))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-3 text-paper-600 pt-4"
+  }, "Achats HT"), /*#__PURE__*/React.createElement("td", {
+    className: "py-3 pt-4 text-right tabular-nums"
+  }, fmtMoney(achatsTotals.ht))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "TVA d\xE9ductible"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right tabular-nums text-blue-700"
+  }, fmtMoney(achatsTotals.tva))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "Notes de frais (TTC)"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right tabular-nums"
+  }, fmtMoney(notesTotal))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-b border-paper-100"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-paper-600"
+  }, "Fiches Extra (brut)"), /*#__PURE__*/React.createElement("td", {
+    className: "py-2 text-right tabular-nums"
+  }, fmtMoney(fichesTotal))), /*#__PURE__*/React.createElement("tr", {
+    className: "border-t-2 border-paper-300"
+  }, /*#__PURE__*/React.createElement("td", {
+    className: "py-3 font-bold text-paper-800"
+  }, "TVA \xE0 reverser \xE0 l'\xC9tat"), /*#__PURE__*/React.createElement("td", {
+    className: "py-3 text-right font-bold tabular-nums text-gold-700 text-base"
+  }, fmtMoney(tvaSolde)))))), (activeSection === "ventes" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+    title: "Ventes (factures \xE9mises)",
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-4 h-4"
+    }),
+    count: ventes.length,
+    total: ventesTotals.ttc,
+    totalLabel: "TTC",
+    onExport: exportInvoicesCsv
+  }, ventes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
+    text: "Aucune facture \xE9mise sur ce mois."
+  }) : /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Date"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Client"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TVA"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TTC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2"
+  }, "Statut"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, ventes.map(function (v) {
+    var _INVOICE_STATUS$v$sta, _INVOICE_STATUS$v$sta2;
+    var client = state.clients.find(function (c) {
+      return c.id === v.clientId;
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: v.id
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 font-mono text-xs text-gold-700"
+    }, v.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, fmtDate(v.issueDate)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-800"
+    }, (client === null || client === void 0 ? void 0 : client.name) || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums"
+    }, fmtMoney(v.ht || 0)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums text-blue-700"
+    }, fmtMoney(v.tva || 0)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums font-semibold"
+    }, fmtMoney(v.ttc || 0)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_INVOICE_STATUS$v$sta = INVOICE_STATUS[v.status]) === null || _INVOICE_STATUS$v$sta === void 0 ? void 0 : _INVOICE_STATUS$v$sta.color
+    }, (_INVOICE_STATUS$v$sta2 = INVOICE_STATUS[v.status]) === null || _INVOICE_STATUS$v$sta2 === void 0 ? void 0 : _INVOICE_STATUS$v$sta2.label)));
+  })))), (activeSection === "achats" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+    title: "Achats (factures fournisseurs)",
+    icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
+      className: "w-4 h-4"
+    }),
+    count: achats.length,
+    total: achatsTotals.ttc,
+    totalLabel: "TTC",
+    onExport: exportPurchasesCsv,
+    onNew: function onNew() {
+      return setEditPurchase({});
+    }
+  }, achats.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
+    text: "Aucune facture d'achat sur ce mois.",
+    action: /*#__PURE__*/React.createElement(Button, {
+      size: "sm",
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-3 h-3"
+      }),
+      onClick: function onClick() {
+        return setEditPurchase({});
+      }
+    }, "Nouvelle facture d'achat")
+  }) : /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Date"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TVA"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TTC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2"
+  }, "Statut"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-24 text-right no-print"
+  }))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, achats.map(function (p) {
+    var _PURCHASE_STATUS, _PURCHASE_STATUS2;
+    var c = calcPurchaseInvoice(p);
+    var cat = PURCHASE_CATEGORIES.find(function (x) {
+      return x.id === p.category;
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: p.id,
+      className: "table-row clickable",
+      onClick: function onClick() {
+        return setEditPurchase(p);
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 font-mono text-xs text-gold-700"
+    }, p.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, fmtDate(p.issueDate)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-800"
+    }, p.supplierName || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, cat ? /*#__PURE__*/React.createElement(Badge, {
+      color: cat.color
+    }, cat.label) : "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums"
+    }, fmtMoney(c.ht)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums text-blue-700"
+    }, fmtMoney(c.tva)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums font-semibold"
+    }, fmtMoney(c.ttc)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_PURCHASE_STATUS = PURCHASE_STATUS[p.status || "brouillon"]) === null || _PURCHASE_STATUS === void 0 ? void 0 : _PURCHASE_STATUS.color
+    }, (_PURCHASE_STATUS2 = PURCHASE_STATUS[p.status || "brouillon"]) === null || _PURCHASE_STATUS2 === void 0 ? void 0 : _PURCHASE_STATUS2.label)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 justify-end"
+    }, p.fileUrl && /*#__PURE__*/React.createElement("a", {
+      href: p.fileUrl,
+      target: "_blank",
+      rel: "noreferrer",
+      title: "Voir le justificatif",
+      className: "p-1 rounded hover:bg-paper-100 text-paper-500 hover:text-gold-700"
+    }, "\uD83D\uDCCE"), p.status !== "payee" && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setPurchaseStatus(p.id, "payee", {
+          paidAt: nowISO()
+        });
+        toast.push({
+          type: "success",
+          title: "Facture marquée payée"
+        });
+      },
+      title: "Marquer pay\xE9e",
+      className: "p-1 rounded hover:bg-paper-100 text-paper-500 hover:text-emerald-600"
+    }, /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-3.5 h-3.5"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setEditPurchase(p);
+      },
+      title: "\xC9diter",
+      className: "p-1 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.Edit, {
+      className: "w-3.5 h-3.5"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setConfirmDelete(p);
+      },
+      title: "Supprimer",
+      className: "p-1 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600"
+    }, /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-3.5 h-3.5"
+    })))));
+  })))), (activeSection === "notesFrais" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+    title: "Notes de frais",
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-4 h-4"
+    }),
+    count: notes.length,
+    total: notesTotal,
+    totalLabel: "TTC",
+    onExport: exportNotesFraisCsv
+  }, notes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
+    text: "Aucune note de frais sur ce mois."
+  }) : /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Date"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Demandeur"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "HT"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TVA"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TTC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2"
+  }, "Statut"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, notes.map(function (n) {
+    var _NOTE_FRAIS_STATUS3, _NOTE_FRAIS_STATUS4;
+    var c = calcNoteFrais(n);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: n.id
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 font-mono text-xs text-gold-700"
+    }, n.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, fmtDate(n.date)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-800"
+    }, n.agentName || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: c.category.color
+    }, c.category.label)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums"
+    }, fmtMoney(c.ht)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums text-blue-700"
+    }, fmtMoney(c.tva)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums font-semibold"
+    }, fmtMoney(c.ttc)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_NOTE_FRAIS_STATUS3 = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS3 === void 0 ? void 0 : _NOTE_FRAIS_STATUS3.color
+    }, (_NOTE_FRAIS_STATUS4 = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS4 === void 0 ? void 0 : _NOTE_FRAIS_STATUS4.label)));
+  })))), (activeSection === "fichesExtra" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+    title: "Fiches Extra (missions courtes)",
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "w-4 h-4"
+    }),
+    count: fiches.length,
+    total: fichesTotal,
+    totalLabel: "Brut",
+    onExport: exportFichesExtraCsv
+  }, fiches.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
+    text: "Aucune fiche extra sur ce mois."
+  }) : /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Date"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Agent"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "Heures"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "Dont nuit"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "Brut"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2"
+  }, "Statut"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, fiches.map(function (f) {
+    var _FICHE_EXTRA_STATUS3, _FICHE_EXTRA_STATUS4;
+    var c = calcFicheExtra(f);
+    return /*#__PURE__*/React.createElement("tr", {
+      key: f.id
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 font-mono text-xs text-gold-700"
+    }, f.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, fmtDate(f.date)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-800"
+    }, f.agentName || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums"
+    }, c.totalH, " h"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums text-blue-700"
+    }, c.nightH > 0 ? c.nightH + " h" : "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums font-semibold"
+    }, fmtMoney(c.totalGross)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_FICHE_EXTRA_STATUS3 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS3 === void 0 ? void 0 : _FICHE_EXTRA_STATUS3.color
+    }, (_FICHE_EXTRA_STATUS4 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS4 === void 0 ? void 0 : _FICHE_EXTRA_STATUS4.label)));
+  })))), (activeSection === "devis" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+    title: "Devis sign\xE9s",
+    icon: /*#__PURE__*/React.createElement(Ic.PenTool, {
+      className: "w-4 h-4"
+    }),
+    count: devisSigned.length,
+    total: devisSigned.reduce(function (s, q) {
+      return s + (q.ttc || 0);
+    }, 0),
+    totalLabel: "TTC",
+    onExport: exportQuotesCsv
+  }, devisSigned.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
+    text: "Aucun devis sign\xE9 sur ce mois."
+  }) : /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Sign\xE9 le"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Client"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Objet"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-right"
+  }, "TTC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 text-left"
+  }, "Sign\xE9 par"))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, devisSigned.map(function (q) {
+    var client = state.clients.find(function (c) {
+      return c.id === q.clientId;
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: q.id
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 font-mono text-xs text-gold-700"
+    }, q.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, q.signedAt ? fmtDate(q.signedAt) : "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-800"
+    }, (client === null || client === void 0 ? void 0 : client.name) || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, q.title || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-right tabular-nums font-semibold"
+    }, fmtMoney(q.ttc || 0)), /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 text-paper-700"
+    }, q.signedBy || "—"));
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "hidden print:block text-[10px] text-paper-400 mt-6 pt-4 border-t border-paper-200"
+  }, "Document g\xE9n\xE9r\xE9 automatiquement par Cerberion CRM. Donn\xE9es extraites en temps r\xE9el \u2014 toute modification ult\xE9rieure sera refl\xE9t\xE9e dans la prochaine impression.")), editPurchase && /*#__PURE__*/React.createElement(PurchaseInvoiceEditor, {
+    purchase: editPurchase,
+    allPurchases: state.purchaseInvoices || [],
+    state: state,
+    onClose: function onClose() {
+      return setEditPurchase(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref115 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(data) {
+        var isNew;
+        return _regenerator().w(function (_context32) {
+          while (1) switch (_context32.n) {
+            case 0:
+              isNew = !data.id;
+              _context32.n = 1;
+              return upsertPurchaseInvoice(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: isNew ? "Facture d'achat créée" : "Mise à jour",
+                message: data.number
+              });
+              setEditPurchase(null);
+            case 2:
+              return _context32.a(2);
+          }
+        }, _callee32);
+      }));
+      return function (_x22) {
+        return _ref115.apply(this, arguments);
+      };
+    }())
+  }), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
+    title: "Supprimer cette facture d'achat ?",
+    message: "La facture \"".concat(confirmDelete.number, "\" (").concat(fmtMoney(calcPurchaseInvoice(confirmDelete).ttc), ") sera supprim\xE9e."),
+    danger: true,
+    confirmLabel: "Supprimer",
+    onCancel: function onCancel() {
+      return setConfirmDelete(null);
+    },
+    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee33() {
+      return _regenerator().w(function (_context33) {
+        while (1) switch (_context33.n) {
+          case 0:
+            _context33.n = 1;
+            return deletePurchaseInvoice(confirmDelete.id);
+          case 1:
+            setConfirmDelete(null);
+            toast.push({
+              type: "warning",
+              title: "Facture supprimée"
+            });
+          case 2:
+            return _context33.a(2);
+        }
+      }, _callee33);
+    }))
+  }));
+}
+function ComptaSection(_ref117) {
+  var title = _ref117.title,
+    icon = _ref117.icon,
+    count = _ref117.count,
+    total = _ref117.total,
+    totalLabel = _ref117.totalLabel,
+    onExport = _ref117.onExport,
+    onNew = _ref117.onNew,
+    children = _ref117.children;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden print:break-inside-avoid print:border print:border-paper-300"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-3 border-b border-paper-200 flex flex-wrap items-center justify-between gap-2 bg-paper-50/60"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, icon, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800"
+  }, title), count != null && /*#__PURE__*/React.createElement("span", {
+    className: "text-[11px] text-paper-500 bg-white px-1.5 py-0.5 rounded-full border border-paper-200"
+  }, count)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, total != null && /*#__PURE__*/React.createElement("span", {
+    className: "text-sm font-bold tabular-nums text-gold-700"
+  }, totalLabel, " : ", fmtMoney(total)), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 no-print"
+  }, onExport && /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      className: "w-3 h-3"
+    }),
+    onClick: onExport
+  }, "CSV"), onNew && /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+      className: "w-3 h-3"
+    }),
+    onClick: onNew
+  }, "Ajouter")))), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, children));
+}
+function EmptyMsg(_ref118) {
+  var text = _ref118.text,
+    action = _ref118.action;
+  return /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-8 text-center"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-paper-500 italic"
+  }, text), action && /*#__PURE__*/React.createElement("div", {
+    className: "mt-3"
+  }, action));
+}
+function PurchaseInvoiceEditor(_ref119) {
+  var purchase = _ref119.purchase,
+    allPurchases = _ref119.allPurchases,
+    state = _ref119.state,
+    onClose = _ref119.onClose,
+    onSave = _ref119.onSave;
+  var isNew = !purchase.id;
+  var _useState193 = useState(function () {
+      var _purchase$amountTtc, _purchase$vatRate;
+      return {
+        id: purchase.id || uid("pur"),
+        number: purchase.number || generatePurchaseNumber(allPurchases),
+        supplierName: purchase.supplierName || "",
+        supplierVat: purchase.supplierVat || "",
+        issueDate: purchase.issueDate ? purchase.issueDate.slice(0, 10) : todayISO(),
+        dueDate: purchase.dueDate ? purchase.dueDate.slice(0, 10) : "",
+        category: purchase.category || "fournitures",
+        description: purchase.description || "",
+        amountTtc: (_purchase$amountTtc = purchase.amountTtc) !== null && _purchase$amountTtc !== void 0 ? _purchase$amountTtc : 0,
+        vatRate: (_purchase$vatRate = purchase.vatRate) !== null && _purchase$vatRate !== void 0 ? _purchase$vatRate : 17,
+        status: purchase.status || "a_payer",
+        paidAt: purchase.paidAt || null,
+        paymentMethod: purchase.paymentMethod || "virement",
+        fileName: purchase.fileName || "",
+        fileUrl: purchase.fileUrl || "",
+        linkedClientId: purchase.linkedClientId || null,
+        notes: purchase.notes || "",
+        createdAt: purchase.createdAt || nowISO()
+      };
+    }),
+    _useState194 = _slicedToArray(_useState193, 2),
+    form = _useState194[0],
+    setForm = _useState194[1];
+  var set = function set(k, v) {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
+    });
+  };
+  var calc = calcPurchaseInvoice(form);
+  var valid = form.supplierName.trim() && form.amountTtc > 0;
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: isNew ? "Nouvelle facture d'achat" : "Facture \xB7 ".concat(form.number),
+    size: "lg",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between flex-wrap gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-600"
+    }, "TTC : ", /*#__PURE__*/React.createElement("span", {
+      className: "font-bold text-paper-800 text-base tabular-nums"
+    }, fmtMoney(calc.ttc)), /*#__PURE__*/React.createElement("span", {
+      className: "text-paper-500"
+    }, " \xB7 HT ", fmtMoney(calc.ht), " \xB7 TVA ", fmtMoney(calc.tva))), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Check, {
+        className: "w-4 h-4"
+      }),
+      disabled: !valid,
+      onClick: function onClick() {
+        return onSave(form);
+      }
+    }, isNew ? "Créer" : "Mettre à jour")))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 facture (fournisseur)"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.number,
+    onChange: function onChange(e) {
+      return set("number", e.target.value);
+    },
+    className: "font-mono",
+    placeholder: "R\xE9f. fournisseur"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Nom du fournisseur",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.supplierName,
+    onChange: function onChange(e) {
+      return set("supplierName", e.target.value);
+    },
+    placeholder: "Ex : Orange Luxembourg S.A."
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 TVA fournisseur"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.supplierVat,
+    onChange: function onChange(e) {
+      return set("supplierVat", e.target.value);
+    },
+    placeholder: "LU 12345678"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Dates & cat\xE9gorie"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Date facture",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.issueDate,
+    onChange: function onChange(e) {
+      return set("issueDate", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date \xE9ch\xE9ance"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.dueDate,
+    onChange: function onChange(e) {
+      return set("dueDate", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Cat\xE9gorie",
+    required: true
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.category,
+    onChange: function onChange(e) {
+      return set("category", e.target.value);
+    }
+  }, PURCHASE_CATEGORIES.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Statut"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.status,
+    onChange: function onChange(e) {
+      return set("status", e.target.value);
+    }
+  }, Object.entries(PURCHASE_STATUS).map(function (_ref120) {
+    var _ref121 = _slicedToArray(_ref120, 2),
+      k = _ref121[0],
+      v = _ref121[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Description / objet"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.description,
+    onChange: function onChange(e) {
+      return set("description", e.target.value);
+    },
+    placeholder: "Ex : Abonnement mensuel fibre optique"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Montant"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Montant TTC (\u20AC)",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    step: "0.01",
+    min: "0",
+    value: form.amountTtc,
+    onChange: function onChange(e) {
+      return set("amountTtc", parseFloat(e.target.value) || 0);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA %"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vatRate,
+    onChange: function onChange(e) {
+      return set("vatRate", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "HT auto",
+    hint: "Calcul\xE9"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: calc.ht.toFixed(2),
+    disabled: true,
+    className: "bg-paper-50"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA auto",
+    hint: "R\xE9cup\xE9rable"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: calc.tva.toFixed(2),
+    disabled: true,
+    className: "bg-paper-50"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Paiement & justificatif"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Mode de paiement"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.paymentMethod,
+    onChange: function onChange(e) {
+      return set("paymentMethod", e.target.value);
+    }
+  }, PAYMENT_METHODS.map(function (m) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: m.id,
+      value: m.id
+    }, m.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Date paiement"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.paidAt ? form.paidAt.slice(0, 10) : "",
+    onChange: function onChange(e) {
+      return set("paidAt", e.target.value ? new Date(e.target.value).toISOString() : null);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Client refactur\xE9 (optionnel)",
+    hint: "Si refacturable"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.linkedClientId || "",
+    onChange: function onChange(e) {
+      return set("linkedClientId", e.target.value || null);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), state.clients.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.name);
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom du justificatif"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.fileName,
+    onChange: function onChange(e) {
+      return set("fileName", e.target.value);
+    },
+    placeholder: "Ex : facture-orange-2026-06.pdf"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Lien vers le PDF",
+    hint: "URL Google Drive, Dropbox, OneDrive\u2026"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "url",
+    value: form.fileUrl,
+    onChange: function onChange(e) {
+      return set("fileUrl", e.target.value);
+    },
+    placeholder: "https://\u2026"
+  })))), /*#__PURE__*/React.createElement(Field, {
+    label: "Notes"
+  }, /*#__PURE__*/React.createElement(Textarea, {
+    rows: 2,
+    value: form.notes,
+    onChange: function onChange(e) {
+      return set("notes", e.target.value);
+    },
+    placeholder: "D\xE9tails additionnels\u2026"
+  }))));
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
