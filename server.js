@@ -61,6 +61,7 @@ const emptyState = () => ({
   clients: [], prospects: [], quotes: [], invoices: [],
   tasks: [], activities: [], notifications: [],
   products: [],
+  fichesExtra: [],
   settings: { vat: 17 },
   updatedAt: nowISO(),
 });
@@ -68,6 +69,7 @@ let stateCache = readJson(STATE_FILE, null);
 if (!stateCache) { stateCache = emptyState(); writeJsonAtomic(STATE_FILE, stateCache); }
 // Backfill new fields if state was created with an older shape
 if (!Array.isArray(stateCache.products)) stateCache.products = [];
+if (!Array.isArray(stateCache.fichesExtra)) stateCache.fichesExtra = [];
 
 // ---------- Auth (users + invitations) ----------
 const emptyAuth = () => ({ users: [], invitations: [], sessions: [] });
@@ -412,6 +414,21 @@ app.post("/api/state/dispatch", authRequired, (req, res) => {
       }
       case "deleteProduct": {
         stateCache.products = (stateCache.products || []).filter(p => p.id !== payload.id);
+        break;
+      }
+      // Fiches Extra (missions courtes agents — conformité ITM Luxembourg)
+      case "upsertFicheExtra": {
+        const data = payload;
+        const fiches = stateCache.fichesExtra || [];
+        if (data.id && fiches.find(f => f.id === data.id)) {
+          stateCache.fichesExtra = fiches.map(f => f.id === data.id ? { ...f, ...data, updatedAt: now } : f);
+        } else {
+          stateCache.fichesExtra = [...fiches, { ...data, id: data.id || uid("fex"), createdAt: now, updatedAt: now, createdBy: req.user.id }];
+        }
+        break;
+      }
+      case "deleteFicheExtra": {
+        stateCache.fichesExtra = (stateCache.fichesExtra || []).filter(f => f.id !== payload.id);
         break;
       }
       // Settings

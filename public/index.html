@@ -185,86 +185,9 @@
   .kpi-accent { position: relative; overflow: hidden; }
   .kpi-accent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
 
-  /* ============================================================
-     RESPONSIVE — Tablette & mobile
-     ============================================================ */
-
-  /* Tablette (≤ 1024px) : sidebar plus compacte, paddings réduits */
-  @media (max-width: 1024px) {
-    .kanban-col { min-width: 260px; }
-  }
-
-  /* Mobile (≤ 768px) — affichage à une colonne, sidebar en drawer */
   @media (max-width: 768px) {
-    .sidebar-mobile-hide { display: none !important; }
-
-    /* TopBar — plus compact, titre masqué (déjà géré par md:hidden côté JSX) */
-    .topbar { height: 56px !important; padding-left: 12px !important; padding-right: 12px !important; gap: 8px !important; }
-    .topbar .input-base { font-size: 14px; height: 38px; }
-
-    /* Cards & paddings */
-    .card-base, .card-soft { border-radius: 12px; }
-
-    /* Boutons — éviter qu'ils débordent */
-    .btn-primary, .btn-ghost, .btn-danger { font-size: 13px; }
-
-    /* Inputs — meilleure cible tactile */
-    .input-base { font-size: 16px; padding: 10px 12px; } /* 16px = pas de zoom iOS */
-
-    /* Tables — déjà dans .overflow-x-auto, on densifie un peu */
-    table { font-size: 13px; }
-    table th, table td { padding: 8px 10px !important; white-space: nowrap; }
-
-    /* Modal — plein écran sur mobile */
-    .modal-shell { padding: 0 !important; align-items: stretch !important; }
-    .modal-card { border-radius: 0 !important; max-height: 100vh !important; min-height: 100vh; width: 100% !important; max-width: 100% !important; }
-    .modal-card .p-6 { padding: 16px !important; }
-
-    /* Kanban — scroll horizontal fluide */
-    .kanban-col { min-width: 78vw; }
-
-    /* Forcer toutes les grilles Tailwind multi-colonnes à 1 colonne sur mobile */
-    [class*="grid-cols-2"],
-    [class*="grid-cols-3"],
-    [class*="grid-cols-4"],
-    [class*="grid-cols-5"],
-    [class*="grid-cols-6"] {
-      grid-template-columns: 1fr !important;
-    }
-
-    /* Headers/titres — réduire un peu */
-    h1, .text-3xl { font-size: 22px !important; line-height: 1.2 !important; }
-    h2, .text-2xl { font-size: 19px !important; line-height: 1.25 !important; }
-    h3, .text-xl  { font-size: 17px !important; }
-
-    /* Flex de boutons d'action en barre — wrap au lieu de déborder */
-    .actions-bar, [data-actions-bar] { flex-wrap: wrap !important; gap: 8px !important; }
-
-    /* KPI accent — étendre sur toute la largeur */
-    .kpi-accent { width: 100%; }
-
-    /* Réduire scrollbars */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-
-    /* Dropdowns / popovers TopBar — éviter qu'ils sortent de l'écran */
-    .topbar [class*="absolute"][class*="right-"] { right: 8px !important; }
+    .sidebar-mobile-hide { display:none; }
   }
-
-  /* Mobile très étroit (≤ 480px) — encore plus dense */
-  @media (max-width: 480px) {
-    main { padding-left: 12px !important; padding-right: 12px !important; padding-top: 16px !important; padding-bottom: 16px !important; }
-    .card-base, .card-soft { padding: 12px !important; }
-    .kanban-col { min-width: 85vw; }
-
-    /* Tabs / nav horizontales — taille de texte */
-    .tab-item, [role="tab"] { font-size: 13px !important; padding: 8px 10px !important; }
-  }
-
-  /* Assurer que le drawer mobile (Sidebar overlay) prend toute la hauteur même si .sidebar-mobile-hide existe */
-  @media (max-width: 768px) {
-    .fixed.left-0.top-0.bottom-0 .sidebar-mobile-hide { display: flex !important; }
-  }
-
   @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
@@ -285,14 +208,8 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function _objectWithoutProperties(e, t) { if (null == e) return {}; var o, r, i = _objectWithoutPropertiesLoose(e, t); if (Object.getOwnPropertySymbols) { var n = Object.getOwnPropertySymbols(e); for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]); } return i; }
 function _objectWithoutPropertiesLoose(r, e) { if (null == r) return {}; var t = {}; for (var n in r) if ({}.hasOwnProperty.call(r, n)) { if (-1 !== e.indexOf(n)) continue; t[n] = r[n]; } return t; }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
@@ -303,6 +220,13 @@ function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" 
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
+function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 // ============================================================================
 //  CERBERION CRM - Single-file React Application
 // ============================================================================
@@ -420,6 +344,350 @@ var VAT_RATES = [{
   rate: 17,
   label: "17 % (standard LU)"
 }];
+
+// ============================================================================
+//  LUXEMBOURG LABOR LAW — Fiches Extra / Missions courtes
+//  Sources : ITM (Inspection du Travail et des Mines) + Convention collective
+//  Sécurité privée (Gardiennage / SSIAP), arrêté d'obligation générale 2019.
+//  Mise à jour 2026 (SSM indice 992,24 — janvier 2026).
+// ============================================================================
+var LU_LABOR = {
+  dailyMaxHours: 10,
+  weeklyMaxHours: 48,
+  weeklyNormalHours: 40,
+  dailyRestHours: 11,
+  weeklyRestHours: 44,
+  breakAfterHours: 6,
+  breakMinMinutes: 30,
+  nightStartHour: 22,
+  nightEndHour: 6,
+  nightMaxHours: 10
+};
+var LU_PREMIUMS = {
+  night: 0.15,
+  sunday: 0.70,
+  holiday: 1.00,
+  overtime: 0.40
+};
+var LU_WAGES_2026 = {
+  ssmNonQualifie: 15.63,
+  ssmQualifie: 18.75
+};
+var AGENT_ROLES = [{
+  id: "ssiap1",
+  label: "Agent SSIAP 1 (sécurité incendie)",
+  qualified: true,
+  minHourly: 18.75
+}, {
+  id: "ssiap2",
+  label: "Chef d'équipe SSIAP 2",
+  qualified: true,
+  minHourly: 20.00
+}, {
+  id: "ssiap3",
+  label: "Chef de service SSIAP 3",
+  qualified: true,
+  minHourly: 24.00
+}, {
+  id: "gardien",
+  label: "Agent de gardiennage",
+  qualified: true,
+  minHourly: 18.75
+}, {
+  id: "gardien_armes",
+  label: "Agent de gardiennage armé",
+  qualified: true,
+  minHourly: 20.50
+}, {
+  id: "maitre_chien",
+  label: "Maître-chien / Cynophile",
+  qualified: true,
+  minHourly: 21.00
+}, {
+  id: "evenementiel",
+  label: "Agent événementiel",
+  qualified: true,
+  minHourly: 18.75
+}, {
+  id: "rondier",
+  label: "Rondier / Inspecteur de sécurité",
+  qualified: true,
+  minHourly: 19.50
+}, {
+  id: "operateur_pc",
+  label: "Opérateur PC sécurité / télésurveillance",
+  qualified: true,
+  minHourly: 19.00
+}, {
+  id: "autre_qual",
+  label: "Autre (qualifié)",
+  qualified: true,
+  minHourly: 18.75
+}, {
+  id: "autre_non_qual",
+  label: "Autre (non qualifié)",
+  qualified: false,
+  minHourly: 15.63
+}];
+var LU_HOLIDAYS_2026 = ["2026-01-01", "2026-04-06", "2026-05-01", "2026-05-09", "2026-05-14", "2026-05-25", "2026-06-23", "2026-08-15", "2026-11-01", "2026-12-25", "2026-12-26"];
+var LU_HOLIDAYS_2027 = ["2027-01-01", "2027-03-29", "2027-05-01", "2027-05-06", "2027-05-09", "2027-05-17", "2027-06-23", "2027-08-15", "2027-11-01", "2027-12-25", "2027-12-26"];
+var LU_HOLIDAYS = [].concat(LU_HOLIDAYS_2026, LU_HOLIDAYS_2027);
+var isLuHoliday = function isLuHoliday(dateStr) {
+  return LU_HOLIDAYS.includes((dateStr || "").slice(0, 10));
+};
+var isSundayDate = function isSundayDate(dateStr) {
+  return new Date(dateStr).getDay() === 0;
+};
+var round2 = function round2(n) {
+  return Math.round((Number(n) || 0) * 100) / 100;
+};
+function splitDayNightMinutes(startISO, endISO) {
+  var start = new Date(startISO).getTime();
+  var end = new Date(endISO).getTime();
+  if (end <= start) return {
+    totalMin: 0,
+    dayMin: 0,
+    nightMin: 0
+  };
+  var day = 0,
+    night = 0;
+  for (var t = start; t < end; t += 60000) {
+    var h = new Date(t).getHours();
+    if (h >= LU_LABOR.nightStartHour || h < LU_LABOR.nightEndHour) night += 1;else day += 1;
+  }
+  return {
+    totalMin: day + night,
+    dayMin: day,
+    nightMin: night
+  };
+}
+function calcFicheExtra(fiche) {
+  var date = fiche.date || new Date().toISOString().slice(0, 10);
+  var start = fiche.startTime || "08:00";
+  var end = fiche.endTime || "17:00";
+  var breakMin = Number(fiche.breakMinutes || 0);
+  var rate = Number(fiche.hourlyRate || 0);
+  var endDate = date;
+  if (end < start) {
+    var d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    endDate = d.toISOString().slice(0, 10);
+  }
+  var split = splitDayNightMinutes("".concat(date, "T").concat(start, ":00"), "".concat(endDate, "T").concat(end, ":00"));
+  var totalWorkedMin = Math.max(0, split.totalMin - breakMin);
+  var ratio = split.totalMin > 0 ? totalWorkedMin / split.totalMin : 0;
+  var dayMin = Math.round(split.dayMin * ratio);
+  var nightMin = Math.max(0, totalWorkedMin - dayMin);
+  var totalH = totalWorkedMin / 60;
+  var dayH = dayMin / 60;
+  var nightH = nightMin / 60;
+  var isHoliday = isLuHoliday(date);
+  var onSunday = isSundayDate(date);
+  var overtimeH = Math.max(0, totalH - 8);
+  var regularH = totalH - overtimeH;
+  var base = rate * totalH;
+  var nightPremium = rate * nightH * LU_PREMIUMS.night;
+  var sundayPremium = onSunday ? rate * totalH * LU_PREMIUMS.sunday : 0;
+  var holidayPremium = isHoliday ? rate * totalH * LU_PREMIUMS.holiday : 0;
+  var overtimePremium = rate * overtimeH * LU_PREMIUMS.overtime;
+  var totalGross = base + nightPremium + sundayPremium + holidayPremium + overtimePremium;
+  return {
+    totalH: round2(totalH),
+    regularH: round2(regularH),
+    overtimeH: round2(overtimeH),
+    dayH: round2(dayH),
+    nightH: round2(nightH),
+    onSunday: onSunday,
+    isHoliday: isHoliday,
+    base: round2(base),
+    nightPremium: round2(nightPremium),
+    sundayPremium: round2(sundayPremium),
+    holidayPremium: round2(holidayPremium),
+    overtimePremium: round2(overtimePremium),
+    totalGross: round2(totalGross)
+  };
+}
+function validateFicheExtra(fiche) {
+  var _fiche$agentName;
+  var allFiches = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+  var alerts = [];
+  var c = calcFicheExtra(fiche);
+  var role = AGENT_ROLES.find(function (r) {
+    return r.id === fiche.agentRole;
+  });
+  var rate = Number(fiche.hourlyRate || 0);
+  if (!((_fiche$agentName = fiche.agentName) !== null && _fiche$agentName !== void 0 && _fiche$agentName.trim())) {
+    alerts.push({
+      severity: "error",
+      code: "MISSING_AGENT",
+      message: "Nom de l'agent obligatoire."
+    });
+  }
+  if (c.totalH <= 0) {
+    alerts.push({
+      severity: "error",
+      code: "ZERO_HOURS",
+      message: "Heures de mission nulles ou incohérentes."
+    });
+  }
+  if (c.totalH > LU_LABOR.dailyMaxHours) {
+    alerts.push({
+      severity: "error",
+      code: "DAILY_MAX",
+      message: "Dur\xE9e journali\xE8re (".concat(c.totalH, " h) d\xE9passe le plafond l\xE9gal de ").concat(LU_LABOR.dailyMaxHours, " h/jour (Code du travail L.211-12).")
+    });
+  } else if (c.overtimeH > 0) {
+    alerts.push({
+      severity: "info",
+      code: "OVERTIME",
+      message: "".concat(c.overtimeH, " h suppl\xE9mentaires (>8 h/jour) \u2014 majoration +").concat(LU_PREMIUMS.overtime * 100, "%.")
+    });
+  }
+  if (c.totalH > LU_LABOR.breakAfterHours && Number(fiche.breakMinutes || 0) < LU_LABOR.breakMinMinutes) {
+    alerts.push({
+      severity: "error",
+      code: "BREAK_REQUIRED",
+      message: "Pause obligatoire de ".concat(LU_LABOR.breakMinMinutes, " min minimum apr\xE8s ").concat(LU_LABOR.breakAfterHours, " h continues.")
+    });
+  }
+  if (c.nightH > LU_LABOR.nightMaxHours) {
+    alerts.push({
+      severity: "error",
+      code: "NIGHT_MAX",
+      message: "Travail de nuit (".concat(c.nightH, " h) d\xE9passe 10 h/24 h autoris\xE9es.")
+    });
+  }
+  if (role && rate > 0 && rate < role.minHourly) {
+    alerts.push({
+      severity: "error",
+      code: "MIN_WAGE",
+      message: "Taux ".concat(rate.toFixed(2), " \u20AC/h sous le minimum conventionnel pour ").concat(role.label, " (").concat(role.minHourly.toFixed(2), " \u20AC/h brut).")
+    });
+  } else if (rate > 0 && rate < LU_WAGES_2026.ssmNonQualifie) {
+    alerts.push({
+      severity: "error",
+      code: "MIN_WAGE_SSM",
+      message: "Taux inf\xE9rieur au SSM non qualifi\xE9 (".concat(LU_WAGES_2026.ssmNonQualifie.toFixed(2), " \u20AC/h brut).")
+    });
+  }
+  if (fiche.agentName) {
+    var others = allFiches.filter(function (f) {
+      var _f$agentName;
+      return f.id !== fiche.id && ((_f$agentName = f.agentName) === null || _f$agentName === void 0 ? void 0 : _f$agentName.trim().toLowerCase()) === fiche.agentName.trim().toLowerCase();
+    });
+    var endDate = fiche.date;
+    if ((fiche.endTime || "") < (fiche.startTime || "")) {
+      var dd = new Date(fiche.date + "T00:00:00");
+      dd.setDate(dd.getDate() + 1);
+      endDate = dd.toISOString().slice(0, 10);
+    }
+    var startMs = new Date("".concat(fiche.date, "T").concat(fiche.startTime || "00:00", ":00")).getTime();
+    var endMs = new Date("".concat(endDate, "T").concat(fiche.endTime || "00:00", ":00")).getTime();
+    var _iterator = _createForOfIteratorHelper(others),
+      _step;
+    try {
+      for (_iterator.s(); !(_step = _iterator.n()).done;) {
+        var o = _step.value;
+        var oEnd = o.date;
+        if ((o.endTime || "") < (o.startTime || "")) {
+          var _dd = new Date(o.date + "T00:00:00");
+          _dd.setDate(_dd.getDate() + 1);
+          oEnd = _dd.toISOString().slice(0, 10);
+        }
+        var oStartMs = new Date("".concat(o.date, "T").concat(o.startTime || "00:00", ":00")).getTime();
+        var oEndMs = new Date("".concat(oEnd, "T").concat(o.endTime || "00:00", ":00")).getTime();
+        if (oStartMs < endMs && oEndMs > startMs) {
+          alerts.push({
+            severity: "error",
+            code: "OVERLAP",
+            message: "Chevauchement avec une autre mission de ".concat(fiche.agentName, " le ").concat(o.date, " (").concat(o.startTime, "\u2013").concat(o.endTime, ").")
+          });
+          continue;
+        }
+        var gapMs = oStartMs >= endMs ? oStartMs - endMs : startMs - oEndMs;
+        var gapH = gapMs / 3600000;
+        if (gapMs > 0 && gapH < LU_LABOR.dailyRestHours) {
+          alerts.push({
+            severity: "error",
+            code: "DAILY_REST",
+            message: "Repos quotidien insuffisant : ".concat(gapH.toFixed(1), " h entre 2 missions (minimum ").concat(LU_LABOR.dailyRestHours, " h).")
+          });
+        }
+      }
+    } catch (err) {
+      _iterator.e(err);
+    } finally {
+      _iterator.f();
+    }
+    var monday = function () {
+      var d = new Date(fiche.date + "T00:00:00");
+      var day = (d.getDay() + 6) % 7;
+      d.setDate(d.getDate() - day);
+      return d.toISOString().slice(0, 10);
+    }();
+    var sunday = function () {
+      var d = new Date(monday + "T00:00:00");
+      d.setDate(d.getDate() + 6);
+      return d.toISOString().slice(0, 10);
+    }();
+    var weekFiches = [].concat(_toConsumableArray(others.filter(function (f) {
+      return f.date >= monday && f.date <= sunday;
+    })), [fiche]);
+    var weekTotalH = weekFiches.reduce(function (s, f) {
+      return s + calcFicheExtra(f).totalH;
+    }, 0);
+    if (weekTotalH > LU_LABOR.weeklyMaxHours) {
+      alerts.push({
+        severity: "error",
+        code: "WEEKLY_MAX",
+        message: "Cumul hebdomadaire (".concat(weekTotalH.toFixed(1), " h) d\xE9passe 48 h/semaine.")
+      });
+    } else if (weekTotalH > LU_LABOR.weeklyNormalHours) {
+      alerts.push({
+        severity: "warning",
+        code: "WEEKLY_OVER_NORMAL",
+        message: "Cumul hebdomadaire (".concat(weekTotalH.toFixed(1), " h) au-dessus de 40 h \u2014 \xE0 compenser sur 4 mois.")
+      });
+    }
+  }
+  if (c.onSunday) alerts.push({
+    severity: "info",
+    code: "SUNDAY",
+    message: "Dimanche \u2014 majoration +".concat(LU_PREMIUMS.sunday * 100, "%.")
+  });
+  if (c.isHoliday) alerts.push({
+    severity: "info",
+    code: "HOLIDAY",
+    message: "Jour f\xE9ri\xE9 LU \u2014 majoration +".concat(LU_PREMIUMS.holiday * 100, "%.")
+  });
+  if (c.nightH > 0) alerts.push({
+    severity: "info",
+    code: "NIGHT",
+    message: "".concat(c.nightH, " h de nuit \u2014 majoration +").concat(LU_PREMIUMS.night * 100, "%.")
+  });
+  return alerts;
+}
+var FICHE_EXTRA_STATUS = {
+  brouillon: {
+    label: "Brouillon",
+    color: "slate"
+  },
+  validee: {
+    label: "Validée",
+    color: "blue"
+  },
+  payee: {
+    label: "Payée",
+    color: "green"
+  }
+};
+function generateFicheExtraNumber(fiches) {
+  var y = new Date().getFullYear();
+  var next = (fiches || []).filter(function (f) {
+    return (f.number || "").includes("EXTRA-".concat(y));
+  }).length + 1;
+  return "EXTRA-".concat(y, "-").concat(String(next).padStart(4, "0"));
+}
 var PROSPECT_STAGES = [{
   id: "contact",
   label: "Contact",
@@ -660,21 +928,21 @@ function hashPassword(_x) {
   return _hashPassword.apply(this, arguments);
 } // ---------- Utils ----------
 function _hashPassword() {
-  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30(password) {
+  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(password) {
     var enc, hash;
-    return _regenerator().w(function (_context30) {
-      while (1) switch (_context30.n) {
+    return _regenerator().w(function (_context32) {
+      while (1) switch (_context32.n) {
         case 0:
           enc = new TextEncoder().encode(password + "::cerberion-salt");
-          _context30.n = 1;
+          _context32.n = 1;
           return crypto.subtle.digest('SHA-256', enc);
         case 1:
-          hash = _context30.v;
-          return _context30.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
+          hash = _context32.v;
+          return _context32.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
             return b.toString(16).padStart(2, '0');
           }).join(''));
       }
-    }, _callee30);
+    }, _callee32);
   }));
   return _hashPassword.apply(this, arguments);
 }
@@ -732,23 +1000,19 @@ var initialsOf = function initialsOf() {
 };
 function calcQuoteTotals(lines) {
   var discountPct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-  // Le 3e paramètre est le taux de TVA. S'il est absent, on retombe sur le taux LU par défaut.
-  var vatRate = arguments.length > 2 && arguments[2] !== undefined ? Number(arguments[2]) : VAT_LU;
-  if (!isFinite(vatRate)) vatRate = VAT_LU;
   var subTotal = lines.reduce(function (s, l) {
     return s + (Number(l.qty) || 0) * (Number(l.unitPrice) || 0);
   }, 0);
   var discount = subTotal * (Number(discountPct) || 0) / 100;
   var ht = subTotal - discount;
-  var tva = ht * vatRate / 100;
+  var tva = ht * VAT_LU / 100;
   var ttc = ht + tva;
   return {
     subTotal: subTotal,
     discount: discount,
     ht: ht,
     tva: tva,
-    ttc: ttc,
-    vat: vatRate
+    ttc: ttc
   };
 }
 function generateQuoteNumber(quotes) {
@@ -789,6 +1053,7 @@ function emptyData() {
     activities: [],
     notifications: [],
     products: [],
+    fichesExtra: [],
     settings: {
       company: COMPANY,
       vat: VAT_LU,
@@ -2308,45 +2573,45 @@ function apiFetch(_x2) {
 //  AUTH PROVIDER - server-side users, JWT in localStorage
 // ============================================================================
 function _apiFetch() {
-  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31(path) {
+  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee33(path) {
     var opts,
       token,
       headers,
       res,
       body,
-      _args31 = arguments;
-    return _regenerator().w(function (_context31) {
-      while (1) switch (_context31.n) {
+      _args33 = arguments;
+    return _regenerator().w(function (_context33) {
+      while (1) switch (_context33.n) {
         case 0:
-          opts = _args31.length > 1 && _args31[1] !== undefined ? _args31[1] : {};
+          opts = _args33.length > 1 && _args33[1] !== undefined ? _args33[1] : {};
           token = localStorage.getItem(TOKEN_KEY);
           headers = _objectSpread({
             "Content-Type": "application/json"
           }, opts.headers || {});
           if (token) headers.Authorization = "Bearer ".concat(token);
-          _context31.n = 1;
+          _context33.n = 1;
           return fetch(apiBase + path, _objectSpread(_objectSpread({}, opts), {}, {
             headers: headers
           }));
         case 1:
-          res = _context31.v;
+          res = _context33.v;
           if (res.ok) {
-            _context31.n = 3;
+            _context33.n = 3;
             break;
           }
-          _context31.n = 2;
+          _context33.n = 2;
           return res.json()["catch"](function () {
             return {
               error: res.statusText
             };
           });
         case 2:
-          body = _context31.v;
+          body = _context33.v;
           throw new Error(body.error || res.statusText);
         case 3:
-          return _context31.a(2, res.json());
+          return _context33.a(2, res.json());
       }
-    }, _callee31);
+    }, _callee33);
   }));
   return _apiFetch.apply(this, arguments);
 }
@@ -2717,9 +2982,7 @@ function AuthGate(_ref21) {
     pendingInvite = _useAuth.pendingInvite,
     bootLoading = _useAuth.bootLoading;
   var _useState13 = useState(function () {
-      // Priorité : on affiche toujours l'écran de connexion, sauf en cas d'invitation.
-      // Le lien "Créer un compte" reste accessible sous le bouton "Se connecter".
-      return pendingInvite ? "signup" : "login";
+      return pendingInvite ? "signup" : auth.users.length === 0 ? "signup" : "login";
     }),
     _useState14 = _slicedToArray(_useState13, 2),
     mode = _useState14[0],
@@ -3912,18 +4175,8 @@ function StoreProvider(_ref43) {
 
   // -------- Quotes
   var upsertQuote = function upsertQuote(data) {
-    var _state$settings_q;
-    // Priorité : taux porté par le devis, sinon taux par défaut des paramètres, sinon LU.
-    var rate = data.vat != null ? Number(data.vat) : (_state$settings_q = state.settings) != null && _state$settings_q.vat != null ? Number(_state$settings_q.vat) : VAT_LU;
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
-    // Snapshot du signataire (utilisateur connecté au moment de la création/MAJ) pour les liens publics.
-    var signerSnapshot = data.signer || (currentUser ? {
-      name: currentUser.name || "",
-      position: currentUser.position || ""
-    } : null);
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
     return dispatch("upsertQuote", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
-      vat: rate,
-      signer: signerSnapshot,
       number: data.number || generateQuoteNumber(state.quotes)
     }));
   };
@@ -3970,12 +4223,8 @@ function StoreProvider(_ref43) {
 
   // -------- Invoices
   var upsertInvoice = function upsertInvoice(data) {
-    var _state$settings_i;
-    // Priorité : taux porté par la facture, sinon taux par défaut des paramètres, sinon LU.
-    var rate = data.vat != null ? Number(data.vat) : (_state$settings_i = state.settings) != null && _state$settings_i.vat != null ? Number(_state$settings_i.vat) : VAT_LU;
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
     return dispatch("upsertInvoice", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
-      vat: rate,
       number: data.number || generateInvoiceNumber(state.invoices)
     }));
   };
@@ -4026,6 +4275,16 @@ function StoreProvider(_ref43) {
   };
   var deleteProduct = function deleteProduct(id) {
     return dispatch("deleteProduct", {
+      id: id
+    });
+  };
+
+  // -------- Fiches Extra (missions courtes)
+  var upsertFicheExtra = function upsertFicheExtra(data) {
+    return dispatch("upsertFicheExtra", data);
+  };
+  var deleteFicheExtra = function deleteFicheExtra(id) {
+    return dispatch("deleteFicheExtra", {
       id: id
     });
   };
@@ -4297,6 +4556,100 @@ function StoreProvider(_ref43) {
       label: "Créé le"
     }]);
   };
+  var exportFichesExtraCsv = function exportFichesExtraCsv() {
+    return csvDownload("cerberion-fiches-extra-".concat(todayISO(), ".csv"), state.fichesExtra || [], [{
+      key: "number",
+      label: "N° fiche"
+    }, {
+      key: "date",
+      label: "Date"
+    }, {
+      key: "agentName",
+      label: "Agent"
+    }, {
+      key: "agentRole",
+      label: "Rôle",
+      value: function value(r) {
+        var _AGENT_ROLES$find;
+        return ((_AGENT_ROLES$find = AGENT_ROLES.find(function (x) {
+          return x.id === r.agentRole;
+        })) === null || _AGENT_ROLES$find === void 0 ? void 0 : _AGENT_ROLES$find.label) || r.agentRole || "";
+      }
+    }, {
+      key: "clientId",
+      label: "Client",
+      value: function value(r) {
+        return lookupClient(r.clientId);
+      }
+    }, {
+      key: "location",
+      label: "Lieu"
+    }, {
+      key: "startTime",
+      label: "Début"
+    }, {
+      key: "endTime",
+      label: "Fin"
+    }, {
+      key: "breakMinutes",
+      label: "Pause (min)"
+    }, {
+      key: "totalH",
+      label: "Heures totales",
+      value: function value(r) {
+        return calcFicheExtra(r).totalH;
+      }
+    }, {
+      key: "dayH",
+      label: "Heures jour",
+      value: function value(r) {
+        return calcFicheExtra(r).dayH;
+      }
+    }, {
+      key: "nightH",
+      label: "Heures nuit",
+      value: function value(r) {
+        return calcFicheExtra(r).nightH;
+      }
+    }, {
+      key: "overtimeH",
+      label: "Heures sup",
+      value: function value(r) {
+        return calcFicheExtra(r).overtimeH;
+      }
+    }, {
+      key: "onSunday",
+      label: "Dimanche",
+      value: function value(r) {
+        return calcFicheExtra(r).onSunday ? "Oui" : "";
+      }
+    }, {
+      key: "isHoliday",
+      label: "Férié",
+      value: function value(r) {
+        return calcFicheExtra(r).isHoliday ? "Oui" : "";
+      }
+    }, {
+      key: "hourlyRate",
+      label: "Taux €/h"
+    }, {
+      key: "totalGross",
+      label: "Brut total €",
+      value: function value(r) {
+        return calcFicheExtra(r).totalGross;
+      }
+    }, {
+      key: "status",
+      label: "Statut",
+      value: function value(r) {
+        var _FICHE_EXTRA_STATUS$r;
+        return ((_FICHE_EXTRA_STATUS$r = FICHE_EXTRA_STATUS[r.status]) === null || _FICHE_EXTRA_STATUS$r === void 0 ? void 0 : _FICHE_EXTRA_STATUS$r.label) || r.status;
+      }
+    }, {
+      key: "notes",
+      label: "Notes"
+    }]);
+  };
   var exportAllCsv = function exportAllCsv() {
     exportClientsCsv();
     exportProspectsCsv();
@@ -4304,6 +4657,7 @@ function StoreProvider(_ref43) {
     exportInvoicesCsv();
     exportProductsCsv();
     exportTasksCsv();
+    exportFichesExtraCsv();
   };
 
   // Notification helpers (using readBy array)
@@ -4337,6 +4691,8 @@ function StoreProvider(_ref43) {
     deleteNotif: deleteNotif,
     upsertProduct: upsertProduct,
     deleteProduct: deleteProduct,
+    upsertFicheExtra: upsertFicheExtra,
+    deleteFicheExtra: deleteFicheExtra,
     updateSettings: updateSettings,
     exportJson: exportJson,
     importJson: importJson,
@@ -4347,6 +4703,7 @@ function StoreProvider(_ref43) {
     exportInvoicesCsv: exportInvoicesCsv,
     exportProductsCsv: exportProductsCsv,
     exportTasksCsv: exportTasksCsv,
+    exportFichesExtraCsv: exportFichesExtraCsv,
     exportAllCsv: exportAllCsv
   };
   return /*#__PURE__*/React.createElement(StoreCtx.Provider, {
@@ -4430,6 +4787,15 @@ function Sidebar(_ref47) {
     badgeColor: overdueTasks > 0 ? "red" : null,
     badge: overdueTasks || state.tasks.filter(function (t) {
       return t.status !== "done";
+    }).length || null
+  }, {
+    id: "fichesExtra",
+    label: "Fiches Extra",
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "nav-icon"
+    }),
+    badge: (state.fichesExtra || []).filter(function (f) {
+      return f.status === "brouillon";
     }).length || null
   }, {
     id: "notifications",
@@ -4549,6 +4915,7 @@ function TopBar(_ref48) {
     devis: "Devis",
     factures: "Factures",
     taches: "Tâches",
+    fichesExtra: "Fiches Extra",
     notifications: "Notifications",
     settings: "Paramètres",
     backend: "Backend"
@@ -4828,10 +5195,6 @@ function Dashboard(_ref49) {
   var _useStore4 = useStore(),
     state = _useStore4.state,
     toggleTask = _useStore4.toggleTask;
-  var _useAuth_dash = useAuth(),
-    currentUser_dash = _useAuth_dash.currentUser;
-  // Prénom de l'utilisateur connecté (1er mot du nom complet), fallback prudent.
-  var _greetingName = (currentUser_dash && currentUser_dash.name) ? String(currentUser_dash.name).trim().split(/\s+/)[0] : "";
   var quotes = state.quotes,
     clients = state.clients,
     prospects = state.prospects,
@@ -4876,12 +5239,6 @@ function Dashboard(_ref49) {
   var totalUnpaid = unpaid.reduce(function (s, i) {
     return s + (i.ttc || 0);
   }, 0);
-  var paidInvoices = (invoices || []).filter(function (i) {
-    return i.status === "payee";
-  });
-  var totalPaid = paidInvoices.reduce(function (s, i) {
-    return s + (i.ttc || 0);
-  }, 0);
   var recentActivities = _toConsumableArray(activities).sort(function (a, b) {
     return new Date(b.createdAt) - new Date(a.createdAt);
   }).slice(0, 8);
@@ -4898,11 +5255,6 @@ function Dashboard(_ref49) {
       }, 0)
     });
   });
-  // CA des 6 derniers mois = total TTC des FACTURES ÉMISES (envoyée, payée ou en retard),
-  // attribué au mois de la date d'émission. On exclut les brouillons.
-  var issuedInvoices = (invoices || []).filter(function (i) {
-    return ["envoyee", "payee", "retard"].includes(i.status);
-  });
   var months = useMemo(function () {
     var arr = [];
     var now = new Date();
@@ -4912,10 +5264,10 @@ function Dashboard(_ref49) {
       var label = d.toLocaleDateString("fr-FR", {
         month: "short"
       });
-      var val = issuedInvoices.filter(function (inv) {
-        return inv.issueDate && String(inv.issueDate).slice(0, 7) === key;
-      }).reduce(function (s, inv) {
-        return s + (inv.ttc || 0);
+      var val = signedQuotes.filter(function (q) {
+        return q.signedAt && q.signedAt.slice(0, 7) === key;
+      }).reduce(function (s, q) {
+        return s + (q.ttc || 0);
       }, 0);
       arr.push({
         label: label,
@@ -4926,7 +5278,7 @@ function Dashboard(_ref49) {
       _loop();
     }
     return arr;
-  }, [issuedInvoices]);
+  }, [signedQuotes]);
   var maxMonth = Math.max.apply(Math, [1].concat(_toConsumableArray(months.map(function (m) {
     return m.value;
   }))));
@@ -4972,7 +5324,7 @@ function Dashboard(_ref49) {
     className: "text-xs uppercase tracking-[0.3em] text-gold-700 font-semibold"
   }, "Cerberion \xB7 Tableau de bord"), /*#__PURE__*/React.createElement("h1", {
     className: "text-3xl font-bold text-paper-800 mt-2"
-  }, _greetingName ? "Bonjour " + _greetingName : "Bonjour"), /*#__PURE__*/React.createElement("p", {
+  }, "Bonjour J\xE9r\xF4me"), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-paper-600 mt-1"
   }, new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -4998,7 +5350,7 @@ function Dashboard(_ref49) {
       setPage("prospects");
     }
   }, "Ajouter un prospect")))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
   }, /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.FileText, {
       className: "w-5 h-5"
@@ -5018,6 +5370,15 @@ function Dashboard(_ref49) {
     iconBg: "bg-emerald-50",
     accentColor: "emerald"
   }), /*#__PURE__*/React.createElement(KPICard, {
+    icon: /*#__PURE__*/React.createElement(Ic.X, {
+      className: "w-5 h-5"
+    }),
+    label: "Devis perdus",
+    value: fmtMoney(totalLost),
+    sub: "".concat(lostQuotes.length, " opportunit\xE9s"),
+    iconBg: "bg-red-50",
+    accentColor: "red"
+  }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-5 h-5"
     }),
@@ -5027,23 +5388,27 @@ function Dashboard(_ref49) {
     iconBg: "bg-gold-50",
     accentColor: "gold"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    icon: /*#__PURE__*/React.createElement(Ic.Target, {
       className: "w-5 h-5"
     }),
-    label: "Factures impay\xE9es",
-    value: fmtMoney(totalUnpaid),
-    sub: "".concat(unpaid.length, " ", unpaid.length > 1 ? "factures" : "facture", " en attente"),
-    iconBg: unpaid.length > 0 ? "bg-amber-50" : "bg-paper-100",
-    accentColor: unpaid.length > 0 ? "amber" : "paper"
+    label: "Prospects actifs",
+    value: activeProspects.length,
+    sub: "".concat(fmtMoney(activeProspects.reduce(function (s, p) {
+      return s + (p.value || 0);
+    }, 0))),
+    iconBg: "bg-amber-50",
+    accentColor: "amber"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+    icon: overdueTasks.length > 0 ? /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-5 h-5"
+    }) : /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-5 h-5"
     }),
-    label: "Factures pay\xE9es",
-    value: fmtMoney(totalPaid),
-    sub: "".concat(paidInvoices.length, " ", paidInvoices.length > 1 ? "factures encaiss\xE9es" : "facture encaiss\xE9e"),
-    iconBg: "bg-emerald-50",
-    accentColor: "emerald"
+    label: "T\xE2ches en retard",
+    value: overdueTasks.length,
+    sub: todayTasks.length > 0 ? "+ ".concat(todayTasks.length, " aujourd'hui") : "Tout à jour",
+    iconBg: overdueTasks.length > 0 ? "bg-red-50" : "bg-emerald-50",
+    accentColor: overdueTasks.length > 0 ? "red" : "emerald"
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 lg:grid-cols-3 gap-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5052,9 +5417,9 @@ function Dashboard(_ref49) {
     className: "flex items-center justify-between mb-5"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
     className: "font-semibold text-paper-800"
-  }, "Chiffre d'affaires \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
+  }, "Chiffre d'affaires sign\xE9 \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-paper-500 mt-1"
-  }, "Total TTC des factures \xE9mises (envoy\xE9es, pay\xE9es ou en retard)")), /*#__PURE__*/React.createElement("div", {
+  }, "\xC9volution mensuelle des contrats remport\xE9s")), /*#__PURE__*/React.createElement("div", {
     className: "text-right"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-paper-500"
@@ -5063,15 +5428,18 @@ function Dashboard(_ref49) {
   }, fmtMoney(months.reduce(function (s, m) {
     return s + m.value;
   }, 0))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex gap-3 h-56 md:h-72 lg:h-80"
+    className: "flex items-end gap-3 h-44"
   }, months.map(function (m, i) {
     return /*#__PURE__*/React.createElement("div", {
       key: i,
-      className: "flex-1 flex flex-col items-center gap-2 group h-full"
+      className: "flex-1 flex flex-col items-center gap-2 group"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors h-4"
+      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors"
     }, m.value > 0 ? "".concat(Math.round(m.value / 1000), "k") : ""), /*#__PURE__*/React.createElement("div", {
-      className: "w-full relative flex-1"
+      className: "w-full relative",
+      style: {
+        height: "100%"
+      }
     }, /*#__PURE__*/React.createElement("div", {
       className: "absolute bottom-0 left-0 right-0 rounded-t-md gold-grad transition-all duration-500",
       style: {
@@ -5285,8 +5653,7 @@ function ClientsPage(_ref52) {
     exportClientsCsv = _useStore5.exportClientsCsv;
   var toast = useToast();
   var clients = state.clients,
-    quotes = state.quotes,
-    invoices = state.invoices || [];
+    quotes = state.quotes;
   var _useState69 = useState(null),
     _useState70 = _slicedToArray(_useState69, 2),
     edit = _useState70[0],
@@ -5307,33 +5674,17 @@ function ClientsPage(_ref52) {
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [clients, search]);
-  // CA signé = somme TTC des FACTURES PAYÉES pour ce client (vrai chiffre encaissé).
   var totalRevenue = function totalRevenue(clientId) {
-    return invoices.filter(function (i) {
-      return i.clientId === clientId && i.status === "payee";
-    }).reduce(function (s, i) {
-      return s + (i.ttc || 0);
+    return quotes.filter(function (q) {
+      return q.clientId === clientId && q.status === "signe";
+    }).reduce(function (s, q) {
+      return s + (q.ttc || 0);
     }, 0);
   };
   var openQuotesOf = function openQuotesOf(clientId) {
     return quotes.filter(function (q) {
       return q.clientId === clientId && q.status === "envoye";
     }).length;
-  };
-  // Factures en cours = facture(s) émise(s) mais pas encore payée(s) (statuts "envoyee" ou "retard").
-  var pendingInvoicesOf = function pendingInvoicesOf(clientId) {
-    var list = invoices.filter(function (i) {
-      return i.clientId === clientId && ["envoyee", "retard"].includes(i.status);
-    });
-    return {
-      count: list.length,
-      amount: list.reduce(function (s, i) {
-        return s + (i.ttc || 0);
-      }, 0),
-      hasOverdue: list.some(function (i) {
-        return i.status === "retard";
-      })
-    };
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
@@ -5392,15 +5743,13 @@ function ClientsPage(_ref52) {
   }, "Tags"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold text-right"
   }, "CA sign\xE9"), /*#__PURE__*/React.createElement("th", {
-    className: "px-5 py-3.5 font-semibold text-right"
-  }, "Factures en cours"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold text-center"
   }, "Devis ouverts"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold w-24"
   }))), /*#__PURE__*/React.createElement("tbody", {
     className: "divide-y divide-paper-100"
   }, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: "8"
+    colSpan: "7"
   }, /*#__PURE__*/React.createElement(Empty, {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-8 h-8"
@@ -5461,18 +5810,7 @@ function ClientsPage(_ref52) {
       className: "px-5 py-3.5 text-right"
     }, /*#__PURE__*/React.createElement("div", {
       className: "font-semibold gold-text"
-    }, fmtMoney(totalRevenue(c.id)))), (function () {
-      var p = pendingInvoicesOf(c.id);
-      return /*#__PURE__*/React.createElement("td", {
-        className: "px-5 py-3.5 text-right"
-      }, p.count > 0 ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-        className: "font-semibold " + (p.hasOverdue ? "text-red-600" : "text-amber-700")
-      }, fmtMoney(p.amount)), /*#__PURE__*/React.createElement("div", {
-        className: "text-[11px] text-paper-500"
-      }, p.count, " facture", p.count > 1 ? "s" : "", p.hasOverdue ? " · en retard" : "")) : /*#__PURE__*/React.createElement("span", {
-        className: "text-paper-300"
-      }, "\u2014"));
-    })(), /*#__PURE__*/React.createElement("td", {
+    }, fmtMoney(totalRevenue(c.id)))), /*#__PURE__*/React.createElement("td", {
       className: "px-5 py-3.5 text-center"
     }, openQuotesOf(c.id) > 0 ? /*#__PURE__*/React.createElement(Badge, {
       color: "blue"
@@ -7837,7 +8175,6 @@ function QuoteEditor(_ref69) {
   var _useStore11 = useStore(),
     state = _useStore11.state;
   var isNew = !quote.id;
-  var _defaultVatQ = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState111 = useState(function () {
       return {
         id: quote.id || uid("q"),
@@ -7849,7 +8186,6 @@ function QuoteEditor(_ref69) {
         issueDate: quote.issueDate ? quote.issueDate.slice(0, 10) : todayISO(),
         validUntil: quote.validUntil ? quote.validUntil.slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
         discount: quote.discount || 0,
-        vat: quote.vat != null ? Number(quote.vat) : _defaultVatQ,
         lines: quote.lines && quote.lines.length > 0 ? quote.lines : [{
           id: uid("ln"),
           description: "",
@@ -7874,7 +8210,7 @@ function QuoteEditor(_ref69) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
+  var totals = calcQuoteTotals(form.lines, form.discount);
   var setLine = function setLine(i, patch) {
     setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -7990,17 +8326,23 @@ function QuoteEditor(_ref69) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(form);
+      },
+      disabled: !valid
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenExportPDF: true
+          thenSend: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer et exporter PDF")))
+    }, "Enregistrer & envoyer")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8068,20 +8410,7 @@ function QuoteEditor(_ref69) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "TVA applicable",
-    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
-  }, /*#__PURE__*/React.createElement(Select, {
-    value: form.vat,
-    onChange: function onChange(e) {
-      return set("vat", Number(e.target.value));
-    }
-  }, VAT_RATES.map(function (v) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: v.rate,
-      value: v.rate
-    }, v.label);
-  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -8243,7 +8572,7 @@ function QuoteEditor(_ref69) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -8260,7 +8589,6 @@ function QuoteEditor(_ref69) {
 function QuoteViewer(_ref71) {
   var _state$settings2, _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
   var quoteId = _ref71.quoteId,
-    autoExport = _ref71.autoExport,
     onClose = _ref71.onClose,
     onEdit = _ref71.onEdit,
     openClientProfile = _ref71.openClientProfile,
@@ -8269,9 +8597,6 @@ function QuoteViewer(_ref71) {
     state = _useStore12.state,
     setQuoteStatus = _useStore12.setQuoteStatus,
     generateInvoiceFromQuote = _useStore12.generateInvoiceFromQuote;
-  var _useAuth_qv = useAuth(),
-    currentUser_qv = _useAuth_qv.currentUser;
-  var _signerLive = currentUser_qv ? { name: currentUser_qv.name || "", position: currentUser_qv.position || "" } : null;
   var toast = useToast();
   // All hooks must be called BEFORE any conditional return (React Hooks Rules)
   var printRef = useRef(null);
@@ -8412,15 +8737,6 @@ function QuoteViewer(_ref71) {
       title: "Statut mis à jour"
     });
   };
-  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
-  var _autoExportTriggered = useRef(false);
-  useEffect(function () {
-    if (autoExport && !_autoExportTriggered.current && printRef.current) {
-      _autoExportTriggered.current = true;
-      // petit délai pour s'assurer que la mise en page est faite
-      setTimeout(function () { exportPDF(); }, 350);
-    }
-  }, [autoExport, quote && quote.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -8509,8 +8825,7 @@ function QuoteViewer(_ref71) {
   }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
     quote: quote,
     recipient: recipient,
-    company: company,
-    signer: _signerLive
+    company: company
   }))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8583,15 +8898,9 @@ function QuoteViewer(_ref71) {
 function BrandedQuoteDocument(_ref74) {
   var quote = _ref74.quote,
     recipient = _ref74.recipient,
-    company = _ref74.company,
-    signer = _ref74.signer;
+    company = _ref74.company;
   company = company || {};
-  var _quoteVat = quote.vat != null ? Number(quote.vat) : VAT_LU;
-  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, _quoteVat);
-  // Signataire : priorité au prop (utilisateur connecté), puis snapshot stocké sur le devis.
-  var _signerObj = signer || quote.signer || null;
-  var _signerName = (_signerObj && _signerObj.name) ? _signerObj.name : "Cerberion";
-  var _signerPos = (_signerObj && _signerObj.position) ? _signerObj.position : "Direction commerciale";
+  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -8927,7 +9236,7 @@ function BrandedQuoteDocument(_ref74) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", _quoteVat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500
     }
@@ -9084,13 +9393,13 @@ function BrandedQuoteDocument(_ref74) {
       marginTop: 8,
       fontStyle: "italic"
     }
-  }, _signerName), /*#__PURE__*/React.createElement("div", {
+  }, "J. Pinheiro"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#6b7280",
       marginTop: 2
     }
-  }, _signerPos))), /*#__PURE__*/React.createElement("div", {
+  }, "Direction commerciale"))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 36,
       paddingTop: 14,
@@ -9361,24 +9670,24 @@ function InvoicesPage(_ref75) {
     onSave: (/*#__PURE__*/function () {
       var _ref78 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(data) {
         var opts,
+          finalData,
           _args21 = arguments;
         return _regenerator().w(function (_context21) {
           while (1) switch (_context21.n) {
             case 0:
               opts = _args21.length > 1 && _args21[1] !== undefined ? _args21[1] : {};
+              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
+                status: "envoyee"
+              }) : data;
               _context21.n = 1;
-              return upsertInvoice(data);
+              return upsertInvoice(finalData);
             case 1:
               toast.push({
                 type: "success",
-                title: editor.id ? "Facture mise à jour" : "Facture créée",
-                message: data.number
+                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
+                message: finalData.number
               });
               setEditor(null);
-              // Si "Enregistrer et exporter PDF" : ouvrir le viewer avec flag auto-export.
-              if (opts.thenExportPDF) {
-                setViewer(_objectSpread(_objectSpread({}, data), {}, { _autoExport: true }));
-              }
             case 2:
               return _context21.a(2);
           }
@@ -9408,7 +9717,6 @@ function InvoicesPage(_ref75) {
 function InvoiceViewer(_ref79) {
   var _state$settings3, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
   var invoice = _ref79.invoice,
-    autoExport = _ref79.autoExport,
     onClose = _ref79.onClose;
   var _useStore14 = useStore(),
     state = _useStore14.state,
@@ -9420,9 +9728,6 @@ function InvoiceViewer(_ref79) {
     _useState128 = _slicedToArray(_useState127, 2),
     exporting = _useState128[0],
     setExporting = _useState128[1];
-  var _autoExportTriggeredInv = useRef(false);
-  // Détecte un flag _autoExport sur l'invoice (cas viewer interne InvoicesPage).
-  var _shouldAutoExportInv = !!(autoExport || (invoice && invoice._autoExport));
   if (!invoice) return null;
   var client = state.clients.find(function (c) {
     return c.id === invoice.clientId;
@@ -9487,13 +9792,6 @@ function InvoiceViewer(_ref79) {
       return _ref80.apply(this, arguments);
     };
   }();
-  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
-  useEffect(function () {
-    if (_shouldAutoExportInv && !_autoExportTriggeredInv.current && printRef.current) {
-      _autoExportTriggeredInv.current = true;
-      setTimeout(function () { exportPDF(); }, 350);
-    }
-  }, [_shouldAutoExportInv, invoice && invoice.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -9566,7 +9864,6 @@ function InvoiceEditor(_ref81) {
   var isNew = !invoice.id;
   var paymentDays = (_state$settings$docum = (_state$settings4 = state.settings) === null || _state$settings4 === void 0 || (_state$settings4 = _state$settings4.documents) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
   var defaultTerms = ((_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.defaultTerms) || "Paiement à 30 jours fin de mois.";
-  var _defaultVatI = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState129 = useState(function () {
       return {
         id: invoice.id || uid("inv"),
@@ -9577,7 +9874,6 @@ function InvoiceEditor(_ref81) {
         issueDate: invoice.issueDate ? invoice.issueDate.slice(0, 10) : todayISO(),
         dueDate: invoice.dueDate ? invoice.dueDate.slice(0, 10) : new Date(Date.now() + paymentDays * 86400000).toISOString().slice(0, 10),
         discount: invoice.discount || 0,
-        vat: invoice.vat != null ? Number(invoice.vat) : _defaultVatI,
         lines: invoice.lines && invoice.lines.length > 0 ? invoice.lines : [{
           id: uid("ln"),
           description: "",
@@ -9601,7 +9897,7 @@ function InvoiceEditor(_ref81) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
+  var totals = calcQuoteTotals(form.lines, form.discount);
   var setLine = function setLine(i, patch) {
     return setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -9691,17 +9987,23 @@ function InvoiceEditor(_ref81) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(form);
+      },
+      disabled: !valid
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenExportPDF: true
+          thenSend: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer et exporter PDF")))
+    }, "Enregistrer & envoyer")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -9764,20 +10066,7 @@ function InvoiceEditor(_ref81) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "TVA applicable",
-    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
-  }, /*#__PURE__*/React.createElement(Select, {
-    value: form.vat,
-    onChange: function onChange(e) {
-      return set("vat", Number(e.target.value));
-    }
-  }, VAT_RATES.map(function (v) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: v.rate,
-      value: v.rate
-    }, v.label);
-  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -9948,7 +10237,7 @@ function InvoiceEditor(_ref81) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -9965,8 +10254,7 @@ function BrandedInvoiceDocument(_ref83) {
     client = _ref83.client,
     company = _ref83.company;
   company = company || {};
-  var _invVat = invoice.vat != null ? Number(invoice.vat) : VAT_LU;
-  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0, _invVat);
+  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -10256,7 +10544,7 @@ function BrandedInvoiceDocument(_ref83) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", _invVat, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -11863,45 +12151,829 @@ function SettingsData(_ref99) {
     onClick: onReset
   }, "R\xE9initialiser toutes les donn\xE9es")));
 }
+
+// ============================================================================
+//  FICHES EXTRA — Missions courtes agents (conformité ITM Luxembourg)
+// ============================================================================
+function FichesExtraPage(_ref100) {
+  var search = _ref100.search;
+  var _useStore19 = useStore(),
+    state = _useStore19.state,
+    upsertFicheExtra = _useStore19.upsertFicheExtra,
+    deleteFicheExtra = _useStore19.deleteFicheExtra,
+    exportFichesExtraCsv = _useStore19.exportFichesExtraCsv;
+  var toast = useToast();
+  var fiches = state.fichesExtra || [];
+  var _useState159 = useState(null),
+    _useState160 = _slicedToArray(_useState159, 2),
+    edit = _useState160[0],
+    setEdit = _useState160[1]; // null | {} (new) | fiche object
+  var _useState161 = useState(null),
+    _useState162 = _slicedToArray(_useState161, 2),
+    confirmDelete = _useState162[0],
+    setConfirmDelete = _useState162[1];
+  var _useState163 = useState("all"),
+    _useState164 = _slicedToArray(_useState163, 2),
+    statusFilter = _useState164[0],
+    setStatusFilter = _useState164[1];
+  var _useState165 = useState(""),
+    _useState166 = _slicedToArray(_useState165, 2),
+    agentFilter = _useState166[0],
+    setAgentFilter = _useState166[1];
+  var _useState167 = useState(""),
+    _useState168 = _slicedToArray(_useState167, 2),
+    monthFilter = _useState168[0],
+    setMonthFilter = _useState168[1]; // YYYY-MM
+
+  var filtered = useMemo(function () {
+    var q = (search || "").toLowerCase().trim();
+    var arr = fiches;
+    if (q) arr = arr.filter(function (f) {
+      return [f.agentName, f.number, f.location, f.notes].some(function (x) {
+        return (x || "").toLowerCase().includes(q);
+      });
+    });
+    if (statusFilter !== "all") arr = arr.filter(function (f) {
+      return f.status === statusFilter;
+    });
+    if (agentFilter) arr = arr.filter(function (f) {
+      return (f.agentName || "").toLowerCase().includes(agentFilter.toLowerCase());
+    });
+    if (monthFilter) arr = arr.filter(function (f) {
+      return (f.date || "").startsWith(monthFilter);
+    });
+    return _toConsumableArray(arr).sort(function (a, b) {
+      return (b.date || "").localeCompare(a.date || "") || (b.startTime || "").localeCompare(a.startTime || "");
+    });
+  }, [fiches, search, statusFilter, agentFilter, monthFilter]);
+
+  // KPIs sur la sélection courante
+  var kpis = useMemo(function () {
+    var totals = filtered.reduce(function (acc, f) {
+      var c = calcFicheExtra(f);
+      acc.hours += c.totalH;
+      acc.nightH += c.nightH;
+      acc.gross += c.totalGross;
+      return acc;
+    }, {
+      hours: 0,
+      nightH: 0,
+      gross: 0
+    });
+    return {
+      count: filtered.length,
+      hours: round2(totals.hours),
+      nightH: round2(totals.nightH),
+      gross: round2(totals.gross)
+    };
+  }, [filtered]);
+  var agentSuggestions = _toConsumableArray(new Set(fiches.map(function (f) {
+    return f.agentName;
+  }).filter(Boolean))).sort();
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "Fiches Extra \u2014 Missions courtes",
+    subtitle: "Saisie des prestations ponctuelles d'agents \xB7 Contr\xF4le automatique ITM Luxembourg (Code du travail + CCT S\xE9curit\xE9-Gardiennage).",
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "w-6 h-6"
+    }),
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (filtered.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucune fiche à exporter"
+        });
+        exportFichesExtraCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(filtered.length, " fiche").concat(filtered.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEdit({});
+      }
+    }, "Nouvelle fiche"))
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-3"
+  }, /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-5 h-5"
+    }),
+    label: "Fiches affich\xE9es",
+    value: kpis.count
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "w-5 h-5"
+    }),
+    label: "Heures totales",
+    value: "".concat(kpis.hours, " h")
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Star, {
+      className: "w-5 h-5"
+    }),
+    label: "Dont heures de nuit",
+    value: "".concat(kpis.nightH, " h")
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-5 h-5"
+    }),
+    label: "Brut cumul\xE9",
+    value: fmtMoney(kpis.gross)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-4 gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Statut"), /*#__PURE__*/React.createElement(Select, {
+    value: statusFilter,
+    onChange: function onChange(e) {
+      return setStatusFilter(e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "Tous statuts"), Object.entries(FICHE_EXTRA_STATUS).map(function (_ref101) {
+    var _ref102 = _slicedToArray(_ref101, 2),
+      k = _ref102[0],
+      v = _ref102[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Agent"), /*#__PURE__*/React.createElement(Input, {
+    list: "agent-suggestions",
+    value: agentFilter,
+    onChange: function onChange(e) {
+      return setAgentFilter(e.target.value);
+    },
+    placeholder: "Filtrer par nom\u2026"
+  }), /*#__PURE__*/React.createElement("datalist", {
+    id: "agent-suggestions"
+  }, agentSuggestions.map(function (a) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: a,
+      value: a
+    });
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Mois"), /*#__PURE__*/React.createElement(Input, {
+    type: "month",
+    value: monthFilter,
+    onChange: function onChange(e) {
+      return setMonthFilter(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-end"
+  }, (statusFilter !== "all" || agentFilter || monthFilter) && /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      setStatusFilter("all");
+      setAgentFilter("");
+      setMonthFilter("");
+    }
+  }, "R\xE9initialiser")))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 border-b border-paper-200"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Fiche"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Agent"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Date / horaires"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Lieu / client"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold text-right"
+  }, "Heures"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold text-right"
+  }, "Brut \u20AC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Statut / ITM"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold w-28 text-right"
+  }))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: "8"
+  }, /*#__PURE__*/React.createElement(Empty, {
+    icon: /*#__PURE__*/React.createElement(Ic.Clock, {
+      className: "w-8 h-8"
+    }),
+    title: fiches.length === 0 ? "Aucune fiche extra" : "Aucun résultat",
+    description: fiches.length === 0 ? "Créez votre première fiche pour suivre les missions courtes de vos agents et vérifier la conformité ITM." : "Aucune fiche ne correspond à vos filtres.",
+    action: fiches.length === 0 ? /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEdit({});
+      }
+    }, "Nouvelle fiche") : null
+  }))), filtered.map(function (f) {
+    var _FICHE_EXTRA_STATUS, _FICHE_EXTRA_STATUS2;
+    var c = calcFicheExtra(f);
+    var alerts = validateFicheExtra(f, fiches);
+    var errors = alerts.filter(function (a) {
+      return a.severity === "error";
+    });
+    var warnings = alerts.filter(function (a) {
+      return a.severity === "warning";
+    });
+    var client = state.clients.find(function (cl) {
+      return cl.id === f.clientId;
+    });
+    var role = AGENT_ROLES.find(function (r) {
+      return r.id === f.agentRole;
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: f.id,
+      className: "table-row clickable",
+      onClick: function onClick() {
+        return setEdit(f);
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-mono text-xs text-gold-700"
+    }, f.number), role && /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-paper-500 mt-0.5"
+    }, role.label)), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 font-semibold text-paper-800"
+    }, f.agentName || "—"), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-paper-700"
+    }, /*#__PURE__*/React.createElement("div", null, f.date ? fmtDate(f.date) : "—"), /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-paper-500"
+    }, f.startTime || "?", "\u2013", f.endTime || "?", f.breakMinutes ? " \xB7 pause ".concat(f.breakMinutes, " min") : "")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-paper-700"
+    }, /*#__PURE__*/React.createElement("div", null, f.location || "—"), client && /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-paper-500"
+    }, client.name)), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-right tabular-nums"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-paper-800"
+    }, c.totalH, " h"), c.nightH > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-blue-600"
+    }, c.nightH, " h nuit"), c.overtimeH > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-amber-600"
+    }, c.overtimeH, " h sup")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-right tabular-nums font-semibold text-gold-700"
+    }, fmtMoney(c.totalGross)), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col gap-1"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_FICHE_EXTRA_STATUS = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS === void 0 ? void 0 : _FICHE_EXTRA_STATUS.color
+    }, (_FICHE_EXTRA_STATUS2 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS2 === void 0 ? void 0 : _FICHE_EXTRA_STATUS2.label), errors.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 text-[11px] text-red-600 font-medium"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-3 h-3"
+    }), " ", errors.length, " non-conformit\xE9", errors.length > 1 ? "s" : ""), errors.length === 0 && warnings.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 text-[11px] text-amber-700 font-medium"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-3 h-3"
+    }), " ", warnings.length, " avertissement", warnings.length > 1 ? "s" : ""), errors.length === 0 && warnings.length === 0 && /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 text-[11px] text-emerald-600"
+    }, /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-3 h-3"
+    }), " Conforme ITM"))), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-right",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 justify-end"
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setEdit(f);
+      },
+      title: "\xC9diter",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.Edit, {
+      className: "w-4 h-4"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setConfirmDelete(f);
+      },
+      title: "Supprimer",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600"
+    }, /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-4 h-4"
+    })))));
+  }))))), edit && /*#__PURE__*/React.createElement(FicheExtraEditor, {
+    fiche: edit,
+    allFiches: fiches,
+    state: state,
+    onClose: function onClose() {
+      return setEdit(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref103 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28(data) {
+        var isNew;
+        return _regenerator().w(function (_context28) {
+          while (1) switch (_context28.n) {
+            case 0:
+              isNew = !data.id;
+              _context28.n = 1;
+              return upsertFicheExtra(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: isNew ? "Fiche créée" : "Fiche mise à jour",
+                message: data.number
+              });
+              setEdit(null);
+            case 2:
+              return _context28.a(2);
+          }
+        }, _callee28);
+      }));
+      return function (_x20) {
+        return _ref103.apply(this, arguments);
+      };
+    }())
+  }), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
+    title: "Supprimer cette fiche ?",
+    message: "La fiche \"".concat(confirmDelete.number, "\" de ").concat(confirmDelete.agentName || "agent", " sera supprim\xE9e."),
+    danger: true,
+    confirmLabel: "Supprimer",
+    onCancel: function onCancel() {
+      return setConfirmDelete(null);
+    },
+    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29() {
+      return _regenerator().w(function (_context29) {
+        while (1) switch (_context29.n) {
+          case 0:
+            _context29.n = 1;
+            return deleteFicheExtra(confirmDelete.id);
+          case 1:
+            setConfirmDelete(null);
+            toast.push({
+              type: "warning",
+              title: "Fiche supprimée"
+            });
+          case 2:
+            return _context29.a(2);
+        }
+      }, _callee29);
+    }))
+  }));
+}
+
+// ---------------- Fiche Extra Editor (modal) ----------------
+function FicheExtraEditor(_ref105) {
+  var fiche = _ref105.fiche,
+    allFiches = _ref105.allFiches,
+    state = _ref105.state,
+    onClose = _ref105.onClose,
+    onSave = _ref105.onSave;
+  var isNew = !fiche.id;
+  var _useState169 = useState(function () {
+      var _fiche$breakMinutes, _fiche$hourlyRate;
+      return {
+        id: fiche.id || uid("fex"),
+        number: fiche.number || generateFicheExtraNumber(allFiches),
+        date: fiche.date || todayISO(),
+        agentName: fiche.agentName || "",
+        agentRole: fiche.agentRole || "gardien",
+        clientId: fiche.clientId || null,
+        location: fiche.location || "",
+        startTime: fiche.startTime || "20:00",
+        endTime: fiche.endTime || "06:00",
+        breakMinutes: (_fiche$breakMinutes = fiche.breakMinutes) !== null && _fiche$breakMinutes !== void 0 ? _fiche$breakMinutes : 30,
+        hourlyRate: (_fiche$hourlyRate = fiche.hourlyRate) !== null && _fiche$hourlyRate !== void 0 ? _fiche$hourlyRate : 18.75,
+        status: fiche.status || "brouillon",
+        notes: fiche.notes || "",
+        createdAt: fiche.createdAt || nowISO()
+      };
+    }),
+    _useState170 = _slicedToArray(_useState169, 2),
+    form = _useState170[0],
+    setForm = _useState170[1];
+  var set = function set(k, v) {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
+    });
+  };
+  var calc = calcFicheExtra(form);
+  var alerts = validateFicheExtra(form, allFiches);
+  var errors = alerts.filter(function (a) {
+    return a.severity === "error";
+  });
+  var warnings = alerts.filter(function (a) {
+    return a.severity === "warning";
+  });
+  var infos = alerts.filter(function (a) {
+    return a.severity === "info";
+  });
+  var role = AGENT_ROLES.find(function (r) {
+    return r.id === form.agentRole;
+  });
+  var setRoleAndRate = function setRoleAndRate(roleId) {
+    var r = AGENT_ROLES.find(function (x) {
+      return x.id === roleId;
+    });
+    setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, {
+        agentRole: roleId,
+        hourlyRate: f.hourlyRate || (r === null || r === void 0 ? void 0 : r.minHourly) || 18.75
+      });
+    });
+  };
+  var submit = function submit() {
+    if (errors.length > 0 && form.status === "validee") {
+      // Empêche validation si erreurs critiques
+      return;
+    }
+    onSave(form);
+  };
+  var agentSuggestions = _toConsumableArray(new Set(allFiches.map(function (f) {
+    return f.agentName;
+  }).filter(Boolean))).sort();
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: isNew ? "Nouvelle fiche extra" : "Fiche \xB7 ".concat(form.number),
+    size: "xl",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between flex-wrap gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-600"
+    }, "Brut total : ", /*#__PURE__*/React.createElement("span", {
+      className: "font-bold text-paper-800 text-base tabular-nums"
+    }, fmtMoney(calc.totalGross)), " · ", calc.totalH, " h", calc.nightH > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "text-blue-600"
+    }, " \xB7 ", calc.nightH, " h nuit"), calc.overtimeH > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "text-amber-600"
+    }, " \xB7 ", calc.overtimeH, " h sup")), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-2 flex-wrap"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(_objectSpread(_objectSpread({}, form), {}, {
+          status: "brouillon"
+        }));
+      }
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Check, {
+        className: "w-4 h-4"
+      }),
+      disabled: errors.length > 0,
+      onClick: function onClick() {
+        return onSave(_objectSpread(_objectSpread({}, form), {}, {
+          status: "validee"
+        }));
+      }
+    }, errors.length > 0 ? "Valider (".concat(errors.length, " erreur").concat(errors.length > 1 ? "s" : "", ")") : "Valider la fiche")))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Identification de la mission"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 fiche"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.number,
+    onChange: function onChange(e) {
+      return set("number", e.target.value);
+    },
+    className: "font-mono"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.date,
+    onChange: function onChange(e) {
+      return set("date", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Statut"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.status,
+    onChange: function onChange(e) {
+      return set("status", e.target.value);
+    }
+  }, Object.entries(FICHE_EXTRA_STATUS).map(function (_ref106) {
+    var _ref107 = _slicedToArray(_ref106, 2),
+      k = _ref107[0],
+      v = _ref107[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Agent"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom de l'agent",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    list: "agent-list-editor",
+    value: form.agentName,
+    onChange: function onChange(e) {
+      return set("agentName", e.target.value);
+    },
+    placeholder: "Pr\xE9nom Nom"
+  }), /*#__PURE__*/React.createElement("datalist", {
+    id: "agent-list-editor"
+  }, agentSuggestions.map(function (a) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: a,
+      value: a
+    });
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Qualification"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.agentRole,
+    onChange: function onChange(e) {
+      return setRoleAndRate(e.target.value);
+    }
+  }, AGENT_ROLES.map(function (r) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: r.id,
+      value: r.id
+    }, r.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Taux horaire (\u20AC/h brut)",
+    required: true,
+    hint: role ? "Minimum conventionnel : ".concat(role.minHourly.toFixed(2), " \u20AC/h") : null
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    step: "0.01",
+    min: "0",
+    value: form.hourlyRate,
+    onChange: function onChange(e) {
+      return set("hourlyRate", parseFloat(e.target.value) || 0);
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Horaires & lieu"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "D\xE9but",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "time",
+    value: form.startTime,
+    onChange: function onChange(e) {
+      return set("startTime", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Fin",
+    required: true,
+    hint: form.endTime < form.startTime ? "Service de nuit (passage minuit)" : null
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "time",
+    value: form.endTime,
+    onChange: function onChange(e) {
+      return set("endTime", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Pause (minutes)",
+    hint: "\u226530 min apr\xE8s 6 h"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    min: "0",
+    step: "5",
+    value: form.breakMinutes,
+    onChange: function onChange(e) {
+      return set("breakMinutes", parseInt(e.target.value) || 0);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Lieu de mission"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.location,
+    onChange: function onChange(e) {
+      return set("location", e.target.value);
+    },
+    placeholder: "Adresse, site, \xE9v\xE9nement\u2026"
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Client (optionnel)"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.clientId || "",
+    onChange: function onChange(e) {
+      return set("clientId", e.target.value || null);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), state.clients.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.name);
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base bg-paper-50/40 p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "R\xE9capitulatif heures & r\xE9mun\xE9ration"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"
+  }, /*#__PURE__*/React.createElement(RecapRow, {
+    label: "Heures totales",
+    value: "".concat(calc.totalH, " h")
+  }), /*#__PURE__*/React.createElement(RecapRow, {
+    label: "Heures de jour",
+    value: "".concat(calc.dayH, " h"),
+    sub: calc.dayH > 0 ? "Base 100%" : null
+  }), /*#__PURE__*/React.createElement(RecapRow, {
+    label: "Heures de nuit",
+    value: "".concat(calc.nightH, " h"),
+    sub: calc.nightH > 0 ? "+15%" : null,
+    color: calc.nightH > 0 ? "blue" : null
+  }), /*#__PURE__*/React.createElement(RecapRow, {
+    label: "Heures sup",
+    value: "".concat(calc.overtimeH, " h"),
+    sub: calc.overtimeH > 0 ? "+40%" : null,
+    color: calc.overtimeH > 0 ? "amber" : null
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "border-t border-paper-200 pt-3 space-y-1.5 text-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600"
+  }, "Base (", form.hourlyRate.toFixed(2), " \u20AC/h \xD7 ", calc.totalH, " h)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium tabular-nums"
+  }, fmtMoney(calc.base))), calc.nightPremium > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-blue-700"
+  }, /*#__PURE__*/React.createElement("span", null, "+ Prime de nuit (+15%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium tabular-nums"
+  }, "+", fmtMoney(calc.nightPremium))), calc.sundayPremium > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-purple-700"
+  }, /*#__PURE__*/React.createElement("span", null, "+ Prime dimanche (+70%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium tabular-nums"
+  }, "+", fmtMoney(calc.sundayPremium))), calc.holidayPremium > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-red-700"
+  }, /*#__PURE__*/React.createElement("span", null, "+ Prime jour f\xE9ri\xE9 (+100%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium tabular-nums"
+  }, "+", fmtMoney(calc.holidayPremium))), calc.overtimePremium > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between text-amber-700"
+  }, /*#__PURE__*/React.createElement("span", null, "+ Prime heures sup (+40%)"), /*#__PURE__*/React.createElement("span", {
+    className: "font-medium tabular-nums"
+  }, "+", fmtMoney(calc.overtimePremium))), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between pt-2 border-t border-paper-200 text-base font-bold"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-800"
+  }, "BRUT \xC0 PAYER"), /*#__PURE__*/React.createElement("span", {
+    className: "text-gold-700 tabular-nums"
+  }, fmtMoney(calc.totalGross))))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, errors.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-red-300 bg-red-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-red-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Non-conformit\xE9s ITM (", errors.length, ")"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-red-700"
+  }, errors.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-red-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  }))), warnings.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-amber-300 bg-amber-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-amber-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Avertissements (", warnings.length, ")"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-amber-700"
+  }, warnings.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-amber-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  }))), infos.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-blue-200 bg-blue-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-blue-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Informations"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-blue-700"
+  }, infos.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-blue-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  }))), alerts.length === 0 && form.agentName && calc.totalH > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-emerald-200 bg-emerald-50 p-3 flex items-center gap-2 text-emerald-800 text-sm"
+  }, /*#__PURE__*/React.createElement(Ic.Check, {
+    className: "w-4 h-4"
+  }), " Fiche conforme aux normes ITM Luxembourg.")), /*#__PURE__*/React.createElement(Field, {
+    label: "Notes / commentaire"
+  }, /*#__PURE__*/React.createElement(Textarea, {
+    rows: 2,
+    value: form.notes,
+    onChange: function onChange(e) {
+      return set("notes", e.target.value);
+    },
+    placeholder: "D\xE9tails, consignes, observations\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-paper-400 leading-relaxed border-t border-paper-100 pt-3"
+  }, "Contr\xF4les bas\xE9s sur le Code du travail luxembourgeois (L.211-1 et s., L.213-1 et s.) et la Convention collective s\xE9curit\xE9-gardiennage (arr\xEAt\xE9 minist\xE9riel du 18 septembre 2019, prolong\xE9e par d\xE9faut). SSM 2026 : non qualifi\xE9 15,63 \u20AC/h \xB7 qualifi\xE9 18,75 \u20AC/h brut.")));
+}
+function RecapRow(_ref108) {
+  var label = _ref108.label,
+    value = _ref108.value,
+    sub = _ref108.sub,
+    color = _ref108.color;
+  var colorClass = {
+    blue: "text-blue-700",
+    amber: "text-amber-700",
+    purple: "text-purple-700"
+  }[color] || "text-paper-800";
+  return /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md bg-white border border-paper-200 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] uppercase tracking-wider text-paper-500"
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "text-lg font-bold tabular-nums mt-0.5 ".concat(colorClass)
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 mt-0.5"
+  }, sub));
+}
 // ============================================================================
 //  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
 // ============================================================================
-function SignaturePage(_ref100) {
-  var quoteId = _ref100.quoteId,
-    onClose = _ref100.onClose;
+function SignaturePage(_ref109) {
+  var quoteId = _ref109.quoteId,
+    onClose = _ref109.onClose;
   var toast = useToast();
-  var _useState159 = useState(null),
-    _useState160 = _slicedToArray(_useState159, 2),
-    quote = _useState160[0],
-    setQuote = _useState160[1];
-  var _useState161 = useState(null),
-    _useState162 = _slicedToArray(_useState161, 2),
-    recipient = _useState162[0],
-    setRecipient = _useState162[1];
-  var _useState163 = useState(COMPANY),
-    _useState164 = _slicedToArray(_useState163, 2),
-    company = _useState164[0],
-    setCompany = _useState164[1];
-  var _useState165 = useState(true),
-    _useState166 = _slicedToArray(_useState165, 2),
-    loading = _useState166[0],
-    setLoading = _useState166[1];
-  var _useState167 = useState(false),
-    _useState168 = _slicedToArray(_useState167, 2),
-    notFound = _useState168[0],
-    setNotFound = _useState168[1];
-  var _useState169 = useState(""),
-    _useState170 = _slicedToArray(_useState169, 2),
-    name = _useState170[0],
-    setName = _useState170[1];
-  var _useState171 = useState(false),
+  var _useState171 = useState(null),
     _useState172 = _slicedToArray(_useState171, 2),
-    accept = _useState172[0],
-    setAccept = _useState172[1];
-  var _useState173 = useState(false),
+    quote = _useState172[0],
+    setQuote = _useState172[1];
+  var _useState173 = useState(null),
     _useState174 = _slicedToArray(_useState173, 2),
-    signed = _useState174[0],
-    setSigned = _useState174[1];
+    recipient = _useState174[0],
+    setRecipient = _useState174[1];
+  var _useState175 = useState(COMPANY),
+    _useState176 = _slicedToArray(_useState175, 2),
+    company = _useState176[0],
+    setCompany = _useState176[1];
+  var _useState177 = useState(true),
+    _useState178 = _slicedToArray(_useState177, 2),
+    loading = _useState178[0],
+    setLoading = _useState178[1];
+  var _useState179 = useState(false),
+    _useState180 = _slicedToArray(_useState179, 2),
+    notFound = _useState180[0],
+    setNotFound = _useState180[1];
+  var _useState181 = useState(""),
+    _useState182 = _slicedToArray(_useState181, 2),
+    name = _useState182[0],
+    setName = _useState182[1];
+  var _useState183 = useState(false),
+    _useState184 = _slicedToArray(_useState183, 2),
+    accept = _useState184[0],
+    setAccept = _useState184[1];
+  var _useState185 = useState(false),
+    _useState186 = _slicedToArray(_useState185, 2),
+    signed = _useState186[0],
+    setSigned = _useState186[1];
   useEffect(function () {
     fetch("/api/public/quote/".concat(quoteId)).then(function (r) {
       if (!r.ok) throw new Error("not found");
@@ -11942,19 +13014,19 @@ function SignaturePage(_ref100) {
     }, "Retour au CRM")));
   }
   var onSign = /*#__PURE__*/function () {
-    var _ref101 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28() {
+    var _ref110 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30() {
       var res, _t10;
-      return _regenerator().w(function (_context28) {
-        while (1) switch (_context28.p = _context28.n) {
+      return _regenerator().w(function (_context30) {
+        while (1) switch (_context30.p = _context30.n) {
           case 0:
             if (!(!name.trim() || !accept)) {
-              _context28.n = 1;
+              _context30.n = 1;
               break;
             }
-            return _context28.a(2);
+            return _context30.a(2);
           case 1:
-            _context28.p = 1;
-            _context28.n = 2;
+            _context30.p = 1;
+            _context30.n = 2;
             return fetch("/api/public/quote/".concat(quote.id, "/sign"), {
               method: "POST",
               headers: {
@@ -11966,9 +13038,9 @@ function SignaturePage(_ref100) {
               })
             });
           case 2:
-            res = _context28.v;
+            res = _context30.v;
             if (res.ok) {
-              _context28.n = 3;
+              _context30.n = 3;
               break;
             }
             throw new Error("Signature échouée");
@@ -11984,23 +13056,23 @@ function SignaturePage(_ref100) {
               title: "Devis signé !",
               message: "Cerberion a été notifié."
             });
-            _context28.n = 5;
+            _context30.n = 5;
             break;
           case 4:
-            _context28.p = 4;
-            _t10 = _context28.v;
+            _context30.p = 4;
+            _t10 = _context30.v;
             toast.push({
               type: "error",
               title: "Erreur",
               message: String(_t10.message || _t10)
             });
           case 5:
-            return _context28.a(2);
+            return _context30.a(2);
         }
-      }, _callee28, null, [[1, 4]]);
+      }, _callee30, null, [[1, 4]]);
     }));
     return function onSign() {
-      return _ref101.apply(this, arguments);
+      return _ref110.apply(this, arguments);
     };
   }();
   if (signed || quote.signedAt) {
@@ -12143,10 +13215,10 @@ function SignaturePage(_ref100) {
 //  MAIN APP
 // ============================================================================
 function App() {
-  var _useState175 = useState(window.location.hash),
-    _useState176 = _slicedToArray(_useState175, 2),
-    hash = _useState176[0],
-    setHash = _useState176[1];
+  var _useState187 = useState(window.location.hash),
+    _useState188 = _slicedToArray(_useState187, 2),
+    hash = _useState188[0],
+    setHash = _useState188[1];
   useEffect(function () {
     var onHash = function onHash() {
       return setHash(window.location.hash);
@@ -12169,64 +13241,64 @@ function App() {
 }
 function Shell() {
   // Routing in-app (state-driven, single page)
-  var _useState177 = useState("dashboard"),
-    _useState178 = _slicedToArray(_useState177, 2),
-    page = _useState178[0],
-    setPage = _useState178[1];
-  var _useState179 = useState({
+  var _useState189 = useState("dashboard"),
+    _useState190 = _slicedToArray(_useState189, 2),
+    page = _useState190[0],
+    setPage = _useState190[1];
+  var _useState191 = useState({
       kind: "list"
     }),
-    _useState180 = _slicedToArray(_useState179, 2),
-    view = _useState180[0],
-    setView = _useState180[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
-  var _useState181 = useState(false),
-    _useState182 = _slicedToArray(_useState181, 2),
-    collapsed = _useState182[0],
-    setCollapsed = _useState182[1];
-  var _useState183 = useState(""),
-    _useState184 = _slicedToArray(_useState183, 2),
-    search = _useState184[0],
-    setSearch = _useState184[1];
-  var _useState185 = useState(false),
-    _useState186 = _slicedToArray(_useState185, 2),
-    mobileMenu = _useState186[0],
-    setMobileMenu = _useState186[1];
+    _useState192 = _slicedToArray(_useState191, 2),
+    view = _useState192[0],
+    setView = _useState192[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
+  var _useState193 = useState(false),
+    _useState194 = _slicedToArray(_useState193, 2),
+    collapsed = _useState194[0],
+    setCollapsed = _useState194[1];
+  var _useState195 = useState(""),
+    _useState196 = _slicedToArray(_useState195, 2),
+    search = _useState196[0],
+    setSearch = _useState196[1];
+  var _useState197 = useState(false),
+    _useState198 = _slicedToArray(_useState197, 2),
+    mobileMenu = _useState198[0],
+    setMobileMenu = _useState198[1];
 
   // Filter for devis/factures pages (set when navigating from a profile)
-  var _useState187 = useState({
+  var _useState199 = useState({
       clientId: null,
       prospectId: null
     }),
-    _useState188 = _slicedToArray(_useState187, 2),
-    devisFilter = _useState188[0],
-    setDevisFilter = _useState188[1];
-  var _useState189 = useState({
+    _useState200 = _slicedToArray(_useState199, 2),
+    devisFilter = _useState200[0],
+    setDevisFilter = _useState200[1];
+  var _useState201 = useState({
       clientId: null
     }),
-    _useState190 = _slicedToArray(_useState189, 2),
-    facturesFilter = _useState190[0],
-    setFacturesFilter = _useState190[1];
+    _useState202 = _slicedToArray(_useState201, 2),
+    facturesFilter = _useState202[0],
+    setFacturesFilter = _useState202[1];
 
   // Modals managed at shell level
-  var _useState191 = useState(null),
-    _useState192 = _slicedToArray(_useState191, 2),
-    quoteEditor = _useState192[0],
-    setQuoteEditor = _useState192[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
-  var _useState193 = useState(null),
-    _useState194 = _slicedToArray(_useState193, 2),
-    quoteViewer = _useState194[0],
-    setQuoteViewer = _useState194[1]; // null | quoteId
+  var _useState203 = useState(null),
+    _useState204 = _slicedToArray(_useState203, 2),
+    quoteEditor = _useState204[0],
+    setQuoteEditor = _useState204[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
+  var _useState205 = useState(null),
+    _useState206 = _slicedToArray(_useState205, 2),
+    quoteViewer = _useState206[0],
+    setQuoteViewer = _useState206[1]; // null | quoteId
 
   // Invoice viewer state
-  var _useState195 = useState(null),
-    _useState196 = _slicedToArray(_useState195, 2),
-    invoiceViewer = _useState196[0],
-    setInvoiceViewer = _useState196[1];
+  var _useState207 = useState(null),
+    _useState208 = _slicedToArray(_useState207, 2),
+    invoiceViewer = _useState208[0],
+    setInvoiceViewer = _useState208[1];
   // Invoice editor state (shell-level, like quoteEditor)
-  var _useState197 = useState(null),
-    _useState198 = _slicedToArray(_useState197, 2),
-    invoiceEditor = _useState198[0],
-    setInvoiceEditor = _useState198[1]; // null | { id?, clientId? }
+  var _useState209 = useState(null),
+    _useState210 = _slicedToArray(_useState209, 2),
+    invoiceEditor = _useState210[0],
+    setInvoiceEditor = _useState210[1]; // null | { id?, clientId? }
 
   // Helpers
   var goTo = function goTo(newPage) {
@@ -12265,15 +13337,12 @@ function Shell() {
       id: idOrNew
     });
   };
-  // State des viewers : soit string id (cas normal), soit { id, autoExport: true }
   var openQuoteViewer = function openQuoteViewer(id) {
-    var autoExport = arguments.length > 1 && arguments[1] === true;
-    setQuoteViewer(autoExport ? { id: id, autoExport: true } : id);
+    setQuoteViewer(id);
     setSearch("");
   };
   var openInvoiceViewer = function openInvoiceViewer(id) {
-    var autoExport = arguments.length > 1 && arguments[1] === true;
-    setInvoiceViewer(autoExport ? { id: id, autoExport: true } : id);
+    setInvoiceViewer(id);
     setSearch("");
   };
   var _openInvoiceEditor = function openInvoiceEditor(idOrNew) {
@@ -12396,6 +13465,10 @@ function Shell() {
           openClientProfile: openClientProfile,
           openProspectProfile: openProspectProfile
         });
+      case "fichesExtra":
+        return /*#__PURE__*/React.createElement(FichesExtraPage, {
+          search: pageSearch
+        });
       case "notifications":
         return /*#__PURE__*/React.createElement(NotificationsPage, {
           setPage: goTo,
@@ -12452,13 +13525,11 @@ function Shell() {
     onClose: function onClose() {
       return setQuoteEditor(null);
     },
-    onAfterSave: function onAfterSave(id, _sent, autoExport) {
-      // Ouvre le viewer (avec auto-export PDF si demandé).
-      if (autoExport) openQuoteViewer(id, true);
+    onAfterSave: function onAfterSave(id, sent) {
+      if (sent) openQuoteViewer(id);
     }
   }), quoteViewer && /*#__PURE__*/React.createElement(QuoteViewerWrapper, {
-    quoteId: typeof quoteViewer === "string" ? quoteViewer : quoteViewer.id,
-    autoExport: typeof quoteViewer === "object" && quoteViewer !== null && quoteViewer.autoExport === true,
+    quoteId: quoteViewer,
     onClose: function onClose() {
       return setQuoteViewer(null);
     },
@@ -12470,26 +13541,16 @@ function Shell() {
     editor: invoiceEditor,
     onClose: function onClose() {
       return setInvoiceEditor(null);
-    },
-    onAfterSave: function onAfterSave(id, autoExport) {
-      if (autoExport) openInvoiceViewer(id, true);
-    }
-  }), invoiceViewer && /*#__PURE__*/React.createElement(InvoiceViewerShellWrapper, {
-    invoiceId: typeof invoiceViewer === "string" ? invoiceViewer : invoiceViewer.id,
-    autoExport: typeof invoiceViewer === "object" && invoiceViewer !== null && invoiceViewer.autoExport === true,
-    onClose: function onClose() {
-      return setInvoiceViewer(null);
     }
   }));
 }
-function InvoiceEditorWrapper(_ref102) {
+function InvoiceEditorWrapper(_ref111) {
   var _state$invoices;
-  var editor = _ref102.editor,
-    onClose = _ref102.onClose,
-    onAfterSave = _ref102.onAfterSave;
-  var _useStore19 = useStore(),
-    state = _useStore19.state,
-    upsertInvoice = _useStore19.upsertInvoice;
+  var editor = _ref111.editor,
+    onClose = _ref111.onClose;
+  var _useStore20 = useStore(),
+    state = _useStore20.state,
+    upsertInvoice = _useStore20.upsertInvoice;
   var toast = useToast();
   var invoice = editor.id ? (_state$invoices = state.invoices) === null || _state$invoices === void 0 ? void 0 : _state$invoices.find(function (i) {
     return i.id === editor.id;
@@ -12504,42 +13565,45 @@ function InvoiceEditorWrapper(_ref102) {
     invoice: invoice,
     onClose: onClose,
     onSave: (/*#__PURE__*/function () {
-      var _ref103 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(data) {
+      var _ref112 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31(data) {
         var opts,
-          _args29 = arguments;
-        return _regenerator().w(function (_context29) {
-          while (1) switch (_context29.n) {
+          finalData,
+          _args31 = arguments;
+        return _regenerator().w(function (_context31) {
+          while (1) switch (_context31.n) {
             case 0:
-              opts = _args29.length > 1 && _args29[1] !== undefined ? _args29[1] : {};
-              _context29.n = 1;
-              return upsertInvoice(data);
+              opts = _args31.length > 1 && _args31[1] !== undefined ? _args31[1] : {};
+              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
+                status: "envoyee"
+              }) : data;
+              _context31.n = 1;
+              return upsertInvoice(finalData);
             case 1:
               toast.push({
                 type: "success",
-                title: editor.id ? "Facture mise à jour" : "Facture créée",
-                message: data.number
+                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
+                message: finalData.number
               });
-              if (onAfterSave) onAfterSave(data.id, !!opts.thenExportPDF);
               onClose();
             case 2:
-              return _context29.a(2);
+              return _context31.a(2);
           }
-        }, _callee29);
+        }, _callee31);
       }));
-      return function (_x20) {
-        return _ref103.apply(this, arguments);
+      return function (_x21) {
+        return _ref112.apply(this, arguments);
       };
     }())
   });
 }
-function QuoteEditorWrapper(_ref104) {
-  var editor = _ref104.editor,
-    onClose = _ref104.onClose,
-    onAfterSave = _ref104.onAfterSave;
-  var _useStore20 = useStore(),
-    state = _useStore20.state,
-    upsertQuote = _useStore20.upsertQuote,
-    setQuoteStatus = _useStore20.setQuoteStatus;
+function QuoteEditorWrapper(_ref113) {
+  var editor = _ref113.editor,
+    onClose = _ref113.onClose,
+    onAfterSave = _ref113.onAfterSave;
+  var _useStore21 = useStore(),
+    state = _useStore21.state,
+    upsertQuote = _useStore21.upsertQuote,
+    setQuoteStatus = _useStore21.setQuoteStatus;
   var toast = useToast();
   var quote = editor.id ? state.quotes.find(function (q) {
     return q.id === editor.id;
@@ -12557,47 +13621,41 @@ function QuoteEditorWrapper(_ref104) {
     onSave: function onSave(data) {
       var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       upsertQuote(data);
-      toast.push({
-        type: "success",
-        title: editor.id ? "Devis mis à jour" : "Devis créé",
-        message: opts.thenExportPDF ? "Ouverture de l'export PDF\u2026" : undefined
-      });
-      // 3e argument = autoExport. Lance l'ouverture du viewer + déclenche l'export PDF.
-      onAfterSave(data.id, false, !!opts.thenExportPDF);
+      if (opts.thenSend) {
+        setTimeout(function () {
+          setQuoteStatus(data.id, "envoye");
+          toast.push({
+            type: "success",
+            title: "Devis envoyé",
+            message: "".concat(data.number, " marqu\xE9 comme envoy\xE9. Lien copi\xE9.")
+          });
+          try {
+            var _navigator$clipboard2;
+            (_navigator$clipboard2 = navigator.clipboard) === null || _navigator$clipboard2 === void 0 || _navigator$clipboard2.writeText(shareableLink(data.id));
+          } catch (e) {}
+          onAfterSave(data.id, true);
+        }, 100);
+      } else {
+        toast.push({
+          type: "success",
+          title: editor.id ? "Devis mis à jour" : "Devis créé"
+        });
+        onAfterSave(data.id, false);
+      }
       onClose();
     }
   });
 }
-function QuoteViewerWrapper(_ref105) {
-  var quoteId = _ref105.quoteId,
-    autoExport = _ref105.autoExport,
-    onClose = _ref105.onClose,
-    _onEdit = _ref105.onEdit;
+function QuoteViewerWrapper(_ref114) {
+  var quoteId = _ref114.quoteId,
+    onClose = _ref114.onClose,
+    _onEdit = _ref114.onEdit;
   return /*#__PURE__*/React.createElement(QuoteViewer, {
     quoteId: quoteId,
-    autoExport: !!autoExport,
     onClose: onClose,
     onEdit: function onEdit() {
       return _onEdit(quoteId);
     }
-  });
-}
-
-// Wrapper App-level pour ouvrir une facture en visualiseur (avec auto-export PDF optionnel).
-function InvoiceViewerShellWrapper(_ref106) {
-  var invoiceId = _ref106.invoiceId,
-    autoExport = _ref106.autoExport,
-    onClose = _ref106.onClose;
-  var _useStore21 = useStore(),
-    state = _useStore21.state;
-  var inv = (state.invoices || []).find(function (i) {
-    return i.id === invoiceId;
-  });
-  if (!inv) return null;
-  return /*#__PURE__*/React.createElement(InvoiceViewer, {
-    invoice: inv,
-    autoExport: !!autoExport,
-    onClose: onClose
   });
 }
 
