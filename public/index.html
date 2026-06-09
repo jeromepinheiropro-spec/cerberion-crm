@@ -4653,6 +4653,12 @@ function StoreProvider(_ref43) {
   };
   var setNoteFraisStatus = function setNoteFraisStatus(id, status) {
     var extra = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    return dispatch("setNoteFraisStatus", {
+      id: id,
+      status: status,
+      extra: extra
+    });
+  };
   var exportNotesFraisCsv = function exportNotesFraisCsv() {
     return csvDownload("cerberion-notes-frais-".concat(todayISO(), ".csv"), state.notesFrais || [], [{
       key: "number",
