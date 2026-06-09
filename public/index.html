@@ -14661,7 +14661,7 @@ function NotesFraisPage(_ref110) {
   }));
 }
 function NoteFraisEditor(_ref115) {
-  var _form$vatRate;
+  var _state$settings6, _form$vatRate;
   var note = _ref115.note,
     allNotes = _ref115.allNotes,
     state = _ref115.state,
@@ -14669,6 +14669,11 @@ function NoteFraisEditor(_ref115) {
     isAdmin = _ref115.isAdmin,
     onClose = _ref115.onClose,
     onSave = _ref115.onSave;
+  var _useAuth9 = useAuth(),
+    auth = _useAuth9.auth;
+  var _useStore21 = useStore(),
+    updateSettings = _useStore21.updateSettings;
+  var toast = useToast();
   var isNew = !note.id;
   var _useState183 = useState(function () {
       var _note$amount, _note$vatRate, _note$distance;
@@ -14701,6 +14706,96 @@ function NoteFraisEditor(_ref115) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
+
+  // Liste des demandeurs : comptes utilisateurs + personnes ajoutées + noms déjà saisis
+  var customRequesters = ((_state$settings6 = state.settings) === null || _state$settings6 === void 0 ? void 0 : _state$settings6.expenseRequesters) || [];
+  var accountUsers = ((auth === null || auth === void 0 ? void 0 : auth.users) || []).map(function (u) {
+    return u.name;
+  }).filter(Boolean);
+  var usedNames = _toConsumableArray(new Set(allNotes.map(function (n) {
+    return n.agentName;
+  }).filter(Boolean)));
+  var accountSet = new Set(accountUsers);
+  var otherNames = _toConsumableArray(new Set([].concat(_toConsumableArray(customRequesters), _toConsumableArray(usedNames)))).filter(function (n) {
+    return !accountSet.has(n);
+  }).sort();
+  // Conserver la valeur courante même si pas dans la liste
+  if (form.agentName && !accountSet.has(form.agentName) && !otherNames.includes(form.agentName)) {
+    otherNames.unshift(form.agentName);
+  }
+  var _useState185 = useState(false),
+    _useState186 = _slicedToArray(_useState185, 2),
+    addingPerson = _useState186[0],
+    setAddingPerson = _useState186[1];
+  var _useState187 = useState(""),
+    _useState188 = _slicedToArray(_useState187, 2),
+    newPersonName = _useState188[0],
+    setNewPersonName = _useState188[1];
+  var addNewPerson = /*#__PURE__*/function () {
+    var _ref116 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32() {
+      var name;
+      return _regenerator().w(function (_context32) {
+        while (1) switch (_context32.n) {
+          case 0:
+            name = newPersonName.trim();
+            if (name) {
+              _context32.n = 1;
+              break;
+            }
+            return _context32.a(2);
+          case 1:
+            if (!(!customRequesters.includes(name) && !accountSet.has(name))) {
+              _context32.n = 2;
+              break;
+            }
+            _context32.n = 2;
+            return updateSettings({
+              expenseRequesters: [].concat(_toConsumableArray(customRequesters), [name])
+            });
+          case 2:
+            set("agentName", name);
+            setAddingPerson(false);
+            setNewPersonName("");
+            toast.push({
+              type: "success",
+              title: "Personne ajoutée",
+              message: name
+            });
+          case 3:
+            return _context32.a(2);
+        }
+      }, _callee32);
+    }));
+    return function addNewPerson() {
+      return _ref116.apply(this, arguments);
+    };
+  }();
+  var removeCustomRequester = /*#__PURE__*/function () {
+    var _ref117 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee33(name) {
+      return _regenerator().w(function (_context33) {
+        while (1) switch (_context33.n) {
+          case 0:
+            _context33.n = 1;
+            return updateSettings({
+              expenseRequesters: customRequesters.filter(function (n) {
+                return n !== name;
+              })
+            });
+          case 1:
+            toast.push({
+              type: "warning",
+              title: "Personne retirée de la liste",
+              message: name
+            });
+          case 2:
+            return _context33.a(2);
+        }
+      }, _callee33);
+    }));
+    return function removeCustomRequester(_x22) {
+      return _ref117.apply(this, arguments);
+    };
+  }();
   var calc = calcNoteFrais(form);
   var alerts = validateNoteFrais(form);
   var errors = alerts.filter(function (a) {
@@ -14802,14 +14897,70 @@ function NoteFraisEditor(_ref115) {
     }
   })), /*#__PURE__*/React.createElement(Field, {
     label: "Demandeur",
-    required: true
+    required: true,
+    hint: accountUsers.length === 0 && otherNames.length === 0 ? "Aucune personne enregistrée — cliquez pour en ajouter une." : null
+  }, addingPerson ? /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1.5"
   }, /*#__PURE__*/React.createElement(Input, {
+    value: newPersonName,
+    onChange: function onChange(e) {
+      return setNewPersonName(e.target.value);
+    },
+    onKeyDown: function onKeyDown(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addNewPerson();
+      }
+    },
+    placeholder: "Pr\xE9nom Nom",
+    autoFocus: true
+  }), /*#__PURE__*/React.createElement(Button, {
+    size: "sm",
+    variant: "primary",
+    type: "button",
+    onClick: addNewPerson
+  }, "OK"), /*#__PURE__*/React.createElement(Button, {
+    size: "sm",
+    variant: "ghost",
+    type: "button",
+    onClick: function onClick() {
+      setAddingPerson(false);
+      setNewPersonName("");
+    }
+  }, "\xD7")) : /*#__PURE__*/React.createElement(Select, {
     value: form.agentName,
     onChange: function onChange(e) {
-      return set("agentName", e.target.value);
+      if (e.target.value === "__add__") {
+        setAddingPerson(true);
+        return;
+      }
+      set("agentName", e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 S\xE9lectionner \u2014"), accountUsers.length > 0 && /*#__PURE__*/React.createElement("optgroup", {
+    label: "Comptes utilisateurs"
+  }, accountUsers.map(function (n) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: "acc:" + n,
+      value: n
+    }, n);
+  })), otherNames.length > 0 && /*#__PURE__*/React.createElement("optgroup", {
+    label: "Autres personnes"
+  }, otherNames.map(function (n) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: "other:" + n,
+      value: n
+    }, n);
+  })), /*#__PURE__*/React.createElement("option", {
+    value: "__add__"
+  }, "\uFF0B Ajouter une personne\u2026")), !addingPerson && form.agentName && customRequesters.includes(form.agentName) && /*#__PURE__*/React.createElement("button", {
+    type: "button",
+    onClick: function onClick() {
+      return removeCustomRequester(form.agentName);
     },
-    placeholder: "Pr\xE9nom Nom"
-  })))), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 hover:text-red-600 mt-1"
+  }, "Retirer \"", form.agentName, "\" de la liste")))), /*#__PURE__*/React.createElement("div", {
     className: "card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
@@ -14941,10 +15092,10 @@ function NoteFraisEditor(_ref115) {
     onChange: function onChange(e) {
       return set("status", e.target.value);
     }
-  }, Object.entries(NOTE_FRAIS_STATUS).map(function (_ref116) {
-    var _ref117 = _slicedToArray(_ref116, 2),
-      k = _ref117[0],
-      v = _ref117[1];
+  }, Object.entries(NOTE_FRAIS_STATUS).map(function (_ref118) {
+    var _ref119 = _slicedToArray(_ref118, 2),
+      k = _ref119[0],
+      v = _ref119[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
