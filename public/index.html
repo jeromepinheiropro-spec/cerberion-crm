@@ -15455,6 +15455,58 @@ function ComptabilitePage() {
     _useState194 = _slicedToArray(_useState193, 2),
     printScope = _useState194[0],
     setPrintScope = _useState194[1];
+  // Sélection multi-items par section pour impression ciblée
+  var _useState195 = useState({}),
+    _useState196 = _slicedToArray(_useState195, 2),
+    selected = _useState196[0],
+    setSelected = _useState196[1]; // { ventes:Set, achats:Set, ... }
+  // Si défini, on imprime les documents complets au lieu du dossier-récap
+  var _useState197 = useState(null),
+    _useState198 = _slicedToArray(_useState197, 2),
+    printItems = _useState198[0],
+    setPrintItems = _useState198[1]; // { type, items }
+
+  var getSel = function getSel(sec) {
+    return selected[sec] || new Set();
+  };
+  var toggleSel = function toggleSel(sec, id) {
+    return setSelected(function (prev) {
+      var s = new Set(prev[sec] || []);
+      if (s.has(id)) s["delete"](id);else s.add(id);
+      return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, sec, s));
+    });
+  };
+  var toggleAll = function toggleAll(sec, items) {
+    return setSelected(function (prev) {
+      var current = prev[sec] || new Set();
+      return _objectSpread(_objectSpread({}, prev), {}, _defineProperty({}, sec, current.size === items.length ? new Set() : new Set(items.map(function (x) {
+        return x.id;
+      }))));
+    });
+  };
+  var printDocs = function printDocs(type, allItems) {
+    var sel = getSel(type);
+    var items = sel.size > 0 ? allItems.filter(function (x) {
+      return sel.has(x.id);
+    }) : allItems;
+    if (items.length === 0) {
+      toast.push({
+        type: "warning",
+        title: "Aucun élément à imprimer"
+      });
+      return;
+    }
+    setPrintItems({
+      type: type,
+      items: items
+    });
+    setTimeout(function () {
+      window.print();
+      setTimeout(function () {
+        return setPrintItems(null);
+      }, 500);
+    }, 100);
+  };
   if (!can(currentUser === null || currentUser === void 0 ? void 0 : currentUser.role, "seeBackend")) {
     return /*#__PURE__*/React.createElement("div", {
       className: "card-base p-10 text-center"
@@ -15692,7 +15744,11 @@ function ComptabilitePage() {
   }, "Mois suiv. \u2192")))), /*#__PURE__*/React.createElement("div", {
     id: "print-area",
     className: "space-y-5"
-  }, /*#__PURE__*/React.createElement("div", {
+  }, printItems ? /*#__PURE__*/React.createElement(PrintableDocuments, {
+    type: printItems.type,
+    items: printItems.items,
+    state: state
+  }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     className: "hidden print:block mb-6 text-center"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-display text-xl tracking-[0.3em] text-paper-800"
@@ -15820,8 +15876,9 @@ function ComptabilitePage() {
     total: ventesTotals.ttc,
     totalLabel: "TTC",
     onExport: exportInvoicesCsv,
+    selCount: getSel("ventes").size,
     onPrint: function onPrint() {
-      return doPrint("ventes");
+      return printDocs("ventes", ventes);
     }
   }, ventes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune facture \xE9mise sur ce mois."
@@ -15830,6 +15887,15 @@ function ComptabilitePage() {
   }, /*#__PURE__*/React.createElement("thead", {
     className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-8 no-print"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: ventes.length > 0 && getSel("ventes").size === ventes.length,
+    onChange: function onChange() {
+      return toggleAll("ventes", ventes);
+    },
+    title: "Tout s\xE9lectionner"
+  })), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
   }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
@@ -15850,9 +15916,19 @@ function ComptabilitePage() {
     var client = state.clients.find(function (c) {
       return c.id === v.clientId;
     });
+    var sel = getSel("ventes").has(v.id);
     return /*#__PURE__*/React.createElement("tr", {
-      key: v.id
+      key: v.id,
+      className: sel ? "bg-gold-50/40" : ""
     }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 no-print"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: sel,
+      onChange: function onChange() {
+        return toggleSel("ventes", v.id);
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 font-mono text-xs text-gold-700"
     }, v.number), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
@@ -15883,8 +15959,9 @@ function ComptabilitePage() {
     onNew: function onNew() {
       return setEditPurchase({});
     },
+    selCount: getSel("achats").size,
     onPrint: function onPrint() {
-      return doPrint("achats");
+      return printDocs("achats", achats);
     }
   }, achats.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune facture d'achat sur ce mois.",
@@ -15903,6 +15980,14 @@ function ComptabilitePage() {
   }, /*#__PURE__*/React.createElement("thead", {
     className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-8 no-print"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: achats.length > 0 && getSel("achats").size === achats.length,
+    onChange: function onChange() {
+      return toggleAll("achats", achats);
+    }
+  })), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
   }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
@@ -15928,13 +16013,25 @@ function ComptabilitePage() {
     var cat = PURCHASE_CATEGORIES.find(function (x) {
       return x.id === p.category;
     });
+    var sel = getSel("achats").has(p.id);
     return /*#__PURE__*/React.createElement("tr", {
       key: p.id,
-      className: "table-row clickable",
+      className: "table-row clickable " + (sel ? "bg-gold-50/40" : ""),
       onClick: function onClick() {
         return setEditPurchase(p);
       }
     }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: sel,
+      onChange: function onChange() {
+        return toggleSel("achats", p.id);
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 font-mono text-xs text-gold-700"
     }, p.number), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
@@ -16009,8 +16106,9 @@ function ComptabilitePage() {
     total: notesTotal,
     totalLabel: "TTC",
     onExport: exportNotesFraisCsv,
+    selCount: getSel("notesFrais").size,
     onPrint: function onPrint() {
-      return doPrint("notesFrais");
+      return printDocs("notesFrais", notes);
     }
   }, notes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune note de frais sur ce mois."
@@ -16019,6 +16117,14 @@ function ComptabilitePage() {
   }, /*#__PURE__*/React.createElement("thead", {
     className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-8 no-print"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: notes.length > 0 && getSel("notesFrais").size === notes.length,
+    onChange: function onChange() {
+      return toggleAll("notesFrais", notes);
+    }
+  })), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
   }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
@@ -16039,9 +16145,19 @@ function ComptabilitePage() {
   }, notes.map(function (n) {
     var _NOTE_FRAIS_STATUS3, _NOTE_FRAIS_STATUS4;
     var c = calcNoteFrais(n);
+    var sel = getSel("notesFrais").has(n.id);
     return /*#__PURE__*/React.createElement("tr", {
-      key: n.id
+      key: n.id,
+      className: sel ? "bg-gold-50/40" : ""
     }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 no-print"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: sel,
+      onChange: function onChange() {
+        return toggleSel("notesFrais", n.id);
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 font-mono text-xs text-gold-700"
     }, n.number), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
@@ -16073,8 +16189,9 @@ function ComptabilitePage() {
     total: fichesTotal,
     totalLabel: "Brut",
     onExport: exportFichesExtraCsv,
+    selCount: getSel("fichesExtra").size,
     onPrint: function onPrint() {
-      return doPrint("fichesExtra");
+      return printDocs("fichesExtra", fiches);
     }
   }, fiches.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune fiche extra sur ce mois."
@@ -16083,6 +16200,14 @@ function ComptabilitePage() {
   }, /*#__PURE__*/React.createElement("thead", {
     className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-8 no-print"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: fiches.length > 0 && getSel("fichesExtra").size === fiches.length,
+    onChange: function onChange() {
+      return toggleAll("fichesExtra", fiches);
+    }
+  })), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
   }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
@@ -16101,9 +16226,19 @@ function ComptabilitePage() {
   }, fiches.map(function (f) {
     var _FICHE_EXTRA_STATUS3, _FICHE_EXTRA_STATUS4;
     var c = calcFicheExtra(f);
+    var sel = getSel("fichesExtra").has(f.id);
     return /*#__PURE__*/React.createElement("tr", {
-      key: f.id
+      key: f.id,
+      className: sel ? "bg-gold-50/40" : ""
     }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 no-print"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: sel,
+      onChange: function onChange() {
+        return toggleSel("fichesExtra", f.id);
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 font-mono text-xs text-gold-700"
     }, f.number), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
@@ -16133,8 +16268,9 @@ function ComptabilitePage() {
     }, 0),
     totalLabel: "TTC",
     onExport: exportQuotesCsv,
+    selCount: getSel("devis").size,
     onPrint: function onPrint() {
-      return doPrint("devis");
+      return printDocs("devis", devisSigned);
     }
   }, devisSigned.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucun devis sign\xE9 sur ce mois."
@@ -16143,6 +16279,14 @@ function ComptabilitePage() {
   }, /*#__PURE__*/React.createElement("thead", {
     className: "bg-paper-50 text-[11px] uppercase tracking-wider text-paper-500"
   }, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", {
+    className: "px-3 py-2 w-8 no-print"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: devisSigned.length > 0 && getSel("devis").size === devisSigned.length,
+    onChange: function onChange() {
+      return toggleAll("devis", devisSigned);
+    }
+  })), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
   }, "N\xB0"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-left"
@@ -16160,9 +16304,19 @@ function ComptabilitePage() {
     var client = state.clients.find(function (c) {
       return c.id === q.clientId;
     });
+    var sel = getSel("devis").has(q.id);
     return /*#__PURE__*/React.createElement("tr", {
-      key: q.id
+      key: q.id,
+      className: sel ? "bg-gold-50/40" : ""
     }, /*#__PURE__*/React.createElement("td", {
+      className: "px-3 py-2 no-print"
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: sel,
+      onChange: function onChange() {
+        return toggleSel("devis", q.id);
+      }
+    })), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 font-mono text-xs text-gold-700"
     }, q.number), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
@@ -16177,7 +16331,7 @@ function ComptabilitePage() {
     }, q.signedBy || "—"));
   }))))), /*#__PURE__*/React.createElement("div", {
     className: "hidden print:block text-[10px] text-paper-400 mt-6 pt-4 border-t border-paper-200"
-  }, "Document g\xE9n\xE9r\xE9 automatiquement par Cerberion CRM. Donn\xE9es extraites en temps r\xE9el \u2014 toute modification ult\xE9rieure sera refl\xE9t\xE9e dans la prochaine impression.")), editPurchase && /*#__PURE__*/React.createElement(PurchaseInvoiceEditor, {
+  }, "Document g\xE9n\xE9r\xE9 automatiquement par Cerberion CRM. Donn\xE9es extraites en temps r\xE9el \u2014 toute modification ult\xE9rieure sera refl\xE9t\xE9e dans la prochaine impression."))), editPurchase && /*#__PURE__*/React.createElement(PurchaseInvoiceEditor, {
     purchase: editPurchase,
     allPurchases: state.purchaseInvoices || [],
     state: state,
@@ -16245,7 +16399,9 @@ function ComptaSection(_ref117) {
     onExport = _ref117.onExport,
     onNew = _ref117.onNew,
     onPrint = _ref117.onPrint,
+    selCount = _ref117.selCount,
     children = _ref117.children;
+  var printLabel = selCount > 0 ? "Imprimer (".concat(selCount, ")") : "Imprimer tout";
   return /*#__PURE__*/React.createElement("div", {
     className: "card-base p-0 overflow-hidden print:break-inside-avoid print:border print:border-paper-300"
   }, /*#__PURE__*/React.createElement("div", {
@@ -16263,14 +16419,14 @@ function ComptaSection(_ref117) {
   }, totalLabel, " : ", fmtMoney(total)), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 no-print"
   }, onPrint && /*#__PURE__*/React.createElement(Button, {
-    variant: "ghost",
+    variant: "primary",
     size: "sm",
     icon: /*#__PURE__*/React.createElement(Ic.Download, {
       className: "w-3 h-3"
     }),
     onClick: onPrint,
-    title: "Imprimer cette cat\xE9gorie"
-  }, "Imprimer"), onExport && /*#__PURE__*/React.createElement(Button, {
+    title: selCount > 0 ? "Imprimer les ".concat(selCount, " documents s\xE9lectionn\xE9s") : "Imprimer tous les documents"
+  }, printLabel), onExport && /*#__PURE__*/React.createElement(Button, {
     variant: "ghost",
     size: "sm",
     icon: /*#__PURE__*/React.createElement(Ic.Download, {
@@ -16299,14 +16455,1001 @@ function EmptyMsg(_ref118) {
     className: "mt-3"
   }, action));
 }
-function PurchaseInvoiceEditor(_ref119) {
-  var purchase = _ref119.purchase,
-    allPurchases = _ref119.allPurchases,
-    state = _ref119.state,
-    onClose = _ref119.onClose,
-    onSave = _ref119.onSave;
+
+// =============================================================================
+//  PRINTABLE DOCUMENTS — affichés dans #print-area lors de l'impression
+// =============================================================================
+function PrintableDocuments(_ref119) {
+  var _state$settings6;
+  var type = _ref119.type,
+    items = _ref119.items,
+    state = _ref119.state;
+  var company = ((_state$settings6 = state.settings) === null || _state$settings6 === void 0 ? void 0 : _state$settings6.company) || {};
+  var renderDoc = function renderDoc(item) {
+    if (type === "ventes") return /*#__PURE__*/React.createElement(BrandedInvoiceDocument, {
+      invoice: item,
+      client: state.clients.find(function (c) {
+        return c.id === item.clientId;
+      }),
+      company: company
+    });
+    if (type === "devis") return /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
+      quote: item,
+      recipient: state.clients.find(function (c) {
+        return c.id === item.clientId;
+      }) || state.prospects.find(function (p) {
+        return p.id === item.prospectId;
+      }),
+      company: company
+    });
+    if (type === "achats") return /*#__PURE__*/React.createElement(PrintablePurchase, {
+      purchase: item,
+      company: company,
+      state: state
+    });
+    if (type === "notesFrais") return /*#__PURE__*/React.createElement(PrintableNoteFrais, {
+      note: item,
+      company: company,
+      state: state
+    });
+    if (type === "fichesExtra") return /*#__PURE__*/React.createElement(PrintableFicheExtra, {
+      fiche: item,
+      company: company,
+      state: state
+    });
+    return null;
+  };
+  return /*#__PURE__*/React.createElement("div", null, items.map(function (item, idx) {
+    return /*#__PURE__*/React.createElement("div", {
+      key: item.id,
+      style: {
+        pageBreakAfter: idx < items.length - 1 ? "always" : "auto",
+        padding: "20px 0"
+      }
+    }, renderDoc(item));
+  }));
+}
+function DocHeader(_ref120) {
+  var company = _ref120.company,
+    label = _ref120.label;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      borderBottom: "3px solid #c8a96a",
+      paddingBottom: 18,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 60,
+      height: 60,
+      borderRadius: 10,
+      background: "#0a0c10",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: LOGO_LIGHT,
+    alt: "Cerberion",
+    style: {
+      width: 50,
+      height: 50,
+      objectFit: "contain"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Cinzel', serif",
+      letterSpacing: "0.3em",
+      fontSize: 20,
+      fontWeight: 700,
+      color: "#0a0c10"
+    }
+  }, company.name || "CERBERION"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#85693a",
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      marginTop: 2
+    }
+  }, company.tagline || "Security Manager"), company.legalName && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#6b7280",
+      marginTop: 4
+    }
+  }, company.legalName, " \xB7 ", company.address, " \xB7 ", company.city))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "inline-block",
+      background: "#0a0c10",
+      color: "#ead49b",
+      padding: "4px 14px",
+      borderRadius: 999,
+      fontSize: 10,
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      fontWeight: 700
+    }
+  }, label)));
+}
+function PrintablePurchase(_ref121) {
+  var _PURCHASE_STATUS3, _PAYMENT_METHODS$find2;
+  var purchase = _ref121.purchase,
+    company = _ref121.company,
+    state = _ref121.state;
+  var c = calcPurchaseInvoice(purchase);
+  var cat = PURCHASE_CATEGORIES.find(function (x) {
+    return x.id === purchase.category;
+  });
+  var linkedClient = state.clients.find(function (cl) {
+    return cl.id === purchase.linkedClientId;
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Inter', sans-serif",
+      color: "#0a0c10",
+      fontSize: 12,
+      lineHeight: 1.5,
+      padding: "32px 40px"
+    }
+  }, /*#__PURE__*/React.createElement(DocHeader, {
+    company: company,
+    label: "Facture d'achat"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#fbf7ec",
+      border: "1px solid #ead49b",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#85693a",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Fournisseur"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, purchase.supplierName || "—"), purchase.supplierVat && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#374151",
+      marginTop: 4
+    }
+  }, "TVA : ", purchase.supplierVat)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#f9fafb",
+      border: "1px solid #e5e7eb",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "N\xB0 interne : ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "monospace",
+      color: "#85693a",
+      fontWeight: 600
+    }
+  }, purchase.number)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "Date facture : ", fmtDate(purchase.issueDate)), purchase.dueDate && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "\xC9ch\xE9ance : ", fmtDate(purchase.dueDate)), cat && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Cat\xE9gorie : ", /*#__PURE__*/React.createElement("strong", null, cat.label)))), purchase.description && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Description"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, purchase.description)), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#0a0c10",
+      color: "#ead49b"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase"
+    }
+  }, "\xC9l\xE9ment"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      width: 120
+    }
+  }, "Montant"))), /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Montant HT"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontWeight: 600
+    }
+  }, fmtMoney(c.ht))), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "TVA (", c.vat, " %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, fmtMoney(c.tva))), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#fbf7ec"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      fontWeight: 700
+    }
+  }, "TOTAL TTC"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "right",
+      fontWeight: 700,
+      fontSize: 14,
+      color: "#85693a"
+    }
+  }, fmtMoney(c.ttc))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      fontSize: 11,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700
+    }
+  }, "Statut"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontWeight: 600
+    }
+  }, (_PURCHASE_STATUS3 = PURCHASE_STATUS[purchase.status || "brouillon"]) === null || _PURCHASE_STATUS3 === void 0 ? void 0 : _PURCHASE_STATUS3.label), purchase.paidAt && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2,
+      color: "#059669"
+    }
+  }, "Pay\xE9e le ", fmtDate(purchase.paidAt))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700
+    }
+  }, "Mode de paiement"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4
+    }
+  }, ((_PAYMENT_METHODS$find2 = PAYMENT_METHODS.find(function (m) {
+    return m.id === purchase.paymentMethod;
+  })) === null || _PAYMENT_METHODS$find2 === void 0 ? void 0 : _PAYMENT_METHODS$find2.label) || "—")), linkedClient && /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700
+    }
+  }, "Refactur\xE9 \xE0"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontWeight: 600
+    }
+  }, linkedClient.name))), purchase.fileName && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      padding: "8px 12px",
+      background: "#f3f4f6",
+      borderRadius: 6,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCCE Justificatif : ", /*#__PURE__*/React.createElement("strong", null, purchase.fileName), purchase.fileUrl && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 8,
+      color: "#85693a"
+    }
+  }, purchase.fileUrl)), purchase.notes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#6b7280",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Notes :"), " ", purchase.notes));
+}
+function PrintableNoteFrais(_ref122) {
+  var _NOTE_FRAIS_STATUS5;
+  var note = _ref122.note,
+    company = _ref122.company,
+    state = _ref122.state;
+  var c = calcNoteFrais(note);
+  var cat = c.category;
+  var linkedClient = state.clients.find(function (cl) {
+    return cl.id === note.clientId;
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Inter', sans-serif",
+      color: "#0a0c10",
+      fontSize: 12,
+      lineHeight: 1.5,
+      padding: "32px 40px"
+    }
+  }, /*#__PURE__*/React.createElement(DocHeader, {
+    company: company,
+    label: "Note de frais"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#fbf7ec",
+      border: "1px solid #ead49b",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#85693a",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Demandeur"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, note.agentName || "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Date de la d\xE9pense : ", /*#__PURE__*/React.createElement("strong", null, fmtDate(note.date)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#f9fafb",
+      border: "1px solid #e5e7eb",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "R\xE9f\xE9rence"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "N\xB0 : ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "monospace",
+      color: "#85693a",
+      fontWeight: 600
+    }
+  }, note.number)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Cat\xE9gorie : ", /*#__PURE__*/React.createElement("strong", null, cat.label)), linkedClient && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 2
+    }
+  }, "Client li\xE9 : ", linkedClient.name))), note.description && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Description"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, note.description)), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#0a0c10",
+      color: "#ead49b"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase"
+    }
+  }, "\xC9l\xE9ment"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      width: 120
+    }
+  }, "Montant"))), /*#__PURE__*/React.createElement("tbody", null, cat.id === "km" && note.distance > 0 && /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Distance parcourue"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, note.distance, " km \xD7 ", LU_EXPENSE_RULES.kmRate.toFixed(2), " \u20AC/km")), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Montant HT"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontWeight: 600
+    }
+  }, fmtMoney(c.ht))), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "TVA (", c.vat, " %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, fmtMoney(c.tva))), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#fbf7ec"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      fontWeight: 700
+    }
+  }, "TOTAL \xC0 REMBOURSER"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "right",
+      fontWeight: 700,
+      fontSize: 14,
+      color: "#85693a"
+    }
+  }, fmtMoney(c.ttc))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      fontSize: 11,
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      padding: "10px 14px",
+      background: "#f9fafb",
+      borderRadius: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.15em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700
+    }
+  }, "Statut"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      fontWeight: 600
+    }
+  }, (_NOTE_FRAIS_STATUS5 = NOTE_FRAIS_STATUS[note.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS5 === void 0 ? void 0 : _NOTE_FRAIS_STATUS5.label), note.approvedBy && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2
+    }
+  }, "Approuv\xE9e par ", note.approvedBy, " le ", fmtDate(note.approvedAt)), note.paidAt && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 2,
+      color: "#059669"
+    }
+  }, "Rembours\xE9e le ", fmtDate(note.paidAt)))), note.receiptName && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      padding: "8px 12px",
+      background: "#f3f4f6",
+      borderRadius: 6,
+      marginBottom: 12
+    }
+  }, "\uD83D\uDCCE Justificatif : ", /*#__PURE__*/React.createElement("strong", null, note.receiptName), note.receiptUrl && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: 8,
+      color: "#85693a"
+    }
+  }, note.receiptUrl)), note.notes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#6b7280",
+      marginTop: 12
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Notes :"), " ", note.notes), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 32,
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      borderTop: "1px solid #9ca3af",
+      paddingTop: 6,
+      textAlign: "center",
+      fontSize: 10,
+      color: "#6b7280"
+    }
+  }, "Signature demandeur"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      borderTop: "1px solid #9ca3af",
+      paddingTop: 6,
+      textAlign: "center",
+      fontSize: 10,
+      color: "#6b7280"
+    }
+  }, "Visa direction")));
+}
+function PrintableFicheExtra(_ref123) {
+  var _FICHE_EXTRA_STATUS5;
+  var fiche = _ref123.fiche,
+    company = _ref123.company,
+    state = _ref123.state;
+  var c = calcFicheExtra(fiche);
+  var role = AGENT_ROLES.find(function (r) {
+    return r.id === fiche.agentRole;
+  });
+  var linkedClient = state.clients.find(function (cl) {
+    return cl.id === fiche.clientId;
+  });
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Inter', sans-serif",
+      color: "#0a0c10",
+      fontSize: 12,
+      lineHeight: 1.5,
+      padding: "32px 40px"
+    }
+  }, /*#__PURE__*/React.createElement(DocHeader, {
+    company: company,
+    label: "Fiche extra \xB7 Mission courte"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 16,
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#fbf7ec",
+      border: "1px solid #ead49b",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#85693a",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Agent"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13
+    }
+  }, fiche.agentName || "—"), role && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 2
+    }
+  }, role.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Taux : ", Number(fiche.hourlyRate || 0).toFixed(2), " \u20AC/h brut")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      background: "#f9fafb",
+      border: "1px solid #e5e7eb",
+      borderRadius: 8,
+      padding: "12px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: "0.18em",
+      textTransform: "uppercase",
+      color: "#6b7280",
+      fontWeight: 700,
+      marginBottom: 4
+    }
+  }, "Mission"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "N\xB0 : ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "monospace",
+      color: "#85693a",
+      fontWeight: 600
+    }
+  }, fiche.number)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      marginTop: 4
+    }
+  }, "Date : ", /*#__PURE__*/React.createElement("strong", null, fmtDate(fiche.date))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "Horaires : ", fiche.startTime, " \u2013 ", fiche.endTime, fiche.breakMinutes ? " \xB7 pause ".concat(fiche.breakMinutes, " min") : ""), fiche.location && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "Lieu : ", fiche.location), linkedClient && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11
+    }
+  }, "Client : ", linkedClient.name))), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#0a0c10",
+      color: "#ead49b"
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "left",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase"
+    }
+  }, "D\xE9compte des heures"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      width: 90
+    }
+  }, "Heures"), /*#__PURE__*/React.createElement("th", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right",
+      fontSize: 10,
+      letterSpacing: "0.1em",
+      textTransform: "uppercase",
+      width: 120
+    }
+  }, "Montant"))), /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Base (", Number(fiche.hourlyRate || 0).toFixed(2), " \u20AC/h \xD7 ", c.totalH, " h)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, c.totalH, " h"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, fmtMoney(c.base))), c.nightH > 0 && /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb",
+      color: "#1d4ed8"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Prime nuit (+15 %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, c.nightH, " h"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, "+", fmtMoney(c.nightPremium))), c.sundayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb",
+      color: "#7c3aed"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Prime dimanche (+70 %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, c.totalH, " h"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, "+", fmtMoney(c.sundayPremium))), c.holidayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb",
+      color: "#dc2626"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Prime f\xE9ri\xE9 (+100 %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, c.totalH, " h"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, "+", fmtMoney(c.holidayPremium))), c.overtimePremium > 0 && /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "1px solid #e5e7eb",
+      color: "#d97706"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px"
+    }
+  }, "Prime heures sup (+40 %)"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, c.overtimeH, " h"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      textAlign: "right"
+    }
+  }, "+", fmtMoney(c.overtimePremium))), /*#__PURE__*/React.createElement("tr", {
+    style: {
+      background: "#fbf7ec"
+    }
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      fontWeight: 700
+    },
+    colSpan: 2
+  }, "BRUT \xC0 PAYER"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "10px 12px",
+      textAlign: "right",
+      fontWeight: 700,
+      fontSize: 14,
+      color: "#85693a"
+    }
+  }, fmtMoney(c.totalGross))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      padding: "8px 12px",
+      background: "#f3f4f6",
+      borderRadius: 6,
+      marginBottom: 12
+    }
+  }, "Statut : ", /*#__PURE__*/React.createElement("strong", null, (_FICHE_EXTRA_STATUS5 = FICHE_EXTRA_STATUS[fiche.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS5 === void 0 ? void 0 : _FICHE_EXTRA_STATUS5.label)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#6b7280",
+      marginTop: 12,
+      fontStyle: "italic"
+    }
+  }, "Calculs conformes au Code du travail luxembourgeois (L.211-1 et s., L.213-1 et s.) et \xE0 la Convention collective s\xE9curit\xE9-gardiennage."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 32,
+      display: "flex",
+      justifyContent: "space-between",
+      gap: 24
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      borderTop: "1px solid #9ca3af",
+      paddingTop: 6,
+      textAlign: "center",
+      fontSize: 10,
+      color: "#6b7280"
+    }
+  }, "Signature agent"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      borderTop: "1px solid #9ca3af",
+      paddingTop: 6,
+      textAlign: "center",
+      fontSize: 10,
+      color: "#6b7280"
+    }
+  }, "Visa direction")));
+}
+function PurchaseInvoiceEditor(_ref124) {
+  var purchase = _ref124.purchase,
+    allPurchases = _ref124.allPurchases,
+    state = _ref124.state,
+    onClose = _ref124.onClose,
+    onSave = _ref124.onSave;
   var isNew = !purchase.id;
-  var _useState195 = useState(function () {
+  var _useState199 = useState(function () {
       var _purchase$amountTtc, _purchase$vatRate;
       return {
         id: purchase.id || uid("pur"),
@@ -16329,9 +17472,9 @@ function PurchaseInvoiceEditor(_ref119) {
         createdAt: purchase.createdAt || nowISO()
       };
     }),
-    _useState196 = _slicedToArray(_useState195, 2),
-    form = _useState196[0],
-    setForm = _useState196[1];
+    _useState200 = _slicedToArray(_useState199, 2),
+    form = _useState200[0],
+    setForm = _useState200[1];
   var set = function set(k, v) {
     return setForm(function (f) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
@@ -16444,10 +17587,10 @@ function PurchaseInvoiceEditor(_ref119) {
     onChange: function onChange(e) {
       return set("status", e.target.value);
     }
-  }, Object.entries(PURCHASE_STATUS).map(function (_ref120) {
-    var _ref121 = _slicedToArray(_ref120, 2),
-      k = _ref121[0],
-      v = _ref121[1];
+  }, Object.entries(PURCHASE_STATUS).map(function (_ref125) {
+    var _ref126 = _slicedToArray(_ref125, 2),
+      k = _ref126[0],
+      v = _ref126[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
