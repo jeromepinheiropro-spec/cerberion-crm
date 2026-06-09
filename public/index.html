@@ -15450,6 +15450,11 @@ function ComptabilitePage() {
     _useState192 = _slicedToArray(_useState191, 2),
     activeSection = _useState192[0],
     setActiveSection = _useState192[1];
+  // Scope d'impression : "all" = toutes les sections (par défaut), sinon ID d'une section
+  var _useState193 = useState("all"),
+    _useState194 = _slicedToArray(_useState193, 2),
+    printScope = _useState194[0],
+    setPrintScope = _useState194[1];
   if (!can(currentUser === null || currentUser === void 0 ? void 0 : currentUser.role, "seeBackend")) {
     return /*#__PURE__*/React.createElement("div", {
       className: "card-base p-10 text-center"
@@ -15461,25 +15466,63 @@ function ComptabilitePage() {
       className: "text-sm text-paper-600"
     }, "Le classeur comptable est r\xE9serv\xE9 aux administrateurs et managers."));
   }
+
+  // FIX : comparaison string YYYY-MM (immune aux bugs de timezone)
+  // new Date("2026-06-01") est parsé en UTC → en local Luxembourg = 31 mai 22h00 → mauvais mois.
+  // On compare directement les 7 premiers chars de la date.
+  var targetYM = "".concat(year, "-").concat(String(month).padStart(2, '0'));
   var inPeriod = function inPeriod(dateStr) {
     if (!dateStr) return false;
-    var d = new Date(dateStr);
-    return d.getFullYear() === year && d.getMonth() + 1 === month;
+    return String(dateStr).slice(0, 7) === targetYM;
   };
+  // Récupère la "meilleure" date pour le filtre (issueDate, date, ou createdAt en fallback)
+  var bestDate = function bestDate(obj) {
+    for (var _len = arguments.length, keys = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+      keys[_key - 1] = arguments[_key];
+    }
+    for (var _i = 0, _keys = keys; _i < _keys.length; _i++) {
+      var k = _keys[_i];
+      if (obj && obj[k]) return obj[k];
+    }
+    return null;
+  };
+  // Helpers d'impression
+  var doPrint = function doPrint(scope) {
+    setPrintScope(scope);
+    // attendre que React rerendere avec la nouvelle classe
+    setTimeout(function () {
+      window.print();
+      // restaurer après la fermeture du dialog (best effort)
+      setTimeout(function () {
+        return setPrintScope("all");
+      }, 500);
+    }, 50);
+  };
+  // Classes de visibilité d'une section selon état screen + print
+  var sectionCls = function sectionCls(id) {
+    var onScreen = activeSection === "apercu" || activeSection === id;
+    var inPrint = printScope === "all" || printScope === id;
+    if (onScreen && inPrint) return "";
+    if (!onScreen && inPrint) return "hidden print:block";
+    if (onScreen && !inPrint) return "print:hidden";
+    return "hidden print:hidden";
+  };
+
+  // Fallback issueDate → createdAt si manquant (pour ne perdre aucune facture)
   var ventes = (state.invoices || []).filter(function (i) {
-    return inPeriod(i.issueDate);
+    return inPeriod(bestDate(i, "issueDate", "createdAt"));
   });
   var achats = (state.purchaseInvoices || []).filter(function (p) {
-    return inPeriod(p.issueDate);
+    return inPeriod(bestDate(p, "issueDate", "createdAt"));
   });
   var notes = (state.notesFrais || []).filter(function (n) {
-    return inPeriod(n.date);
+    return inPeriod(bestDate(n, "date", "createdAt"));
   });
   var fiches = (state.fichesExtra || []).filter(function (f) {
-    return inPeriod(f.date);
+    return inPeriod(bestDate(f, "date", "createdAt"));
   });
   var devisSigned = (state.quotes || []).filter(function (q) {
-    return q.status === "signe" && inPeriod(q.signedAt || q.issueDate);
+    return q.status === "signe" && inPeriod(bestDate(q, "signedAt", "issueDate", "createdAt"));
   });
   var ventesTotals = ventes.reduce(function (acc, i) {
     acc.ttc += Number(i.ttc || 0);
@@ -15572,9 +15615,9 @@ function ComptabilitePage() {
         className: "w-4 h-4"
       }),
       onClick: function onClick() {
-        return window.print();
+        return doPrint("all");
       }
-    }, "Imprimer dossier"), /*#__PURE__*/React.createElement(Button, {
+    }, "Imprimer dossier complet"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       icon: /*#__PURE__*/React.createElement(Ic.Plus, {
         className: "w-4 h-4"
@@ -15698,13 +15741,25 @@ function ComptabilitePage() {
     }, s.icon, /*#__PURE__*/React.createElement("span", null, s.label), s.count != null && /*#__PURE__*/React.createElement("span", {
       className: "text-[10px] px-1.5 py-0.5 rounded-full ".concat(activeSection === s.id ? "bg-white/20" : "bg-paper-100")
     }, s.count));
-  })), activeSection === "apercu" && /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-5 print:break-inside-avoid"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("apercu") + " card-base p-5 print:break-inside-avoid"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-3 flex-wrap gap-2"
   }, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800 mb-3 flex items-center gap-2"
+    className: "font-semibold text-paper-800 flex items-center gap-2"
   }, /*#__PURE__*/React.createElement(Ic.Home, {
     className: "w-4 h-4"
-  }), " Aper\xE7u fiscal du mois"), /*#__PURE__*/React.createElement("table", {
+  }), " Aper\xE7u fiscal du mois"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    className: "no-print",
+    icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      className: "w-3 h-3"
+    }),
+    onClick: function onClick() {
+      return doPrint("apercu");
+    }
+  }, "Imprimer aper\xE7u")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("table", {
     className: "w-full text-sm"
   }, /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", {
     className: "border-b border-paper-100"
@@ -15754,7 +15809,9 @@ function ComptabilitePage() {
     className: "py-3 font-bold text-paper-800"
   }, "TVA \xE0 reverser \xE0 l'\xC9tat"), /*#__PURE__*/React.createElement("td", {
     className: "py-3 text-right font-bold tabular-nums text-gold-700 text-base"
-  }, fmtMoney(tvaSolde)))))), (activeSection === "ventes" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+  }, fmtMoney(tvaSolde))))))), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("ventes")
+  }, /*#__PURE__*/React.createElement(ComptaSection, {
     title: "Ventes (factures \xE9mises)",
     icon: /*#__PURE__*/React.createElement(Ic.FileText, {
       className: "w-4 h-4"
@@ -15762,7 +15819,10 @@ function ComptabilitePage() {
     count: ventes.length,
     total: ventesTotals.ttc,
     totalLabel: "TTC",
-    onExport: exportInvoicesCsv
+    onExport: exportInvoicesCsv,
+    onPrint: function onPrint() {
+      return doPrint("ventes");
+    }
   }, ventes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune facture \xE9mise sur ce mois."
   }) : /*#__PURE__*/React.createElement("table", {
@@ -15809,7 +15869,9 @@ function ComptabilitePage() {
     }, /*#__PURE__*/React.createElement(Badge, {
       color: (_INVOICE_STATUS$v$sta = INVOICE_STATUS[v.status]) === null || _INVOICE_STATUS$v$sta === void 0 ? void 0 : _INVOICE_STATUS$v$sta.color
     }, (_INVOICE_STATUS$v$sta2 = INVOICE_STATUS[v.status]) === null || _INVOICE_STATUS$v$sta2 === void 0 ? void 0 : _INVOICE_STATUS$v$sta2.label)));
-  })))), (activeSection === "achats" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("achats")
+  }, /*#__PURE__*/React.createElement(ComptaSection, {
     title: "Achats (factures fournisseurs)",
     icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
       className: "w-4 h-4"
@@ -15820,6 +15882,9 @@ function ComptabilitePage() {
     onExport: exportPurchasesCsv,
     onNew: function onNew() {
       return setEditPurchase({});
+    },
+    onPrint: function onPrint() {
+      return doPrint("achats");
     }
   }, achats.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune facture d'achat sur ce mois.",
@@ -15933,7 +15998,9 @@ function ComptabilitePage() {
     }, /*#__PURE__*/React.createElement(Ic.Trash, {
       className: "w-3.5 h-3.5"
     })))));
-  })))), (activeSection === "notesFrais" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("notesFrais")
+  }, /*#__PURE__*/React.createElement(ComptaSection, {
     title: "Notes de frais",
     icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
       className: "w-4 h-4"
@@ -15941,7 +16008,10 @@ function ComptabilitePage() {
     count: notes.length,
     total: notesTotal,
     totalLabel: "TTC",
-    onExport: exportNotesFraisCsv
+    onExport: exportNotesFraisCsv,
+    onPrint: function onPrint() {
+      return doPrint("notesFrais");
+    }
   }, notes.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune note de frais sur ce mois."
   }) : /*#__PURE__*/React.createElement("table", {
@@ -15992,7 +16062,9 @@ function ComptabilitePage() {
     }, /*#__PURE__*/React.createElement(Badge, {
       color: (_NOTE_FRAIS_STATUS3 = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS3 === void 0 ? void 0 : _NOTE_FRAIS_STATUS3.color
     }, (_NOTE_FRAIS_STATUS4 = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS4 === void 0 ? void 0 : _NOTE_FRAIS_STATUS4.label)));
-  })))), (activeSection === "fichesExtra" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("fichesExtra")
+  }, /*#__PURE__*/React.createElement(ComptaSection, {
     title: "Fiches Extra (missions courtes)",
     icon: /*#__PURE__*/React.createElement(Ic.Clock, {
       className: "w-4 h-4"
@@ -16000,7 +16072,10 @@ function ComptabilitePage() {
     count: fiches.length,
     total: fichesTotal,
     totalLabel: "Brut",
-    onExport: exportFichesExtraCsv
+    onExport: exportFichesExtraCsv,
+    onPrint: function onPrint() {
+      return doPrint("fichesExtra");
+    }
   }, fiches.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucune fiche extra sur ce mois."
   }) : /*#__PURE__*/React.createElement("table", {
@@ -16045,7 +16120,9 @@ function ComptabilitePage() {
     }, /*#__PURE__*/React.createElement(Badge, {
       color: (_FICHE_EXTRA_STATUS3 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS3 === void 0 ? void 0 : _FICHE_EXTRA_STATUS3.color
     }, (_FICHE_EXTRA_STATUS4 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS4 === void 0 ? void 0 : _FICHE_EXTRA_STATUS4.label)));
-  })))), (activeSection === "devis" || activeSection === "apercu") && /*#__PURE__*/React.createElement(ComptaSection, {
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: sectionCls("devis")
+  }, /*#__PURE__*/React.createElement(ComptaSection, {
     title: "Devis sign\xE9s",
     icon: /*#__PURE__*/React.createElement(Ic.PenTool, {
       className: "w-4 h-4"
@@ -16055,7 +16132,10 @@ function ComptabilitePage() {
       return s + (q.ttc || 0);
     }, 0),
     totalLabel: "TTC",
-    onExport: exportQuotesCsv
+    onExport: exportQuotesCsv,
+    onPrint: function onPrint() {
+      return doPrint("devis");
+    }
   }, devisSigned.length === 0 ? /*#__PURE__*/React.createElement(EmptyMsg, {
     text: "Aucun devis sign\xE9 sur ce mois."
   }) : /*#__PURE__*/React.createElement("table", {
@@ -16095,7 +16175,7 @@ function ComptabilitePage() {
     }, fmtMoney(q.ttc || 0)), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-paper-700"
     }, q.signedBy || "—"));
-  })))), /*#__PURE__*/React.createElement("div", {
+  }))))), /*#__PURE__*/React.createElement("div", {
     className: "hidden print:block text-[10px] text-paper-400 mt-6 pt-4 border-t border-paper-200"
   }, "Document g\xE9n\xE9r\xE9 automatiquement par Cerberion CRM. Donn\xE9es extraites en temps r\xE9el \u2014 toute modification ult\xE9rieure sera refl\xE9t\xE9e dans la prochaine impression.")), editPurchase && /*#__PURE__*/React.createElement(PurchaseInvoiceEditor, {
     purchase: editPurchase,
@@ -16164,6 +16244,7 @@ function ComptaSection(_ref117) {
     totalLabel = _ref117.totalLabel,
     onExport = _ref117.onExport,
     onNew = _ref117.onNew,
+    onPrint = _ref117.onPrint,
     children = _ref117.children;
   return /*#__PURE__*/React.createElement("div", {
     className: "card-base p-0 overflow-hidden print:break-inside-avoid print:border print:border-paper-300"
@@ -16176,12 +16257,20 @@ function ComptaSection(_ref117) {
   }, title), count != null && /*#__PURE__*/React.createElement("span", {
     className: "text-[11px] text-paper-500 bg-white px-1.5 py-0.5 rounded-full border border-paper-200"
   }, count)), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3"
+    className: "flex items-center gap-3 flex-wrap"
   }, total != null && /*#__PURE__*/React.createElement("span", {
     className: "text-sm font-bold tabular-nums text-gold-700"
   }, totalLabel, " : ", fmtMoney(total)), /*#__PURE__*/React.createElement("div", {
     className: "flex gap-1 no-print"
-  }, onExport && /*#__PURE__*/React.createElement(Button, {
+  }, onPrint && /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      className: "w-3 h-3"
+    }),
+    onClick: onPrint,
+    title: "Imprimer cette cat\xE9gorie"
+  }, "Imprimer"), onExport && /*#__PURE__*/React.createElement(Button, {
     variant: "ghost",
     size: "sm",
     icon: /*#__PURE__*/React.createElement(Ic.Download, {
@@ -16217,7 +16306,7 @@ function PurchaseInvoiceEditor(_ref119) {
     onClose = _ref119.onClose,
     onSave = _ref119.onSave;
   var isNew = !purchase.id;
-  var _useState193 = useState(function () {
+  var _useState195 = useState(function () {
       var _purchase$amountTtc, _purchase$vatRate;
       return {
         id: purchase.id || uid("pur"),
@@ -16240,9 +16329,9 @@ function PurchaseInvoiceEditor(_ref119) {
         createdAt: purchase.createdAt || nowISO()
       };
     }),
-    _useState194 = _slicedToArray(_useState193, 2),
-    form = _useState194[0],
-    setForm = _useState194[1];
+    _useState196 = _slicedToArray(_useState195, 2),
+    form = _useState196[0],
+    setForm = _useState196[1];
   var set = function set(k, v) {
     return setForm(function (f) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
