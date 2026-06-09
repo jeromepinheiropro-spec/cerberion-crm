@@ -15419,6 +15419,8 @@ function ComptabilitePage() {
     upsertPurchaseInvoice = _useStore21.upsertPurchaseInvoice,
     deletePurchaseInvoice = _useStore21.deletePurchaseInvoice,
     setPurchaseStatus = _useStore21.setPurchaseStatus,
+    upsertNoteFrais = _useStore21.upsertNoteFrais,
+    upsertFicheExtra = _useStore21.upsertFicheExtra,
     exportInvoicesCsv = _useStore21.exportInvoicesCsv,
     exportPurchasesCsv = _useStore21.exportPurchasesCsv,
     exportNotesFraisCsv = _useStore21.exportNotesFraisCsv,
@@ -15430,41 +15432,75 @@ function ComptabilitePage() {
 
   // Hooks must run before any conditional return
   var today = new Date();
-  var _useState183 = useState(today.getFullYear()),
+  var fmtISO = function fmtISO(d) {
+    return d.toISOString().slice(0, 10);
+  };
+  var startOfMonthISO = fmtISO(new Date(today.getFullYear(), today.getMonth(), 1));
+  var endOfMonthISO = fmtISO(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+  var _useState183 = useState("month"),
     _useState184 = _slicedToArray(_useState183, 2),
-    year = _useState184[0],
-    setYear = _useState184[1];
-  var _useState185 = useState(today.getMonth() + 1),
+    dateMode = _useState184[0],
+    setDateMode = _useState184[1]; // "month" | "range"
+  var _useState185 = useState(today.getFullYear()),
     _useState186 = _slicedToArray(_useState185, 2),
-    month = _useState186[0],
-    setMonth = _useState186[1];
-  var _useState187 = useState(null),
+    year = _useState186[0],
+    setYear = _useState186[1];
+  var _useState187 = useState(today.getMonth() + 1),
     _useState188 = _slicedToArray(_useState187, 2),
-    editPurchase = _useState188[0],
-    setEditPurchase = _useState188[1];
-  var _useState189 = useState(null),
+    month = _useState188[0],
+    setMonth = _useState188[1];
+  var _useState189 = useState(startOfMonthISO),
     _useState190 = _slicedToArray(_useState189, 2),
-    confirmDelete = _useState190[0],
-    setConfirmDelete = _useState190[1];
-  var _useState191 = useState("apercu"),
+    startDate = _useState190[0],
+    setStartDate = _useState190[1];
+  var _useState191 = useState(endOfMonthISO),
     _useState192 = _slicedToArray(_useState191, 2),
-    activeSection = _useState192[0],
-    setActiveSection = _useState192[1];
-  // Scope d'impression : "all" = toutes les sections (par défaut), sinon ID d'une section
-  var _useState193 = useState("all"),
+    endDate = _useState192[0],
+    setEndDate = _useState192[1];
+  var _useState193 = useState(null),
     _useState194 = _slicedToArray(_useState193, 2),
-    printScope = _useState194[0],
-    setPrintScope = _useState194[1];
-  // Sélection multi-items par section pour impression ciblée
-  var _useState195 = useState({}),
+    editPurchase = _useState194[0],
+    setEditPurchase = _useState194[1];
+  var _useState195 = useState(null),
     _useState196 = _slicedToArray(_useState195, 2),
-    selected = _useState196[0],
-    setSelected = _useState196[1]; // { ventes:Set, achats:Set, ... }
-  // Si défini, on imprime les documents complets au lieu du dossier-récap
-  var _useState197 = useState(null),
+    confirmDelete = _useState196[0],
+    setConfirmDelete = _useState196[1];
+  var _useState197 = useState("apercu"),
     _useState198 = _slicedToArray(_useState197, 2),
-    printItems = _useState198[0],
-    setPrintItems = _useState198[1]; // { type, items }
+    activeSection = _useState198[0],
+    setActiveSection = _useState198[1];
+  // Viewers : ouvrent un document complet au clic d'une ligne
+  var _useState199 = useState(null),
+    _useState200 = _slicedToArray(_useState199, 2),
+    viewInvoice = _useState200[0],
+    setViewInvoice = _useState200[1];
+  var _useState201 = useState(null),
+    _useState202 = _slicedToArray(_useState201, 2),
+    viewQuote = _useState202[0],
+    setViewQuote = _useState202[1];
+  var _useState203 = useState(null),
+    _useState204 = _slicedToArray(_useState203, 2),
+    viewNote = _useState204[0],
+    setViewNote = _useState204[1];
+  var _useState205 = useState(null),
+    _useState206 = _slicedToArray(_useState205, 2),
+    viewFiche = _useState206[0],
+    setViewFiche = _useState206[1];
+  // Scope d'impression : "all" = toutes les sections (par défaut), sinon ID d'une section
+  var _useState207 = useState("all"),
+    _useState208 = _slicedToArray(_useState207, 2),
+    printScope = _useState208[0],
+    setPrintScope = _useState208[1];
+  // Sélection multi-items par section pour impression ciblée
+  var _useState209 = useState({}),
+    _useState210 = _slicedToArray(_useState209, 2),
+    selected = _useState210[0],
+    setSelected = _useState210[1]; // { ventes:Set, achats:Set, ... }
+  // Si défini, on imprime les documents complets au lieu du dossier-récap
+  var _useState211 = useState(null),
+    _useState212 = _slicedToArray(_useState211, 2),
+    printItems = _useState212[0],
+    setPrintItems = _useState212[1]; // { type, items }
 
   var getSel = function getSel(sec) {
     return selected[sec] || new Set();
@@ -15525,7 +15561,11 @@ function ComptabilitePage() {
   var targetYM = "".concat(year, "-").concat(String(month).padStart(2, '0'));
   var inPeriod = function inPeriod(dateStr) {
     if (!dateStr) return false;
-    return String(dateStr).slice(0, 7) === targetYM;
+    var s = String(dateStr);
+    if (dateMode === "month") return s.slice(0, 7) === targetYM;
+    // Mode plage : comparaison de strings YYYY-MM-DD (immune timezone)
+    var d = s.slice(0, 10);
+    return d >= startDate && d <= endDate;
   };
   // Récupère la "meilleure" date pour le filtre (issueDate, date, ou createdAt en fallback)
   var bestDate = function bestDate(obj) {
@@ -15608,6 +15648,45 @@ function ComptabilitePage() {
   for (var y = today.getFullYear() - 3; y <= today.getFullYear() + 1; y++) years.push(y);
   var months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
   var monthLabel = "".concat(months[month - 1], " ").concat(year);
+  var periodLabel = dateMode === "month" ? monthLabel : "Du ".concat(fmtDate(startDate), " au ").concat(fmtDate(endDate));
+  // Presets pour le mode plage
+  var setPresetRange = function setPresetRange(preset) {
+    var t = new Date();
+    var s, e;
+    if (preset === "currentMonth") {
+      s = new Date(t.getFullYear(), t.getMonth(), 1);
+      e = new Date(t.getFullYear(), t.getMonth() + 1, 0);
+    } else if (preset === "lastMonth") {
+      s = new Date(t.getFullYear(), t.getMonth() - 1, 1);
+      e = new Date(t.getFullYear(), t.getMonth(), 0);
+    } else if (preset === "currentQuarter") {
+      var q = Math.floor(t.getMonth() / 3);
+      s = new Date(t.getFullYear(), q * 3, 1);
+      e = new Date(t.getFullYear(), q * 3 + 3, 0);
+    } else if (preset === "lastQuarter") {
+      var _q = Math.floor(t.getMonth() / 3) - 1;
+      s = new Date(t.getFullYear(), _q * 3, 1);
+      e = new Date(t.getFullYear(), _q * 3 + 3, 0);
+    } else if (preset === "currentYear") {
+      s = new Date(t.getFullYear(), 0, 1);
+      e = new Date(t.getFullYear(), 11, 31);
+    } else if (preset === "lastYear") {
+      s = new Date(t.getFullYear() - 1, 0, 1);
+      e = new Date(t.getFullYear() - 1, 11, 31);
+    } else if (preset === "last30") {
+      e = new Date(t);
+      s = new Date(t);
+      s.setDate(s.getDate() - 29);
+    } else if (preset === "last90") {
+      e = new Date(t);
+      s = new Date(t);
+      s.setDate(s.getDate() - 89);
+    }
+    if (s && e) {
+      setStartDate(fmtISO(s));
+      setEndDate(fmtISO(e));
+    }
+  };
   var sections = [{
     id: "apercu",
     label: "Aperçu",
@@ -15655,7 +15734,7 @@ function ComptabilitePage() {
     className: "space-y-5"
   }, /*#__PURE__*/React.createElement(PageHeader, {
     title: "Classeur comptable",
-    subtitle: "R\xE9capitulatif mensuel pour l'expert-comptable \xB7 ".concat(monthLabel, " \xB7 donn\xE9es interconnect\xE9es avec tout le CRM."),
+    subtitle: "R\xE9capitulatif mensuel pour l'expert-comptable \xB7 ".concat(periodLabel, " \xB7 donn\xE9es interconnect\xE9es avec tout le CRM."),
     icon: /*#__PURE__*/React.createElement(Ic.Briefcase, {
       className: "w-6 h-6"
     }),
@@ -15681,6 +15760,20 @@ function ComptabilitePage() {
   }), /*#__PURE__*/React.createElement("div", {
     className: "card-base p-4 no-print"
   }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 mb-3"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: dateMode === "month" ? "primary" : "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setDateMode("month");
+    }
+  }, "\uD83D\uDCC5 Par mois"), /*#__PURE__*/React.createElement(Button, {
+    variant: dateMode === "range" ? "primary" : "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setDateMode("range");
+    }
+  }, "\uD83D\uDCC6 P\xE9riode personnalis\xE9e")), dateMode === "month" ? /*#__PURE__*/React.createElement("div", {
     className: "flex flex-wrap items-end gap-3"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
     className: "label-base"
@@ -15741,7 +15834,84 @@ function ComptabilitePage() {
       setMonth(m);
       setYear(y);
     }
-  }, "Mois suiv. \u2192")))), /*#__PURE__*/React.createElement("div", {
+  }, "Mois suiv. \u2192"))) : /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap items-end gap-3 mb-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Du"), /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: startDate,
+    onChange: function onChange(e) {
+      return setStartDate(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Au"), /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: endDate,
+    onChange: function onChange(e) {
+      return setEndDate(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 self-end pb-2"
+  }, function () {
+    var d1 = new Date(startDate),
+      d2 = new Date(endDate);
+    var diff = Math.round((d2 - d1) / 86400000) + 1;
+    return diff > 0 ? "".concat(diff, " jour").concat(diff > 1 ? "s" : "") : "—";
+  }())), /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-wrap gap-1 pt-2 border-t border-paper-100"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-paper-500 uppercase tracking-wider self-center mr-2"
+  }, "Raccourcis :"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("currentMonth");
+    }
+  }, "Mois en cours"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("lastMonth");
+    }
+  }, "Mois dernier"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("currentQuarter");
+    }
+  }, "Trimestre en cours"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("lastQuarter");
+    }
+  }, "Trimestre dernier"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("currentYear");
+    }
+  }, "Ann\xE9e en cours"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("lastYear");
+    }
+  }, "Ann\xE9e pr\xE9c\xE9dente"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("last30");
+    }
+  }, "30 derniers jours"), /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      return setPresetRange("last90");
+    }
+  }, "90 derniers jours")))), /*#__PURE__*/React.createElement("div", {
     id: "print-area",
     className: "space-y-5"
   }, printItems ? /*#__PURE__*/React.createElement(PrintableDocuments, {
@@ -15754,7 +15924,7 @@ function ComptabilitePage() {
     className: "font-display text-xl tracking-[0.3em] text-paper-800"
   }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
     className: "text-sm text-paper-600"
-  }, "Classeur comptable \u2014 ", monthLabel), /*#__PURE__*/React.createElement("div", {
+  }, "Classeur comptable \u2014 ", periodLabel), /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-paper-500 mt-1"
   }, "\xC9dit\xE9 le ", fmtDate(todayISO()), " par ", currentUser === null || currentUser === void 0 ? void 0 : currentUser.name)), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-2 md:grid-cols-4 gap-3"
@@ -15919,9 +16089,15 @@ function ComptabilitePage() {
     var sel = getSel("ventes").has(v.id);
     return /*#__PURE__*/React.createElement("tr", {
       key: v.id,
-      className: sel ? "bg-gold-50/40" : ""
+      onClick: function onClick() {
+        return setViewInvoice(v);
+      },
+      className: "table-row clickable " + (sel ? "bg-gold-50/40" : "")
     }, /*#__PURE__*/React.createElement("td", {
-      className: "px-3 py-2 no-print"
+      className: "px-3 py-2 no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: sel,
@@ -16148,9 +16324,15 @@ function ComptabilitePage() {
     var sel = getSel("notesFrais").has(n.id);
     return /*#__PURE__*/React.createElement("tr", {
       key: n.id,
-      className: sel ? "bg-gold-50/40" : ""
+      onClick: function onClick() {
+        return setViewNote(n);
+      },
+      className: "table-row clickable " + (sel ? "bg-gold-50/40" : "")
     }, /*#__PURE__*/React.createElement("td", {
-      className: "px-3 py-2 no-print"
+      className: "px-3 py-2 no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: sel,
@@ -16229,9 +16411,15 @@ function ComptabilitePage() {
     var sel = getSel("fichesExtra").has(f.id);
     return /*#__PURE__*/React.createElement("tr", {
       key: f.id,
-      className: sel ? "bg-gold-50/40" : ""
+      onClick: function onClick() {
+        return setViewFiche(f);
+      },
+      className: "table-row clickable " + (sel ? "bg-gold-50/40" : "")
     }, /*#__PURE__*/React.createElement("td", {
-      className: "px-3 py-2 no-print"
+      className: "px-3 py-2 no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: sel,
@@ -16307,9 +16495,15 @@ function ComptabilitePage() {
     var sel = getSel("devis").has(q.id);
     return /*#__PURE__*/React.createElement("tr", {
       key: q.id,
-      className: sel ? "bg-gold-50/40" : ""
+      onClick: function onClick() {
+        return setViewQuote(q.id);
+      },
+      className: "table-row clickable " + (sel ? "bg-gold-50/40" : "")
     }, /*#__PURE__*/React.createElement("td", {
-      className: "px-3 py-2 no-print"
+      className: "px-3 py-2 no-print",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
     }, /*#__PURE__*/React.createElement("input", {
       type: "checkbox",
       checked: sel,
@@ -16388,19 +16582,92 @@ function ComptabilitePage() {
         }
       }, _callee33);
     }))
+  }), viewInvoice && /*#__PURE__*/React.createElement(InvoiceViewer, {
+    invoice: viewInvoice,
+    onClose: function onClose() {
+      return setViewInvoice(null);
+    }
+  }), viewQuote && /*#__PURE__*/React.createElement(QuoteViewer, {
+    quoteId: viewQuote,
+    onClose: function onClose() {
+      return setViewQuote(null);
+    },
+    onEdit: function onEdit() {
+      return setViewQuote(null);
+    }
+  }), viewNote && /*#__PURE__*/React.createElement(NoteFraisEditor, {
+    note: viewNote,
+    allNotes: state.notesFrais || [],
+    state: state,
+    currentUser: currentUser,
+    isAdmin: true,
+    onClose: function onClose() {
+      return setViewNote(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref117 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee34(data) {
+        return _regenerator().w(function (_context34) {
+          while (1) switch (_context34.n) {
+            case 0:
+              _context34.n = 1;
+              return upsertNoteFrais(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: "Note de frais mise à jour"
+              });
+              setViewNote(null);
+            case 2:
+              return _context34.a(2);
+          }
+        }, _callee34);
+      }));
+      return function (_x23) {
+        return _ref117.apply(this, arguments);
+      };
+    }())
+  }), viewFiche && /*#__PURE__*/React.createElement(FicheExtraEditor, {
+    fiche: viewFiche,
+    allFiches: state.fichesExtra || [],
+    state: state,
+    onClose: function onClose() {
+      return setViewFiche(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref118 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee35(data) {
+        return _regenerator().w(function (_context35) {
+          while (1) switch (_context35.n) {
+            case 0:
+              _context35.n = 1;
+              return upsertFicheExtra(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: "Fiche extra mise à jour"
+              });
+              setViewFiche(null);
+            case 2:
+              return _context35.a(2);
+          }
+        }, _callee35);
+      }));
+      return function (_x24) {
+        return _ref118.apply(this, arguments);
+      };
+    }())
   }));
 }
-function ComptaSection(_ref117) {
-  var title = _ref117.title,
-    icon = _ref117.icon,
-    count = _ref117.count,
-    total = _ref117.total,
-    totalLabel = _ref117.totalLabel,
-    onExport = _ref117.onExport,
-    onNew = _ref117.onNew,
-    onPrint = _ref117.onPrint,
-    selCount = _ref117.selCount,
-    children = _ref117.children;
+function ComptaSection(_ref119) {
+  var title = _ref119.title,
+    icon = _ref119.icon,
+    count = _ref119.count,
+    total = _ref119.total,
+    totalLabel = _ref119.totalLabel,
+    onExport = _ref119.onExport,
+    onNew = _ref119.onNew,
+    onPrint = _ref119.onPrint,
+    selCount = _ref119.selCount,
+    children = _ref119.children;
   var printLabel = selCount > 0 ? "Imprimer (".concat(selCount, ")") : "Imprimer tout";
   return /*#__PURE__*/React.createElement("div", {
     className: "card-base p-0 overflow-hidden print:break-inside-avoid print:border print:border-paper-300"
@@ -16444,9 +16711,9 @@ function ComptaSection(_ref117) {
     className: "overflow-x-auto"
   }, children));
 }
-function EmptyMsg(_ref118) {
-  var text = _ref118.text,
-    action = _ref118.action;
+function EmptyMsg(_ref120) {
+  var text = _ref120.text,
+    action = _ref120.action;
   return /*#__PURE__*/React.createElement("div", {
     className: "px-5 py-8 text-center"
   }, /*#__PURE__*/React.createElement("div", {
@@ -16459,11 +16726,11 @@ function EmptyMsg(_ref118) {
 // =============================================================================
 //  PRINTABLE DOCUMENTS — affichés dans #print-area lors de l'impression
 // =============================================================================
-function PrintableDocuments(_ref119) {
+function PrintableDocuments(_ref121) {
   var _state$settings6;
-  var type = _ref119.type,
-    items = _ref119.items,
-    state = _ref119.state;
+  var type = _ref121.type,
+    items = _ref121.items,
+    state = _ref121.state;
   var company = ((_state$settings6 = state.settings) === null || _state$settings6 === void 0 ? void 0 : _state$settings6.company) || {};
   var renderDoc = function renderDoc(item) {
     if (type === "ventes") return /*#__PURE__*/React.createElement(BrandedInvoiceDocument, {
@@ -16509,9 +16776,9 @@ function PrintableDocuments(_ref119) {
     }, renderDoc(item));
   }));
 }
-function DocHeader(_ref120) {
-  var company = _ref120.company,
-    label = _ref120.label;
+function DocHeader(_ref122) {
+  var company = _ref122.company,
+    label = _ref122.label;
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -16585,11 +16852,11 @@ function DocHeader(_ref120) {
     }
   }, label)));
 }
-function PrintablePurchase(_ref121) {
+function PrintablePurchase(_ref123) {
   var _PURCHASE_STATUS3, _PAYMENT_METHODS$find2;
-  var purchase = _ref121.purchase,
-    company = _ref121.company,
-    state = _ref121.state;
+  var purchase = _ref123.purchase,
+    company = _ref123.company,
+    state = _ref123.state;
   var c = calcPurchaseInvoice(purchase);
   var cat = PURCHASE_CATEGORIES.find(function (x) {
     return x.id === purchase.category;
@@ -16868,11 +17135,11 @@ function PrintablePurchase(_ref121) {
     }
   }, /*#__PURE__*/React.createElement("strong", null, "Notes :"), " ", purchase.notes));
 }
-function PrintableNoteFrais(_ref122) {
+function PrintableNoteFrais(_ref124) {
   var _NOTE_FRAIS_STATUS5;
-  var note = _ref122.note,
-    company = _ref122.company,
-    state = _ref122.state;
+  var note = _ref124.note,
+    company = _ref124.company,
+    state = _ref124.state;
   var c = calcNoteFrais(note);
   var cat = c.category;
   var linkedClient = state.clients.find(function (cl) {
@@ -17146,11 +17413,11 @@ function PrintableNoteFrais(_ref122) {
     }
   }, "Visa direction")));
 }
-function PrintableFicheExtra(_ref123) {
+function PrintableFicheExtra(_ref125) {
   var _FICHE_EXTRA_STATUS5;
-  var fiche = _ref123.fiche,
-    company = _ref123.company,
-    state = _ref123.state;
+  var fiche = _ref125.fiche,
+    company = _ref125.company,
+    state = _ref125.state;
   var c = calcFicheExtra(fiche);
   var role = AGENT_ROLES.find(function (r) {
     return r.id === fiche.agentRole;
@@ -17442,14 +17709,14 @@ function PrintableFicheExtra(_ref123) {
     }
   }, "Visa direction")));
 }
-function PurchaseInvoiceEditor(_ref124) {
-  var purchase = _ref124.purchase,
-    allPurchases = _ref124.allPurchases,
-    state = _ref124.state,
-    onClose = _ref124.onClose,
-    onSave = _ref124.onSave;
+function PurchaseInvoiceEditor(_ref126) {
+  var purchase = _ref126.purchase,
+    allPurchases = _ref126.allPurchases,
+    state = _ref126.state,
+    onClose = _ref126.onClose,
+    onSave = _ref126.onSave;
   var isNew = !purchase.id;
-  var _useState199 = useState(function () {
+  var _useState213 = useState(function () {
       var _purchase$amountTtc, _purchase$vatRate;
       return {
         id: purchase.id || uid("pur"),
@@ -17472,9 +17739,9 @@ function PurchaseInvoiceEditor(_ref124) {
         createdAt: purchase.createdAt || nowISO()
       };
     }),
-    _useState200 = _slicedToArray(_useState199, 2),
-    form = _useState200[0],
-    setForm = _useState200[1];
+    _useState214 = _slicedToArray(_useState213, 2),
+    form = _useState214[0],
+    setForm = _useState214[1];
   var set = function set(k, v) {
     return setForm(function (f) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
@@ -17587,10 +17854,10 @@ function PurchaseInvoiceEditor(_ref124) {
     onChange: function onChange(e) {
       return set("status", e.target.value);
     }
-  }, Object.entries(PURCHASE_STATUS).map(function (_ref125) {
-    var _ref126 = _slicedToArray(_ref125, 2),
-      k = _ref126[0],
-      v = _ref126[1];
+  }, Object.entries(PURCHASE_STATUS).map(function (_ref127) {
+    var _ref128 = _slicedToArray(_ref127, 2),
+      k = _ref128[0],
+      v = _ref128[1];
     return /*#__PURE__*/React.createElement("option", {
       key: k,
       value: k
