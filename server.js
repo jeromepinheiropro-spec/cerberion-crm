@@ -62,6 +62,7 @@ const emptyState = () => ({
   tasks: [], activities: [], notifications: [],
   products: [],
   fichesExtra: [],
+  notesFrais: [],
   settings: { vat: 17 },
   updatedAt: nowISO(),
 });
@@ -70,6 +71,7 @@ if (!stateCache) { stateCache = emptyState(); writeJsonAtomic(STATE_FILE, stateC
 // Backfill new fields if state was created with an older shape
 if (!Array.isArray(stateCache.products)) stateCache.products = [];
 if (!Array.isArray(stateCache.fichesExtra)) stateCache.fichesExtra = [];
+if (!Array.isArray(stateCache.notesFrais)) stateCache.notesFrais = [];
 
 // ---------- Auth (users + invitations) ----------
 const emptyAuth = () => ({ users: [], invitations: [], sessions: [] });
@@ -429,6 +431,28 @@ app.post("/api/state/dispatch", authRequired, (req, res) => {
       }
       case "deleteFicheExtra": {
         stateCache.fichesExtra = (stateCache.fichesExtra || []).filter(f => f.id !== payload.id);
+        break;
+      }
+      // Notes de Frais (remboursements de dépenses professionnelles)
+      case "upsertNoteFrais": {
+        const data = payload;
+        const notes = stateCache.notesFrais || [];
+        if (data.id && notes.find(n => n.id === data.id)) {
+          stateCache.notesFrais = notes.map(n => n.id === data.id ? { ...n, ...data, updatedAt: now } : n);
+        } else {
+          stateCache.notesFrais = [...notes, { ...data, id: data.id || uid("nf"), createdAt: now, updatedAt: now, createdBy: req.user.id }];
+        }
+        break;
+      }
+      case "deleteNoteFrais": {
+        stateCache.notesFrais = (stateCache.notesFrais || []).filter(n => n.id !== payload.id);
+        break;
+      }
+      case "setNoteFraisStatus": {
+        const { id, status, extra } = payload;
+        stateCache.notesFrais = (stateCache.notesFrais || []).map(n =>
+          n.id === id ? { ...n, status, ...(extra || {}), updatedAt: now } : n
+        );
         break;
       }
       // Settings

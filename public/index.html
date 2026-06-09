@@ -758,6 +758,272 @@ function generateFicheExtraNumber(fiches) {
   }).length + 1;
   return "EXTRA-".concat(y, "-").concat(String(next).padStart(4, "0"));
 }
+// ===== Notes de Frais constants (LU 2026) =====
+var LU_EXPENSE_RULES = {
+  kmRate: 0.30,
+  // Indemnité km depuis 01.08.2015 (non indexée)
+  perDiemDay: 14.00,
+  // Forfait jour LU (repas + frais divers)
+  perDiemNight: 56.00,
+  // Forfait nuit LU (hôtel + petit déjeuner)
+  mealVoucherMaxFace: 15.00,
+  // Chèque repas : valeur faciale max
+  mealVoucherMaxExoneration: 10.80,
+  // Chèque repas : max exonéré (employeur + employé)
+  mealVoucherMaxEmployer: 6.48,
+  // Chèque repas : part employeur exonérée (60%)
+  mealVoucherMinEmployee: 4.32,
+  // Chèque repas : part employé min (40%)
+  documentRetentionYears: 10,
+  // Conservation justificatifs (art. 16 Code de commerce LU)
+  receiptRequiredAbove: 25.00 // Seuil justificatif obligatoire
+};
+var EXPENSE_CATEGORIES = [{
+  id: "km",
+  label: "Indemnité kilométrique",
+  color: "blue",
+  defaultVat: 0,
+  needsDistance: true,
+  exonere: true,
+  hint: "0,30 €/km exonéré · trajet domicile-travail exclu · carnet de bord obligatoire."
+}, {
+  id: "repas",
+  label: "Repas professionnel",
+  color: "amber",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Forfait jour LU : 14 €. Au-delà : justificatif nominatif requis."
+}, {
+  id: "hotel",
+  label: "Hébergement nuit",
+  color: "purple",
+  defaultVat: 3,
+  exonere: false,
+  hint: "Forfait nuit LU : 56 €. TVA hôtellerie LU = 3 % (taux super-réduit)."
+}, {
+  id: "transport",
+  label: "Transport (train, bus, taxi)",
+  color: "blue",
+  defaultVat: 8,
+  exonere: false,
+  hint: "Billet, taxi, transports publics. Justificatif requis."
+}, {
+  id: "parking",
+  label: "Parking",
+  color: "slate",
+  defaultVat: 17,
+  exonere: false,
+  hint: "TVA récupérable uniquement parking fermé (barrière/souterrain)."
+}, {
+  id: "peage",
+  label: "Péage",
+  color: "slate",
+  defaultVat: 17,
+  exonere: false,
+  hint: "TVA 17 % entièrement récupérable."
+}, {
+  id: "carburant",
+  label: "Carburant véhicule société",
+  color: "amber",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Véhicule de fonction uniquement. TVA récupérable partielle."
+}, {
+  id: "materiel",
+  label: "Matériel / petit équipement",
+  color: "slate",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Petit équipement professionnel < 870 € (amortissement immédiat)."
+}, {
+  id: "telecom",
+  label: "Téléphone / internet",
+  color: "slate",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Quote-part professionnelle uniquement."
+}, {
+  id: "accueil",
+  label: "Réception / cadeau client",
+  color: "gold",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Cadeaux ≤ 60 € TTC/an/client = déductibles. Au-delà : non déductible."
+}, {
+  id: "formation",
+  label: "Formation / colloque",
+  color: "blue",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Frais d'inscription et supports. Justificatif obligatoire."
+}, {
+  id: "autre",
+  label: "Autre",
+  color: "slate",
+  defaultVat: 17,
+  exonere: false,
+  hint: "Préciser dans la description."
+}];
+var NOTE_FRAIS_STATUS = {
+  brouillon: {
+    label: "Brouillon",
+    color: "slate"
+  },
+  soumise: {
+    label: "Soumise",
+    color: "amber"
+  },
+  approuvee: {
+    label: "Approuvée",
+    color: "blue"
+  },
+  payee: {
+    label: "Remboursée",
+    color: "green"
+  },
+  refusee: {
+    label: "Refusée",
+    color: "red"
+  }
+};
+function calcNoteFrais(nf) {
+  var _ref, _nf$vatRate;
+  var cat = EXPENSE_CATEGORIES.find(function (c) {
+    return c.id === nf.category;
+  }) || EXPENSE_CATEGORIES.find(function (c) {
+    return c.id === "autre";
+  });
+  var amount = Number(nf.amount || 0);
+  if (cat.id === "km" && nf.distance != null && (!amount || amount === 0)) {
+    amount = round2(Number(nf.distance || 0) * LU_EXPENSE_RULES.kmRate);
+  }
+  var vat = Number((_ref = (_nf$vatRate = nf.vatRate) !== null && _nf$vatRate !== void 0 ? _nf$vatRate : cat.defaultVat) !== null && _ref !== void 0 ? _ref : 17);
+  var ttc = amount;
+  var ht = vat > 0 ? round2(ttc / (1 + vat / 100)) : round2(ttc);
+  var tva = round2(ttc - ht);
+  return {
+    ttc: ttc,
+    ht: ht,
+    tva: tva,
+    vat: vat,
+    category: cat
+  };
+}
+function validateNoteFrais(nf) {
+  var _nf$agentName, _nf$receiptUrl, _nf$receiptName;
+  var alerts = [];
+  var c = calcNoteFrais(nf);
+  var cat = c.category;
+  if (!((_nf$agentName = nf.agentName) !== null && _nf$agentName !== void 0 && _nf$agentName.trim())) {
+    alerts.push({
+      severity: "error",
+      code: "MISSING_AGENT",
+      message: "Nom de l'utilisateur obligatoire."
+    });
+  }
+  if (!nf.date) {
+    alerts.push({
+      severity: "error",
+      code: "MISSING_DATE",
+      message: "Date de la dépense obligatoire."
+    });
+  }
+  if (c.ttc <= 0 && cat.id !== "km") {
+    alerts.push({
+      severity: "error",
+      code: "ZERO_AMOUNT",
+      message: "Montant nul ou invalide."
+    });
+  }
+  if (cat.id === "km") {
+    var dist = Number(nf.distance || 0);
+    if (dist <= 0) {
+      alerts.push({
+        severity: "error",
+        code: "MISSING_DISTANCE",
+        message: "Distance (km) obligatoire pour cette catégorie."
+      });
+    } else {
+      var expected = round2(dist * LU_EXPENSE_RULES.kmRate);
+      if (Math.abs(c.ttc - expected) > 0.05 && Number(nf.amount) > 0) {
+        alerts.push({
+          severity: "warning",
+          code: "KM_MISMATCH",
+          message: "Montant saisi (".concat(fmtMoney(c.ttc), ") diff\xE8re du calcul ").concat(dist, " km \xD7 0,30 \u20AC/km = ").concat(fmtMoney(expected), ". D\xE9passement non exon\xE9r\xE9.")
+        });
+      }
+    }
+  }
+  if (cat.id === "repas" && c.ttc > LU_EXPENSE_RULES.perDiemDay) {
+    alerts.push({
+      severity: "warning",
+      code: "OVER_PER_DIEM_DAY",
+      message: "Au-dessus du forfait jour LU (".concat(LU_EXPENSE_RULES.perDiemDay.toFixed(2), " \u20AC). Justificatif nominatif requis pour le d\xE9passement.")
+    });
+  }
+  if (cat.id === "hotel" && c.ttc > LU_EXPENSE_RULES.perDiemNight) {
+    alerts.push({
+      severity: "warning",
+      code: "OVER_PER_DIEM_NIGHT",
+      message: "Au-dessus du forfait nuit LU (".concat(LU_EXPENSE_RULES.perDiemNight.toFixed(2), " \u20AC). Justificatif nominatif requis.")
+    });
+  }
+  if (c.ttc > LU_EXPENSE_RULES.receiptRequiredAbove && cat.id !== "km" && !((_nf$receiptUrl = nf.receiptUrl) !== null && _nf$receiptUrl !== void 0 && _nf$receiptUrl.trim()) && !((_nf$receiptName = nf.receiptName) !== null && _nf$receiptName !== void 0 && _nf$receiptName.trim())) {
+    alerts.push({
+      severity: "warning",
+      code: "MISSING_RECEIPT",
+      message: "Justificatif manquant (> ".concat(LU_EXPENSE_RULES.receiptRequiredAbove, " \u20AC). \xC0 conserver 10 ans (art. 16 Code de commerce LU).")
+    });
+  }
+  if (nf.date && nf.date > todayISO()) {
+    alerts.push({
+      severity: "warning",
+      code: "FUTURE_DATE",
+      message: "La date est dans le futur."
+    });
+  }
+  if (nf.date) {
+    var d = new Date(nf.date);
+    var threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    if (d < threeMonthsAgo) {
+      alerts.push({
+        severity: "warning",
+        code: "OLD_DATE",
+        message: "Dépense de plus de 3 mois — vérifier la politique de remboursement."
+      });
+    }
+  }
+  if (cat.id === "accueil" && c.ttc > 60) {
+    alerts.push({
+      severity: "warning",
+      code: "GIFT_OVER_LIMIT",
+      message: "Cadeau > 60 € TTC : généralement non déductible fiscalement au-delà du seuil annuel par client."
+    });
+  }
+  if (cat.exonere && c.ttc > 0) {
+    alerts.push({
+      severity: "info",
+      code: "TAX_EXEMPT",
+      message: "".concat(cat.label, " : exon\xE9r\xE9 d'imp\xF4t et cotisations dans la limite fiscale.")
+    });
+  }
+  if (cat.id === "hotel") {
+    alerts.push({
+      severity: "info",
+      code: "HOTEL_VAT",
+      message: "TVA hôtellerie LU = 3 % (taux super-réduit)."
+    });
+  }
+  return alerts;
+}
+function generateNoteFraisNumber(notes) {
+  var y = new Date().getFullYear();
+  var next = (notes || []).filter(function (n) {
+    return (n.number || "").includes("NF-".concat(y));
+  }).length + 1;
+  return "NF-".concat(y, "-").concat(String(next).padStart(4, "0"));
+}
 var PROSPECT_STAGES = [{
   id: "contact",
   label: "Contact",
@@ -1128,6 +1394,7 @@ function emptyData() {
     notifications: [],
     products: [],
     fichesExtra: [],
+    notesFrais: [],
     settings: {
       company: COMPANY,
       vat: VAT_LU,
@@ -4376,6 +4643,92 @@ function StoreProvider(_ref43) {
       id: id
     });
   };
+  var upsertNoteFrais = function upsertNoteFrais(data) {
+    return dispatch("upsertNoteFrais", data);
+  };
+  var deleteNoteFrais = function deleteNoteFrais(id) {
+    return dispatch("deleteNoteFrais", {
+      id: id
+    });
+  };
+  var setNoteFraisStatus = function setNoteFraisStatus(id, status) {
+    var extra = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+  var exportNotesFraisCsv = function exportNotesFraisCsv() {
+    return csvDownload("cerberion-notes-frais-".concat(todayISO(), ".csv"), state.notesFrais || [], [{
+      key: "number",
+      label: "N° note"
+    }, {
+      key: "date",
+      label: "Date"
+    }, {
+      key: "agentName",
+      label: "Demandeur"
+    }, {
+      key: "category",
+      label: "Catégorie",
+      value: function value(r) {
+        var _EXPENSE_CATEGORIES$f;
+        return ((_EXPENSE_CATEGORIES$f = EXPENSE_CATEGORIES.find(function (c) {
+          return c.id === r.category;
+        })) === null || _EXPENSE_CATEGORIES$f === void 0 ? void 0 : _EXPENSE_CATEGORIES$f.label) || r.category || "";
+      }
+    }, {
+      key: "description",
+      label: "Description"
+    }, {
+      key: "distance",
+      label: "Distance (km)"
+    }, {
+      key: "amount",
+      label: "Montant TTC",
+      value: function value(r) {
+        return calcNoteFrais(r).ttc;
+      }
+    }, {
+      key: "vat",
+      label: "TVA %",
+      value: function value(r) {
+        return calcNoteFrais(r).vat;
+      }
+    }, {
+      key: "vatAmount",
+      label: "TVA €",
+      value: function value(r) {
+        return calcNoteFrais(r).tva;
+      }
+    }, {
+      key: "ht",
+      label: "HT €",
+      value: function value(r) {
+        return calcNoteFrais(r).ht;
+      }
+    }, {
+      key: "clientId",
+      label: "Client",
+      value: function value(r) {
+        return lookupClient(r.clientId);
+      }
+    }, {
+      key: "receiptName",
+      label: "Justificatif"
+    }, {
+      key: "status",
+      label: "Statut",
+      value: function value(r) {
+        var _NOTE_FRAIS_STATUS$r$;
+        return ((_NOTE_FRAIS_STATUS$r$ = NOTE_FRAIS_STATUS[r.status]) === null || _NOTE_FRAIS_STATUS$r$ === void 0 ? void 0 : _NOTE_FRAIS_STATUS$r$.label) || r.status || "";
+      }
+    }, {
+      key: "approvedBy",
+      label: "Approuvée par"
+    }, {
+      key: "paidAt",
+      label: "Remboursée le"
+    }, {
+      key: "notes",
+      label: "Notes"
+    }]);
+  };
   var exportFichesExtraCsv = function exportFichesExtraCsv() {
     return csvDownload("cerberion-fiches-extra-".concat(todayISO(), ".csv"), state.fichesExtra || [], [{
       key: "number",
@@ -4780,6 +5133,9 @@ function StoreProvider(_ref43) {
     deleteProduct: deleteProduct,
     upsertFicheExtra: upsertFicheExtra,
     deleteFicheExtra: deleteFicheExtra,
+    upsertNoteFrais: upsertNoteFrais,
+    deleteNoteFrais: deleteNoteFrais,
+    setNoteFraisStatus: setNoteFraisStatus,
     updateSettings: updateSettings,
     exportJson: exportJson,
     importJson: importJson,
@@ -4791,6 +5147,7 @@ function StoreProvider(_ref43) {
     exportProductsCsv: exportProductsCsv,
     exportTasksCsv: exportTasksCsv,
     exportFichesExtraCsv: exportFichesExtraCsv,
+    exportNotesFraisCsv: exportNotesFraisCsv,
     exportAllCsv: exportAllCsv
   };
   return /*#__PURE__*/React.createElement(StoreCtx.Provider, {
@@ -4884,6 +5241,18 @@ function Sidebar(_ref47) {
     badge: (state.fichesExtra || []).filter(function (f) {
       return f.status === "brouillon";
     }).length || null
+  }, {
+    id: "notesFrais",
+    label: "Notes de frais",
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "nav-icon"
+    }),
+    badge: (state.notesFrais || []).filter(function (n) {
+      return n.status === "soumise";
+    }).length || null,
+    badgeColor: (state.notesFrais || []).filter(function (n) {
+      return n.status === "soumise";
+    }).length > 0 ? "amber" : null
   }, {
     id: "notifications",
     label: "Notifications",
@@ -5003,6 +5372,7 @@ function TopBar(_ref48) {
     factures: "Factures",
     taches: "Tâches",
     fichesExtra: "Fiches Extra",
+    notesFrais: "Notes de frais",
     notifications: "Notifications",
     settings: "Paramètres",
     backend: "Backend"
@@ -12854,6 +13224,10 @@ function Shell() {
         return /*#__PURE__*/React.createElement(FichesExtraPage, {
           search: pageSearch
         });
+      case "notesFrais":
+        return /*#__PURE__*/React.createElement(NotesFraisPage, {
+          search: pageSearch
+        });
       case "notifications":
         return /*#__PURE__*/React.createElement(NotificationsPage, {
           setPage: goTo,
@@ -13842,6 +14216,815 @@ function RecapRow(_ref108) {
 }
 
 // Mount
+// ===== Notes de Frais UI components =====
+function NotesFraisPage(_ref110) {
+  var search = _ref110.search;
+  var _useStore20 = useStore(),
+    state = _useStore20.state,
+    upsertNoteFrais = _useStore20.upsertNoteFrais,
+    deleteNoteFrais = _useStore20.deleteNoteFrais,
+    setNoteFraisStatus = _useStore20.setNoteFraisStatus,
+    exportNotesFraisCsv = _useStore20.exportNotesFraisCsv;
+  var _useAuth8 = useAuth(),
+    currentUser = _useAuth8.currentUser;
+  var toast = useToast();
+  var notes = state.notesFrais || [];
+  var _useState171 = useState(null),
+    _useState172 = _slicedToArray(_useState171, 2),
+    edit = _useState172[0],
+    setEdit = _useState172[1];
+  var _useState173 = useState(null),
+    _useState174 = _slicedToArray(_useState173, 2),
+    confirmDelete = _useState174[0],
+    setConfirmDelete = _useState174[1];
+  var _useState175 = useState("all"),
+    _useState176 = _slicedToArray(_useState175, 2),
+    statusFilter = _useState176[0],
+    setStatusFilter = _useState176[1];
+  var _useState177 = useState(""),
+    _useState178 = _slicedToArray(_useState177, 2),
+    categoryFilter = _useState178[0],
+    setCategoryFilter = _useState178[1];
+  var _useState179 = useState(""),
+    _useState180 = _slicedToArray(_useState179, 2),
+    agentFilter = _useState180[0],
+    setAgentFilter = _useState180[1];
+  var _useState181 = useState(""),
+    _useState182 = _slicedToArray(_useState181, 2),
+    monthFilter = _useState182[0],
+    setMonthFilter = _useState182[1];
+  var isAdmin = ["admin", "manager"].includes(currentUser === null || currentUser === void 0 ? void 0 : currentUser.role);
+  var filtered = useMemo(function () {
+    var q = (search || "").toLowerCase().trim();
+    var arr = notes;
+    if (q) arr = arr.filter(function (n) {
+      return [n.agentName, n.number, n.description, n.notes].some(function (x) {
+        return (x || "").toLowerCase().includes(q);
+      });
+    });
+    if (statusFilter !== "all") arr = arr.filter(function (n) {
+      return n.status === statusFilter;
+    });
+    if (categoryFilter) arr = arr.filter(function (n) {
+      return n.category === categoryFilter;
+    });
+    if (agentFilter) arr = arr.filter(function (n) {
+      return (n.agentName || "").toLowerCase().includes(agentFilter.toLowerCase());
+    });
+    if (monthFilter) arr = arr.filter(function (n) {
+      return (n.date || "").startsWith(monthFilter);
+    });
+    return _toConsumableArray(arr).sort(function (a, b) {
+      return (b.date || "").localeCompare(a.date || "");
+    });
+  }, [notes, search, statusFilter, categoryFilter, agentFilter, monthFilter]);
+  var kpis = useMemo(function () {
+    var totals = filtered.reduce(function (acc, n) {
+      var c = calcNoteFrais(n);
+      acc.total += c.ttc;
+      acc.tva += c.tva;
+      if (n.status === "soumise" || n.status === "approuvee") acc.pending += c.ttc;
+      if (n.status === "payee") acc.paid += c.ttc;
+      return acc;
+    }, {
+      total: 0,
+      tva: 0,
+      pending: 0,
+      paid: 0
+    });
+    return {
+      count: filtered.length,
+      total: round2(totals.total),
+      tva: round2(totals.tva),
+      pending: round2(totals.pending),
+      paid: round2(totals.paid)
+    };
+  }, [filtered]);
+  var agentSuggestions = _toConsumableArray(new Set(notes.map(function (n) {
+    return n.agentName;
+  }).filter(Boolean))).sort();
+  return /*#__PURE__*/React.createElement("div", {
+    className: "space-y-6"
+  }, /*#__PURE__*/React.createElement(PageHeader, {
+    title: "Notes de frais",
+    subtitle: "Remboursement de d\xE9penses professionnelles \xB7 Conformit\xE9 fiscale Luxembourg (ACD + circulaire L.I.R. 95/4).",
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-6 h-6"
+    }),
+    actions: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        if (filtered.length === 0) return toast.push({
+          type: "warning",
+          title: "Aucune note à exporter"
+        });
+        exportNotesFraisCsv();
+        toast.push({
+          type: "success",
+          title: "Export CSV lancé",
+          message: "".concat(filtered.length, " note").concat(filtered.length > 1 ? "s" : "")
+        });
+      }
+    }, "Exporter CSV"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEdit({
+          agentName: (currentUser === null || currentUser === void 0 ? void 0 : currentUser.name) || ""
+        });
+      }
+    }, "Nouvelle note"))
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-3"
+  }, /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.FileText, {
+      className: "w-5 h-5"
+    }),
+    label: "Notes affich\xE9es",
+    value: kpis.count
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-5 h-5"
+    }),
+    label: "Total TTC",
+    value: fmtMoney(kpis.total),
+    sub: "dont ".concat(fmtMoney(kpis.tva), " TVA")
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-5 h-5"
+    }),
+    label: "En attente",
+    value: fmtMoney(kpis.pending),
+    sub: "\xE0 approuver / payer"
+  }), /*#__PURE__*/React.createElement(KPIBlock, {
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-5 h-5"
+    }),
+    label: "Rembours\xE9",
+    value: fmtMoney(kpis.paid)
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-5 gap-3"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Statut"), /*#__PURE__*/React.createElement(Select, {
+    value: statusFilter,
+    onChange: function onChange(e) {
+      return setStatusFilter(e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "all"
+  }, "Tous statuts"), Object.entries(NOTE_FRAIS_STATUS).map(function (_ref111) {
+    var _ref112 = _slicedToArray(_ref111, 2),
+      k = _ref112[0],
+      v = _ref112[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement(Select, {
+    value: categoryFilter,
+    onChange: function onChange(e) {
+      return setCategoryFilter(e.target.value);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "Toutes cat\xE9gories"), EXPENSE_CATEGORIES.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Demandeur"), /*#__PURE__*/React.createElement(Input, {
+    list: "nf-agent-suggestions",
+    value: agentFilter,
+    onChange: function onChange(e) {
+      return setAgentFilter(e.target.value);
+    },
+    placeholder: "Nom\u2026"
+  }), /*#__PURE__*/React.createElement("datalist", {
+    id: "nf-agent-suggestions"
+  }, agentSuggestions.map(function (a) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: a,
+      value: a
+    });
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    className: "label-base"
+  }, "Mois"), /*#__PURE__*/React.createElement(Input, {
+    type: "month",
+    value: monthFilter,
+    onChange: function onChange(e) {
+      return setMonthFilter(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-end"
+  }, (statusFilter !== "all" || categoryFilter || agentFilter || monthFilter) && /*#__PURE__*/React.createElement(Button, {
+    variant: "ghost",
+    size: "sm",
+    onClick: function onClick() {
+      setStatusFilter("all");
+      setCategoryFilter("");
+      setAgentFilter("");
+      setMonthFilter("");
+    }
+  }, "R\xE9initialiser")))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-0 overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-paper-50 border-b border-paper-200"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-[11px] uppercase tracking-wider text-paper-500"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Note"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Demandeur \xB7 Date"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Cat\xE9gorie"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Description"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold text-right"
+  }, "TTC"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold"
+  }, "Statut"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-3 font-semibold w-32 text-right"
+  }))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-paper-100"
+  }, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    colSpan: "7"
+  }, /*#__PURE__*/React.createElement(Empty, {
+    icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-8 h-8"
+    }),
+    title: notes.length === 0 ? "Aucune note de frais" : "Aucun résultat",
+    description: notes.length === 0 ? "Créez votre première note pour vous faire rembourser une dépense professionnelle." : "Aucune note ne correspond à vos filtres.",
+    action: notes.length === 0 ? /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Plus, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return setEdit({
+          agentName: (currentUser === null || currentUser === void 0 ? void 0 : currentUser.name) || ""
+        });
+      }
+    }, "Nouvelle note") : null
+  }))), filtered.map(function (n) {
+    var _NOTE_FRAIS_STATUS, _NOTE_FRAIS_STATUS2;
+    var c = calcNoteFrais(n);
+    var alerts = validateNoteFrais(n);
+    var errors = alerts.filter(function (a) {
+      return a.severity === "error";
+    });
+    var warnings = alerts.filter(function (a) {
+      return a.severity === "warning";
+    });
+    return /*#__PURE__*/React.createElement("tr", {
+      key: n.id,
+      className: "table-row clickable",
+      onClick: function onClick() {
+        return setEdit(n);
+      }
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 font-mono text-xs text-gold-700"
+    }, n.number), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-paper-800"
+    }, n.agentName || "—"), /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-paper-500"
+    }, n.date ? fmtDate(n.date) : "—")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: c.category.color
+    }, c.category.label), n.distance > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "text-[10px] text-paper-500 mt-0.5"
+    }, n.distance, " km")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-paper-700"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "line-clamp-1"
+    }, n.description || "—"), n.receiptName && /*#__PURE__*/React.createElement("div", {
+      className: "text-[10px] text-emerald-600 mt-0.5"
+    }, "\uD83D\uDCCE ", n.receiptName)), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-right"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-paper-800 tabular-nums"
+    }, fmtMoney(c.ttc)), c.tva > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "text-[10px] text-paper-500"
+    }, "dont ", fmtMoney(c.tva), " TVA")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex flex-col gap-1"
+    }, /*#__PURE__*/React.createElement(Badge, {
+      color: (_NOTE_FRAIS_STATUS = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS === void 0 ? void 0 : _NOTE_FRAIS_STATUS.color
+    }, (_NOTE_FRAIS_STATUS2 = NOTE_FRAIS_STATUS[n.status || "brouillon"]) === null || _NOTE_FRAIS_STATUS2 === void 0 ? void 0 : _NOTE_FRAIS_STATUS2.label), errors.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 text-[11px] text-red-600 font-medium"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-3 h-3"
+    }), " ", errors.length, " erreur", errors.length > 1 ? "s" : ""), errors.length === 0 && warnings.length > 0 && /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 text-[11px] text-amber-700 font-medium"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-3 h-3"
+    }), " ", warnings.length, " avertissement", warnings.length > 1 ? "s" : ""))), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-3 text-right",
+      onClick: function onClick(e) {
+        return e.stopPropagation();
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1 justify-end"
+    }, isAdmin && n.status === "soumise" && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setNoteFraisStatus(n.id, "approuvee", {
+          approvedBy: currentUser.name,
+          approvedAt: nowISO()
+        });
+        toast.push({
+          type: "success",
+          title: "Approuvée"
+        });
+      },
+      title: "Approuver",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-emerald-600"
+    }, /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-4 h-4"
+    })), isAdmin && n.status === "approuvee" && /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        setNoteFraisStatus(n.id, "payee", {
+          paidAt: nowISO()
+        });
+        toast.push({
+          type: "success",
+          title: "Marquée payée"
+        });
+      },
+      title: "Marquer pay\xE9e",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-emerald-600"
+    }, /*#__PURE__*/React.createElement(Ic.DollarSign, {
+      className: "w-4 h-4"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setEdit(n);
+      },
+      title: "\xC9diter",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-paper-800"
+    }, /*#__PURE__*/React.createElement(Ic.Edit, {
+      className: "w-4 h-4"
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: function onClick() {
+        return setConfirmDelete(n);
+      },
+      title: "Supprimer",
+      className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-red-600"
+    }, /*#__PURE__*/React.createElement(Ic.Trash, {
+      className: "w-4 h-4"
+    })))));
+  }))))), edit && /*#__PURE__*/React.createElement(NoteFraisEditor, {
+    note: edit,
+    allNotes: notes,
+    state: state,
+    currentUser: currentUser,
+    isAdmin: isAdmin,
+    onClose: function onClose() {
+      return setEdit(null);
+    },
+    onSave: (/*#__PURE__*/function () {
+      var _ref113 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30(data) {
+        var isNew;
+        return _regenerator().w(function (_context30) {
+          while (1) switch (_context30.n) {
+            case 0:
+              isNew = !data.id;
+              _context30.n = 1;
+              return upsertNoteFrais(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: isNew ? "Note créée" : "Note mise à jour",
+                message: data.number
+              });
+              setEdit(null);
+            case 2:
+              return _context30.a(2);
+          }
+        }, _callee30);
+      }));
+      return function (_x21) {
+        return _ref113.apply(this, arguments);
+      };
+    }())
+  }), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
+    title: "Supprimer cette note de frais ?",
+    message: "La note \"".concat(confirmDelete.number, "\" (").concat(fmtMoney(calcNoteFrais(confirmDelete).ttc), ") sera supprim\xE9e."),
+    danger: true,
+    confirmLabel: "Supprimer",
+    onCancel: function onCancel() {
+      return setConfirmDelete(null);
+    },
+    onConfirm: /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31() {
+      return _regenerator().w(function (_context31) {
+        while (1) switch (_context31.n) {
+          case 0:
+            _context31.n = 1;
+            return deleteNoteFrais(confirmDelete.id);
+          case 1:
+            setConfirmDelete(null);
+            toast.push({
+              type: "warning",
+              title: "Note supprimée"
+            });
+          case 2:
+            return _context31.a(2);
+        }
+      }, _callee31);
+    }))
+  }));
+}
+function NoteFraisEditor(_ref115) {
+  var _form$vatRate;
+  var note = _ref115.note,
+    allNotes = _ref115.allNotes,
+    state = _ref115.state,
+    currentUser = _ref115.currentUser,
+    isAdmin = _ref115.isAdmin,
+    onClose = _ref115.onClose,
+    onSave = _ref115.onSave;
+  var isNew = !note.id;
+  var _useState183 = useState(function () {
+      var _note$amount, _note$vatRate, _note$distance;
+      return {
+        id: note.id || uid("nf"),
+        number: note.number || generateNoteFraisNumber(allNotes),
+        date: note.date || todayISO(),
+        agentName: note.agentName || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.name) || "",
+        category: note.category || "repas",
+        description: note.description || "",
+        amount: (_note$amount = note.amount) !== null && _note$amount !== void 0 ? _note$amount : 0,
+        vatRate: (_note$vatRate = note.vatRate) !== null && _note$vatRate !== void 0 ? _note$vatRate : null,
+        distance: (_note$distance = note.distance) !== null && _note$distance !== void 0 ? _note$distance : 0,
+        clientId: note.clientId || null,
+        receiptName: note.receiptName || "",
+        receiptUrl: note.receiptUrl || "",
+        status: note.status || "brouillon",
+        approvedBy: note.approvedBy || null,
+        approvedAt: note.approvedAt || null,
+        paidAt: note.paidAt || null,
+        notes: note.notes || "",
+        createdAt: note.createdAt || nowISO()
+      };
+    }),
+    _useState184 = _slicedToArray(_useState183, 2),
+    form = _useState184[0],
+    setForm = _useState184[1];
+  var set = function set(k, v) {
+    return setForm(function (f) {
+      return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
+    });
+  };
+  var calc = calcNoteFrais(form);
+  var alerts = validateNoteFrais(form);
+  var errors = alerts.filter(function (a) {
+    return a.severity === "error";
+  });
+  var warnings = alerts.filter(function (a) {
+    return a.severity === "warning";
+  });
+  var infos = alerts.filter(function (a) {
+    return a.severity === "info";
+  });
+  var cat = calc.category;
+  var setCategory = function setCategory(catId) {
+    var newCat = EXPENSE_CATEGORIES.find(function (c) {
+      return c.id === catId;
+    });
+    setForm(function (f) {
+      var _newCat$defaultVat;
+      return _objectSpread(_objectSpread({}, f), {}, {
+        category: catId,
+        vatRate: (_newCat$defaultVat = newCat === null || newCat === void 0 ? void 0 : newCat.defaultVat) !== null && _newCat$defaultVat !== void 0 ? _newCat$defaultVat : 17
+      });
+    });
+  };
+  var setDistance = function setDistance(km) {
+    var dist = Number(km) || 0;
+    if (form.category === "km") {
+      setForm(function (f) {
+        return _objectSpread(_objectSpread({}, f), {}, {
+          distance: dist,
+          amount: round2(dist * LU_EXPENSE_RULES.kmRate)
+        });
+      });
+    } else {
+      set("distance", dist);
+    }
+  };
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: isNew ? "Nouvelle note de frais" : "Note \xB7 ".concat(form.number),
+    size: "xl",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center justify-between flex-wrap gap-3"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-600"
+    }, "Total : ", /*#__PURE__*/React.createElement("span", {
+      className: "font-bold text-paper-800 text-base tabular-nums"
+    }, fmtMoney(calc.ttc)), calc.tva > 0 && /*#__PURE__*/React.createElement("span", {
+      className: "text-paper-500"
+    }, " \xB7 dont ", fmtMoney(calc.tva), " TVA (", calc.vat, " %)")), /*#__PURE__*/React.createElement("div", {
+      className: "flex gap-2 flex-wrap"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(_objectSpread(_objectSpread({}, form), {}, {
+          status: "brouillon"
+        }));
+      }
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
+        className: "w-4 h-4"
+      }),
+      disabled: errors.length > 0,
+      onClick: function onClick() {
+        return onSave(_objectSpread(_objectSpread({}, form), {}, {
+          status: form.status === "brouillon" ? "soumise" : form.status
+        }));
+      }
+    }, errors.length > 0 ? "Soumettre (".concat(errors.length, " erreur").concat(errors.length > 1 ? "s" : "", ")") : "Soumettre")))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Identification"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "N\xB0 note"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.number,
+    onChange: function onChange(e) {
+      return set("number", e.target.value);
+    },
+    className: "font-mono"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.date,
+    onChange: function onChange(e) {
+      return set("date", e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Demandeur",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.agentName,
+    onChange: function onChange(e) {
+      return set("agentName", e.target.value);
+    },
+    placeholder: "Pr\xE9nom Nom"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Nature de la d\xE9pense"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Cat\xE9gorie",
+    required: true
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.category,
+    onChange: function onChange(e) {
+      return setCategory(e.target.value);
+    }
+  }, EXPENSE_CATEGORIES.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.label);
+  })), cat.hint && /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-paper-500 mt-1 italic"
+  }, cat.hint)), /*#__PURE__*/React.createElement(Field, {
+    label: "Description",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.description,
+    onChange: function onChange(e) {
+      return set("description", e.target.value);
+    },
+    placeholder: cat.id === "km" ? "Ex : Visite client AKABI à Esch" : "Ex : Restaurant pro avec client X"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Montant"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 md:grid-cols-4 gap-4"
+  }, cat.id === "km" && /*#__PURE__*/React.createElement(Field, {
+    label: "Distance (km)",
+    required: true,
+    hint: "Trajet aller-retour total"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    step: "0.1",
+    min: "0",
+    value: form.distance,
+    onChange: function onChange(e) {
+      return setDistance(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Montant TTC (\u20AC)",
+    required: true,
+    hint: cat.id === "km" ? "Auto-calcul\xE9 : ".concat(LU_EXPENSE_RULES.kmRate, " \u20AC/km") : null
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "number",
+    step: "0.01",
+    min: "0",
+    value: form.amount,
+    onChange: function onChange(e) {
+      return set("amount", parseFloat(e.target.value) || 0);
+    }
+  })), cat.id !== "km" && /*#__PURE__*/React.createElement(Field, {
+    label: "TVA %"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: (_form$vatRate = form.vatRate) !== null && _form$vatRate !== void 0 ? _form$vatRate : cat.defaultVat,
+    onChange: function onChange(e) {
+      return set("vatRate", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA (\u20AC)",
+    hint: "Auto-calcul\xE9e"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: calc.tva.toFixed(2),
+    disabled: true,
+    className: "bg-paper-50"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "HT (\u20AC)",
+    hint: "Auto-calcul\xE9"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: calc.ht.toFixed(2),
+    disabled: true,
+    className: "bg-paper-50"
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Justificatif & rattachement"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom du justificatif",
+    hint: "Ex : Facture restaurant XYZ"
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: form.receiptName,
+    onChange: function onChange(e) {
+      return set("receiptName", e.target.value);
+    },
+    placeholder: "R\xE9f\xE9rence ou nom du document"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Lien vers le justificatif (optionnel)",
+    hint: "URL Google Drive, Dropbox\u2026"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "url",
+    value: form.receiptUrl,
+    onChange: function onChange(e) {
+      return set("receiptUrl", e.target.value);
+    },
+    placeholder: "https://\u2026"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Client li\xE9 (optionnel)"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.clientId || "",
+    onChange: function onChange(e) {
+      return set("clientId", e.target.value || null);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Aucun \u2014"), state.clients.map(function (c) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: c.id,
+      value: c.id
+    }, c.name);
+  }))), isAdmin && /*#__PURE__*/React.createElement(Field, {
+    label: "Statut"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.status,
+    onChange: function onChange(e) {
+      return set("status", e.target.value);
+    }
+  }, Object.entries(NOTE_FRAIS_STATUS).map(function (_ref116) {
+    var _ref117 = _slicedToArray(_ref116, 2),
+      k = _ref117[0],
+      v = _ref117[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base bg-paper-50/40 p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "R\xE9capitulatif"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-3 mb-2"
+  }, /*#__PURE__*/React.createElement(RecapRow, {
+    label: "Total TTC",
+    value: fmtMoney(calc.ttc)
+  }), /*#__PURE__*/React.createElement(RecapRow, {
+    label: "TVA",
+    value: fmtMoney(calc.tva),
+    sub: "".concat(calc.vat, " %"),
+    color: "blue"
+  }), /*#__PURE__*/React.createElement(RecapRow, {
+    label: "HT",
+    value: fmtMoney(calc.ht)
+  })), cat.id === "km" && form.distance > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 mt-2"
+  }, "D\xE9tail : ", form.distance, " km \xD7 ", LU_EXPENSE_RULES.kmRate.toFixed(2), " \u20AC/km = ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-gold-700"
+  }, fmtMoney(round2(form.distance * LU_EXPENSE_RULES.kmRate))))), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, errors.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-red-300 bg-red-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-red-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Erreurs (", errors.length, ")"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-red-700"
+  }, errors.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-red-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  }))), warnings.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-amber-300 bg-amber-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-amber-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Avertissements (", warnings.length, ")"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-amber-700"
+  }, warnings.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-amber-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  }))), infos.length > 0 && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md border border-blue-200 bg-blue-50 p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2 text-blue-800 font-semibold text-sm mb-2"
+  }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+    className: "w-4 h-4"
+  }), " Infos"), /*#__PURE__*/React.createElement("ul", {
+    className: "space-y-1 text-sm text-blue-700"
+  }, infos.map(function (a, i) {
+    return /*#__PURE__*/React.createElement("li", {
+      key: i,
+      className: "flex items-start gap-2"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "text-blue-500 mt-0.5"
+    }, "\u25CF"), a.message);
+  })))), /*#__PURE__*/React.createElement(Field, {
+    label: "Notes / commentaire"
+  }, /*#__PURE__*/React.createElement(Textarea, {
+    rows: 2,
+    value: form.notes,
+    onChange: function onChange(e) {
+      return set("notes", e.target.value);
+    },
+    placeholder: "D\xE9tails additionnels\u2026"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] text-paper-400 leading-relaxed border-t border-paper-100 pt-3"
+  }, "R\xE8gles : indemnit\xE9 kilom\xE9trique 0,30 \u20AC/km (depuis 01.08.2015, non index\xE9e) \xB7 forfait jour LU 14 \u20AC \xB7 forfait nuit LU 56 \u20AC \xB7 ch\xE8ques-repas exon\xE9r\xE9s \u2264 10,80 \u20AC (employeur 6,48 \u20AC + employ\xE9 4,32 \u20AC) \xB7 TVA h\xF4tellerie LU 3 % \xB7 conservation des justificatifs 10 ans (art. 16 Code de commerce LU).")));
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
 </script>
 </body>
