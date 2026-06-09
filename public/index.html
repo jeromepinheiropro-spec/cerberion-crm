@@ -185,9 +185,86 @@
   .kpi-accent { position: relative; overflow: hidden; }
   .kpi-accent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
 
-  @media (max-width: 768px) {
-    .sidebar-mobile-hide { display:none; }
+  /* ============================================================
+     RESPONSIVE — Tablette & mobile
+     ============================================================ */
+
+  /* Tablette (≤ 1024px) : sidebar plus compacte, paddings réduits */
+  @media (max-width: 1024px) {
+    .kanban-col { min-width: 260px; }
   }
+
+  /* Mobile (≤ 768px) — affichage à une colonne, sidebar en drawer */
+  @media (max-width: 768px) {
+    .sidebar-mobile-hide { display: none !important; }
+
+    /* TopBar — plus compact, titre masqué (déjà géré par md:hidden côté JSX) */
+    .topbar { height: 56px !important; padding-left: 12px !important; padding-right: 12px !important; gap: 8px !important; }
+    .topbar .input-base { font-size: 14px; height: 38px; }
+
+    /* Cards & paddings */
+    .card-base, .card-soft { border-radius: 12px; }
+
+    /* Boutons — éviter qu'ils débordent */
+    .btn-primary, .btn-ghost, .btn-danger { font-size: 13px; }
+
+    /* Inputs — meilleure cible tactile */
+    .input-base { font-size: 16px; padding: 10px 12px; } /* 16px = pas de zoom iOS */
+
+    /* Tables — déjà dans .overflow-x-auto, on densifie un peu */
+    table { font-size: 13px; }
+    table th, table td { padding: 8px 10px !important; white-space: nowrap; }
+
+    /* Modal — plein écran sur mobile */
+    .modal-shell { padding: 0 !important; align-items: stretch !important; }
+    .modal-card { border-radius: 0 !important; max-height: 100vh !important; min-height: 100vh; width: 100% !important; max-width: 100% !important; }
+    .modal-card .p-6 { padding: 16px !important; }
+
+    /* Kanban — scroll horizontal fluide */
+    .kanban-col { min-width: 78vw; }
+
+    /* Forcer toutes les grilles Tailwind multi-colonnes à 1 colonne sur mobile */
+    [class*="grid-cols-2"],
+    [class*="grid-cols-3"],
+    [class*="grid-cols-4"],
+    [class*="grid-cols-5"],
+    [class*="grid-cols-6"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    /* Headers/titres — réduire un peu */
+    h1, .text-3xl { font-size: 22px !important; line-height: 1.2 !important; }
+    h2, .text-2xl { font-size: 19px !important; line-height: 1.25 !important; }
+    h3, .text-xl  { font-size: 17px !important; }
+
+    /* Flex de boutons d'action en barre — wrap au lieu de déborder */
+    .actions-bar, [data-actions-bar] { flex-wrap: wrap !important; gap: 8px !important; }
+
+    /* KPI accent — étendre sur toute la largeur */
+    .kpi-accent { width: 100%; }
+
+    /* Réduire scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+
+    /* Dropdowns / popovers TopBar — éviter qu'ils sortent de l'écran */
+    .topbar [class*="absolute"][class*="right-"] { right: 8px !important; }
+  }
+
+  /* Mobile très étroit (≤ 480px) — encore plus dense */
+  @media (max-width: 480px) {
+    main { padding-left: 12px !important; padding-right: 12px !important; padding-top: 16px !important; padding-bottom: 16px !important; }
+    .card-base, .card-soft { padding: 12px !important; }
+    .kanban-col { min-width: 85vw; }
+
+    /* Tabs / nav horizontales — taille de texte */
+    .tab-item, [role="tab"] { font-size: 13px !important; padding: 8px 10px !important; }
+  }
+
+  /* Assurer que le drawer mobile (Sidebar overlay) prend toute la hauteur même si .sidebar-mobile-hide existe */
+  @media (max-width: 768px) {
+    .fixed.left-0.top-0.bottom-0 .sidebar-mobile-hide { display: flex !important; }
+  }
+
   @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
@@ -208,8 +285,14 @@ function _regenerator() { /*! regenerator-runtime -- Copyright (c) 2014-present,
 function _regeneratorDefine2(e, r, n, t) { var i = Object.defineProperty; try { i({}, "", {}); } catch (e) { i = 0; } _regeneratorDefine2 = function _regeneratorDefine(e, r, n, t) { function o(r, n) { _regeneratorDefine2(e, r, function (e) { return this._invoke(r, n, e); }); } r ? i ? i(e, r, { value: n, enumerable: !t, configurable: !t, writable: !t }) : e[r] = n : (o("next", 0), o("throw", 1), o("return", 2)); }, _regeneratorDefine2(e, r, n, t); }
 function _objectWithoutProperties(e, t) { if (null == e) return {}; var o, r, i = _objectWithoutPropertiesLoose(e, t); if (Object.getOwnPropertySymbols) { var n = Object.getOwnPropertySymbols(e); for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]); } return i; }
 function _objectWithoutPropertiesLoose(r, e) { if (null == r) return {}; var t = {}; for (var n in r) if ({}.hasOwnProperty.call(r, n)) { if (-1 !== e.indexOf(n)) continue; t[n] = r[n]; } return t; }
+function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
+function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
+function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
+function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
+function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 function _iterableToArrayLimit(r, l) { var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (null != t) { var e, n, i, u, a = [], f = !0, o = !1; try { if (i = (t = t.call(r)).next, 0 === l) { if (Object(t) !== t) return; f = !1; } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0); } catch (r) { o = !0, n = r; } finally { try { if (!f && null != t["return"] && (u = t["return"](), Object(u) !== u)) return; } finally { if (o) throw n; } } return a; } }
 function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
@@ -220,13 +303,6 @@ function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" 
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
 function asyncGeneratorStep(n, t, e, r, o, a, c) { try { var i = n[a](c), u = i.value; } catch (n) { return void e(n); } i.done ? t(u) : Promise.resolve(u).then(r, o); }
 function _asyncToGenerator(n) { return function () { var t = this, e = arguments; return new Promise(function (r, o) { var a = n.apply(t, e); function _next(n) { asyncGeneratorStep(a, r, o, _next, _throw, "next", n); } function _throw(n) { asyncGeneratorStep(a, r, o, _next, _throw, "throw", n); } _next(void 0); }); }; }
-function _toConsumableArray(r) { return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread(); }
-function _nonIterableSpread() { throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
-function _iterableToArray(r) { if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r); }
-function _arrayWithoutHoles(r) { if (Array.isArray(r)) return _arrayLikeToArray(r); }
-function _createForOfIteratorHelper(r, e) { var t = "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"]; if (!t) { if (Array.isArray(r) || (t = _unsupportedIterableToArray(r)) || e && r && "number" == typeof r.length) { t && (r = t); var _n = 0, F = function F() {}; return { s: F, n: function n() { return _n >= r.length ? { done: !0 } : { done: !1, value: r[_n++] }; }, e: function e(r) { throw r; }, f: F }; } throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); } var o, a = !0, u = !1; return { s: function s() { t = t.call(r); }, n: function n() { var r = t.next(); return a = r.done, r; }, e: function e(r) { u = !0, o = r; }, f: function f() { try { a || null == t["return"] || t["return"](); } finally { if (u) throw o; } } }; }
-function _unsupportedIterableToArray(r, a) { if (r) { if ("string" == typeof r) return _arrayLikeToArray(r, a); var t = {}.toString.call(r).slice(8, -1); return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0; } }
-function _arrayLikeToArray(r, a) { (null == a || a > r.length) && (a = r.length); for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e]; return n; }
 // ============================================================================
 //  CERBERION CRM - Single-file React Application
 // ============================================================================
@@ -344,13 +420,7 @@ var VAT_RATES = [{
   rate: 17,
   label: "17 % (standard LU)"
 }];
-
-// ============================================================================
-//  LUXEMBOURG LABOR LAW — Fiches Extra / Missions courtes
-//  Sources : ITM (Inspection du Travail et des Mines) + Convention collective
-//  Sécurité privée (Gardiennage / SSIAP), arrêté d'obligation générale 2019.
-//  Mise à jour 2026 (SSM indice 992,24 — janvier 2026).
-// ============================================================================
+// ===== Fiches Extra constants (ITM Luxembourg) =====
 var LU_LABOR = {
   dailyMaxHours: 10,
   weeklyMaxHours: 48,
@@ -928,21 +998,21 @@ function hashPassword(_x) {
   return _hashPassword.apply(this, arguments);
 } // ---------- Utils ----------
 function _hashPassword() {
-  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee32(password) {
+  _hashPassword = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30(password) {
     var enc, hash;
-    return _regenerator().w(function (_context32) {
-      while (1) switch (_context32.n) {
+    return _regenerator().w(function (_context30) {
+      while (1) switch (_context30.n) {
         case 0:
           enc = new TextEncoder().encode(password + "::cerberion-salt");
-          _context32.n = 1;
+          _context30.n = 1;
           return crypto.subtle.digest('SHA-256', enc);
         case 1:
-          hash = _context32.v;
-          return _context32.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
+          hash = _context30.v;
+          return _context30.a(2, Array.from(new Uint8Array(hash)).map(function (b) {
             return b.toString(16).padStart(2, '0');
           }).join(''));
       }
-    }, _callee32);
+    }, _callee30);
   }));
   return _hashPassword.apply(this, arguments);
 }
@@ -1000,19 +1070,23 @@ var initialsOf = function initialsOf() {
 };
 function calcQuoteTotals(lines) {
   var discountPct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+  // Le 3e paramètre est le taux de TVA. S'il est absent, on retombe sur le taux LU par défaut.
+  var vatRate = arguments.length > 2 && arguments[2] !== undefined ? Number(arguments[2]) : VAT_LU;
+  if (!isFinite(vatRate)) vatRate = VAT_LU;
   var subTotal = lines.reduce(function (s, l) {
     return s + (Number(l.qty) || 0) * (Number(l.unitPrice) || 0);
   }, 0);
   var discount = subTotal * (Number(discountPct) || 0) / 100;
   var ht = subTotal - discount;
-  var tva = ht * VAT_LU / 100;
+  var tva = ht * vatRate / 100;
   var ttc = ht + tva;
   return {
     subTotal: subTotal,
     discount: discount,
     ht: ht,
     tva: tva,
-    ttc: ttc
+    ttc: ttc,
+    vat: vatRate
   };
 }
 function generateQuoteNumber(quotes) {
@@ -2573,45 +2647,45 @@ function apiFetch(_x2) {
 //  AUTH PROVIDER - server-side users, JWT in localStorage
 // ============================================================================
 function _apiFetch() {
-  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee33(path) {
+  _apiFetch = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31(path) {
     var opts,
       token,
       headers,
       res,
       body,
-      _args33 = arguments;
-    return _regenerator().w(function (_context33) {
-      while (1) switch (_context33.n) {
+      _args31 = arguments;
+    return _regenerator().w(function (_context31) {
+      while (1) switch (_context31.n) {
         case 0:
-          opts = _args33.length > 1 && _args33[1] !== undefined ? _args33[1] : {};
+          opts = _args31.length > 1 && _args31[1] !== undefined ? _args31[1] : {};
           token = localStorage.getItem(TOKEN_KEY);
           headers = _objectSpread({
             "Content-Type": "application/json"
           }, opts.headers || {});
           if (token) headers.Authorization = "Bearer ".concat(token);
-          _context33.n = 1;
+          _context31.n = 1;
           return fetch(apiBase + path, _objectSpread(_objectSpread({}, opts), {}, {
             headers: headers
           }));
         case 1:
-          res = _context33.v;
+          res = _context31.v;
           if (res.ok) {
-            _context33.n = 3;
+            _context31.n = 3;
             break;
           }
-          _context33.n = 2;
+          _context31.n = 2;
           return res.json()["catch"](function () {
             return {
               error: res.statusText
             };
           });
         case 2:
-          body = _context33.v;
+          body = _context31.v;
           throw new Error(body.error || res.statusText);
         case 3:
-          return _context33.a(2, res.json());
+          return _context31.a(2, res.json());
       }
-    }, _callee33);
+    }, _callee31);
   }));
   return _apiFetch.apply(this, arguments);
 }
@@ -2982,7 +3056,9 @@ function AuthGate(_ref21) {
     pendingInvite = _useAuth.pendingInvite,
     bootLoading = _useAuth.bootLoading;
   var _useState13 = useState(function () {
-      return pendingInvite ? "signup" : auth.users.length === 0 ? "signup" : "login";
+      // Priorité : on affiche toujours l'écran de connexion, sauf en cas d'invitation.
+      // Le lien "Créer un compte" reste accessible sous le bouton "Se connecter".
+      return pendingInvite ? "signup" : "login";
     }),
     _useState14 = _slicedToArray(_useState13, 2),
     mode = _useState14[0],
@@ -4175,8 +4251,18 @@ function StoreProvider(_ref43) {
 
   // -------- Quotes
   var upsertQuote = function upsertQuote(data) {
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
+    var _state$settings_q;
+    // Priorité : taux porté par le devis, sinon taux par défaut des paramètres, sinon LU.
+    var rate = data.vat != null ? Number(data.vat) : (_state$settings_q = state.settings) != null && _state$settings_q.vat != null ? Number(_state$settings_q.vat) : VAT_LU;
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
+    // Snapshot du signataire (utilisateur connecté au moment de la création/MAJ) pour les liens publics.
+    var signerSnapshot = data.signer || (currentUser ? {
+      name: currentUser.name || "",
+      position: currentUser.position || ""
+    } : null);
     return dispatch("upsertQuote", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
+      vat: rate,
+      signer: signerSnapshot,
       number: data.number || generateQuoteNumber(state.quotes)
     }));
   };
@@ -4223,8 +4309,12 @@ function StoreProvider(_ref43) {
 
   // -------- Invoices
   var upsertInvoice = function upsertInvoice(data) {
-    var totals = calcQuoteTotals(data.lines || [], data.discount || 0);
+    var _state$settings_i;
+    // Priorité : taux porté par la facture, sinon taux par défaut des paramètres, sinon LU.
+    var rate = data.vat != null ? Number(data.vat) : (_state$settings_i = state.settings) != null && _state$settings_i.vat != null ? Number(_state$settings_i.vat) : VAT_LU;
+    var totals = calcQuoteTotals(data.lines || [], data.discount || 0, rate);
     return dispatch("upsertInvoice", _objectSpread(_objectSpread(_objectSpread({}, data), totals), {}, {
+      vat: rate,
       number: data.number || generateInvoiceNumber(state.invoices)
     }));
   };
@@ -4278,8 +4368,6 @@ function StoreProvider(_ref43) {
       id: id
     });
   };
-
-  // -------- Fiches Extra (missions courtes)
   var upsertFicheExtra = function upsertFicheExtra(data) {
     return dispatch("upsertFicheExtra", data);
   };
@@ -4287,6 +4375,100 @@ function StoreProvider(_ref43) {
     return dispatch("deleteFicheExtra", {
       id: id
     });
+  };
+  var exportFichesExtraCsv = function exportFichesExtraCsv() {
+    return csvDownload("cerberion-fiches-extra-".concat(todayISO(), ".csv"), state.fichesExtra || [], [{
+      key: "number",
+      label: "N° fiche"
+    }, {
+      key: "date",
+      label: "Date"
+    }, {
+      key: "agentName",
+      label: "Agent"
+    }, {
+      key: "agentRole",
+      label: "Rôle",
+      value: function value(r) {
+        var _AGENT_ROLES$find;
+        return ((_AGENT_ROLES$find = AGENT_ROLES.find(function (x) {
+          return x.id === r.agentRole;
+        })) === null || _AGENT_ROLES$find === void 0 ? void 0 : _AGENT_ROLES$find.label) || r.agentRole || "";
+      }
+    }, {
+      key: "clientId",
+      label: "Client",
+      value: function value(r) {
+        return lookupClient(r.clientId);
+      }
+    }, {
+      key: "location",
+      label: "Lieu"
+    }, {
+      key: "startTime",
+      label: "Début"
+    }, {
+      key: "endTime",
+      label: "Fin"
+    }, {
+      key: "breakMinutes",
+      label: "Pause (min)"
+    }, {
+      key: "totalH",
+      label: "Heures totales",
+      value: function value(r) {
+        return calcFicheExtra(r).totalH;
+      }
+    }, {
+      key: "dayH",
+      label: "Heures jour",
+      value: function value(r) {
+        return calcFicheExtra(r).dayH;
+      }
+    }, {
+      key: "nightH",
+      label: "Heures nuit",
+      value: function value(r) {
+        return calcFicheExtra(r).nightH;
+      }
+    }, {
+      key: "overtimeH",
+      label: "Heures sup",
+      value: function value(r) {
+        return calcFicheExtra(r).overtimeH;
+      }
+    }, {
+      key: "onSunday",
+      label: "Dimanche",
+      value: function value(r) {
+        return calcFicheExtra(r).onSunday ? "Oui" : "";
+      }
+    }, {
+      key: "isHoliday",
+      label: "Férié",
+      value: function value(r) {
+        return calcFicheExtra(r).isHoliday ? "Oui" : "";
+      }
+    }, {
+      key: "hourlyRate",
+      label: "Taux €/h"
+    }, {
+      key: "totalGross",
+      label: "Brut total €",
+      value: function value(r) {
+        return calcFicheExtra(r).totalGross;
+      }
+    }, {
+      key: "status",
+      label: "Statut",
+      value: function value(r) {
+        var _FICHE_EXTRA_STATUS$r;
+        return ((_FICHE_EXTRA_STATUS$r = FICHE_EXTRA_STATUS[r.status]) === null || _FICHE_EXTRA_STATUS$r === void 0 ? void 0 : _FICHE_EXTRA_STATUS$r.label) || r.status;
+      }
+    }, {
+      key: "notes",
+      label: "Notes"
+    }]);
   };
 
   // -------- Settings
@@ -4556,100 +4738,6 @@ function StoreProvider(_ref43) {
       label: "Créé le"
     }]);
   };
-  var exportFichesExtraCsv = function exportFichesExtraCsv() {
-    return csvDownload("cerberion-fiches-extra-".concat(todayISO(), ".csv"), state.fichesExtra || [], [{
-      key: "number",
-      label: "N° fiche"
-    }, {
-      key: "date",
-      label: "Date"
-    }, {
-      key: "agentName",
-      label: "Agent"
-    }, {
-      key: "agentRole",
-      label: "Rôle",
-      value: function value(r) {
-        var _AGENT_ROLES$find;
-        return ((_AGENT_ROLES$find = AGENT_ROLES.find(function (x) {
-          return x.id === r.agentRole;
-        })) === null || _AGENT_ROLES$find === void 0 ? void 0 : _AGENT_ROLES$find.label) || r.agentRole || "";
-      }
-    }, {
-      key: "clientId",
-      label: "Client",
-      value: function value(r) {
-        return lookupClient(r.clientId);
-      }
-    }, {
-      key: "location",
-      label: "Lieu"
-    }, {
-      key: "startTime",
-      label: "Début"
-    }, {
-      key: "endTime",
-      label: "Fin"
-    }, {
-      key: "breakMinutes",
-      label: "Pause (min)"
-    }, {
-      key: "totalH",
-      label: "Heures totales",
-      value: function value(r) {
-        return calcFicheExtra(r).totalH;
-      }
-    }, {
-      key: "dayH",
-      label: "Heures jour",
-      value: function value(r) {
-        return calcFicheExtra(r).dayH;
-      }
-    }, {
-      key: "nightH",
-      label: "Heures nuit",
-      value: function value(r) {
-        return calcFicheExtra(r).nightH;
-      }
-    }, {
-      key: "overtimeH",
-      label: "Heures sup",
-      value: function value(r) {
-        return calcFicheExtra(r).overtimeH;
-      }
-    }, {
-      key: "onSunday",
-      label: "Dimanche",
-      value: function value(r) {
-        return calcFicheExtra(r).onSunday ? "Oui" : "";
-      }
-    }, {
-      key: "isHoliday",
-      label: "Férié",
-      value: function value(r) {
-        return calcFicheExtra(r).isHoliday ? "Oui" : "";
-      }
-    }, {
-      key: "hourlyRate",
-      label: "Taux €/h"
-    }, {
-      key: "totalGross",
-      label: "Brut total €",
-      value: function value(r) {
-        return calcFicheExtra(r).totalGross;
-      }
-    }, {
-      key: "status",
-      label: "Statut",
-      value: function value(r) {
-        var _FICHE_EXTRA_STATUS$r;
-        return ((_FICHE_EXTRA_STATUS$r = FICHE_EXTRA_STATUS[r.status]) === null || _FICHE_EXTRA_STATUS$r === void 0 ? void 0 : _FICHE_EXTRA_STATUS$r.label) || r.status;
-      }
-    }, {
-      key: "notes",
-      label: "Notes"
-    }]);
-  };
   var exportAllCsv = function exportAllCsv() {
     exportClientsCsv();
     exportProspectsCsv();
@@ -4657,7 +4745,6 @@ function StoreProvider(_ref43) {
     exportInvoicesCsv();
     exportProductsCsv();
     exportTasksCsv();
-    exportFichesExtraCsv();
   };
 
   // Notification helpers (using readBy array)
@@ -5195,6 +5282,10 @@ function Dashboard(_ref49) {
   var _useStore4 = useStore(),
     state = _useStore4.state,
     toggleTask = _useStore4.toggleTask;
+  var _useAuth_dash = useAuth(),
+    currentUser_dash = _useAuth_dash.currentUser;
+  // Prénom de l'utilisateur connecté (1er mot du nom complet), fallback prudent.
+  var _greetingName = (currentUser_dash && currentUser_dash.name) ? String(currentUser_dash.name).trim().split(/\s+/)[0] : "";
   var quotes = state.quotes,
     clients = state.clients,
     prospects = state.prospects,
@@ -5239,6 +5330,12 @@ function Dashboard(_ref49) {
   var totalUnpaid = unpaid.reduce(function (s, i) {
     return s + (i.ttc || 0);
   }, 0);
+  var paidInvoices = (invoices || []).filter(function (i) {
+    return i.status === "payee";
+  });
+  var totalPaid = paidInvoices.reduce(function (s, i) {
+    return s + (i.ttc || 0);
+  }, 0);
   var recentActivities = _toConsumableArray(activities).sort(function (a, b) {
     return new Date(b.createdAt) - new Date(a.createdAt);
   }).slice(0, 8);
@@ -5255,6 +5352,11 @@ function Dashboard(_ref49) {
       }, 0)
     });
   });
+  // CA des 6 derniers mois = total TTC des FACTURES ÉMISES (envoyée, payée ou en retard),
+  // attribué au mois de la date d'émission. On exclut les brouillons.
+  var issuedInvoices = (invoices || []).filter(function (i) {
+    return ["envoyee", "payee", "retard"].includes(i.status);
+  });
   var months = useMemo(function () {
     var arr = [];
     var now = new Date();
@@ -5264,10 +5366,10 @@ function Dashboard(_ref49) {
       var label = d.toLocaleDateString("fr-FR", {
         month: "short"
       });
-      var val = signedQuotes.filter(function (q) {
-        return q.signedAt && q.signedAt.slice(0, 7) === key;
-      }).reduce(function (s, q) {
-        return s + (q.ttc || 0);
+      var val = issuedInvoices.filter(function (inv) {
+        return inv.issueDate && String(inv.issueDate).slice(0, 7) === key;
+      }).reduce(function (s, inv) {
+        return s + (inv.ttc || 0);
       }, 0);
       arr.push({
         label: label,
@@ -5278,7 +5380,7 @@ function Dashboard(_ref49) {
       _loop();
     }
     return arr;
-  }, [signedQuotes]);
+  }, [issuedInvoices]);
   var maxMonth = Math.max.apply(Math, [1].concat(_toConsumableArray(months.map(function (m) {
     return m.value;
   }))));
@@ -5324,7 +5426,7 @@ function Dashboard(_ref49) {
     className: "text-xs uppercase tracking-[0.3em] text-gold-700 font-semibold"
   }, "Cerberion \xB7 Tableau de bord"), /*#__PURE__*/React.createElement("h1", {
     className: "text-3xl font-bold text-paper-800 mt-2"
-  }, "Bonjour J\xE9r\xF4me"), /*#__PURE__*/React.createElement("p", {
+  }, _greetingName ? "Bonjour " + _greetingName : "Bonjour"), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-paper-600 mt-1"
   }, new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -5350,7 +5452,7 @@ function Dashboard(_ref49) {
       setPage("prospects");
     }
   }, "Ajouter un prospect")))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
+    className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
   }, /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.FileText, {
       className: "w-5 h-5"
@@ -5370,15 +5472,6 @@ function Dashboard(_ref49) {
     iconBg: "bg-emerald-50",
     accentColor: "emerald"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: /*#__PURE__*/React.createElement(Ic.X, {
-      className: "w-5 h-5"
-    }),
-    label: "Devis perdus",
-    value: fmtMoney(totalLost),
-    sub: "".concat(lostQuotes.length, " opportunit\xE9s"),
-    iconBg: "bg-red-50",
-    accentColor: "red"
-  }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-5 h-5"
     }),
@@ -5388,27 +5481,23 @@ function Dashboard(_ref49) {
     iconBg: "bg-gold-50",
     accentColor: "gold"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: /*#__PURE__*/React.createElement(Ic.Target, {
+    icon: /*#__PURE__*/React.createElement(Ic.AlertCircle, {
       className: "w-5 h-5"
     }),
-    label: "Prospects actifs",
-    value: activeProspects.length,
-    sub: "".concat(fmtMoney(activeProspects.reduce(function (s, p) {
-      return s + (p.value || 0);
-    }, 0))),
-    iconBg: "bg-amber-50",
-    accentColor: "amber"
+    label: "Factures impay\xE9es",
+    value: fmtMoney(totalUnpaid),
+    sub: "".concat(unpaid.length, " ", unpaid.length > 1 ? "factures" : "facture", " en attente"),
+    iconBg: unpaid.length > 0 ? "bg-amber-50" : "bg-paper-100",
+    accentColor: unpaid.length > 0 ? "amber" : "paper"
   }), /*#__PURE__*/React.createElement(KPICard, {
-    icon: overdueTasks.length > 0 ? /*#__PURE__*/React.createElement(Ic.AlertCircle, {
-      className: "w-5 h-5"
-    }) : /*#__PURE__*/React.createElement(Ic.Check, {
+    icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-5 h-5"
     }),
-    label: "T\xE2ches en retard",
-    value: overdueTasks.length,
-    sub: todayTasks.length > 0 ? "+ ".concat(todayTasks.length, " aujourd'hui") : "Tout à jour",
-    iconBg: overdueTasks.length > 0 ? "bg-red-50" : "bg-emerald-50",
-    accentColor: overdueTasks.length > 0 ? "red" : "emerald"
+    label: "Factures pay\xE9es",
+    value: fmtMoney(totalPaid),
+    sub: "".concat(paidInvoices.length, " ", paidInvoices.length > 1 ? "factures encaiss\xE9es" : "facture encaiss\xE9e"),
+    iconBg: "bg-emerald-50",
+    accentColor: "emerald"
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 lg:grid-cols-3 gap-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5417,9 +5506,9 @@ function Dashboard(_ref49) {
     className: "flex items-center justify-between mb-5"
   }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
     className: "font-semibold text-paper-800"
-  }, "Chiffre d'affaires sign\xE9 \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
+  }, "Chiffre d'affaires \xB7 6 derniers mois"), /*#__PURE__*/React.createElement("p", {
     className: "text-xs text-paper-500 mt-1"
-  }, "\xC9volution mensuelle des contrats remport\xE9s")), /*#__PURE__*/React.createElement("div", {
+  }, "Total TTC des factures \xE9mises (envoy\xE9es, pay\xE9es ou en retard)")), /*#__PURE__*/React.createElement("div", {
     className: "text-right"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-paper-500"
@@ -5428,18 +5517,15 @@ function Dashboard(_ref49) {
   }, fmtMoney(months.reduce(function (s, m) {
     return s + m.value;
   }, 0))))), /*#__PURE__*/React.createElement("div", {
-    className: "flex items-end gap-3 h-44"
+    className: "flex gap-3 h-56 md:h-72 lg:h-80"
   }, months.map(function (m, i) {
     return /*#__PURE__*/React.createElement("div", {
       key: i,
-      className: "flex-1 flex flex-col items-center gap-2 group"
+      className: "flex-1 flex flex-col items-center gap-2 group h-full"
     }, /*#__PURE__*/React.createElement("div", {
-      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors"
+      className: "text-[11px] font-semibold text-paper-600 group-hover:text-paper-800 transition-colors h-4"
     }, m.value > 0 ? "".concat(Math.round(m.value / 1000), "k") : ""), /*#__PURE__*/React.createElement("div", {
-      className: "w-full relative",
-      style: {
-        height: "100%"
-      }
+      className: "w-full relative flex-1"
     }, /*#__PURE__*/React.createElement("div", {
       className: "absolute bottom-0 left-0 right-0 rounded-t-md gold-grad transition-all duration-500",
       style: {
@@ -5653,7 +5739,8 @@ function ClientsPage(_ref52) {
     exportClientsCsv = _useStore5.exportClientsCsv;
   var toast = useToast();
   var clients = state.clients,
-    quotes = state.quotes;
+    quotes = state.quotes,
+    invoices = state.invoices || [];
   var _useState69 = useState(null),
     _useState70 = _slicedToArray(_useState69, 2),
     edit = _useState70[0],
@@ -5674,17 +5761,33 @@ function ClientsPage(_ref52) {
       return (a.name || "").localeCompare(b.name || "");
     });
   }, [clients, search]);
+  // CA signé = somme TTC des FACTURES PAYÉES pour ce client (vrai chiffre encaissé).
   var totalRevenue = function totalRevenue(clientId) {
-    return quotes.filter(function (q) {
-      return q.clientId === clientId && q.status === "signe";
-    }).reduce(function (s, q) {
-      return s + (q.ttc || 0);
+    return invoices.filter(function (i) {
+      return i.clientId === clientId && i.status === "payee";
+    }).reduce(function (s, i) {
+      return s + (i.ttc || 0);
     }, 0);
   };
   var openQuotesOf = function openQuotesOf(clientId) {
     return quotes.filter(function (q) {
       return q.clientId === clientId && q.status === "envoye";
     }).length;
+  };
+  // Factures en cours = facture(s) émise(s) mais pas encore payée(s) (statuts "envoyee" ou "retard").
+  var pendingInvoicesOf = function pendingInvoicesOf(clientId) {
+    var list = invoices.filter(function (i) {
+      return i.clientId === clientId && ["envoyee", "retard"].includes(i.status);
+    });
+    return {
+      count: list.length,
+      amount: list.reduce(function (s, i) {
+        return s + (i.ttc || 0);
+      }, 0),
+      hasOverdue: list.some(function (i) {
+        return i.status === "retard";
+      })
+    };
   };
   return /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
@@ -5743,13 +5846,15 @@ function ClientsPage(_ref52) {
   }, "Tags"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold text-right"
   }, "CA sign\xE9"), /*#__PURE__*/React.createElement("th", {
+    className: "px-5 py-3.5 font-semibold text-right"
+  }, "Factures en cours"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold text-center"
   }, "Devis ouverts"), /*#__PURE__*/React.createElement("th", {
     className: "px-5 py-3.5 font-semibold w-24"
   }))), /*#__PURE__*/React.createElement("tbody", {
     className: "divide-y divide-paper-100"
   }, filtered.length === 0 && /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
-    colSpan: "7"
+    colSpan: "8"
   }, /*#__PURE__*/React.createElement(Empty, {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-8 h-8"
@@ -5810,7 +5915,18 @@ function ClientsPage(_ref52) {
       className: "px-5 py-3.5 text-right"
     }, /*#__PURE__*/React.createElement("div", {
       className: "font-semibold gold-text"
-    }, fmtMoney(totalRevenue(c.id)))), /*#__PURE__*/React.createElement("td", {
+    }, fmtMoney(totalRevenue(c.id)))), (function () {
+      var p = pendingInvoicesOf(c.id);
+      return /*#__PURE__*/React.createElement("td", {
+        className: "px-5 py-3.5 text-right"
+      }, p.count > 0 ? /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        className: "font-semibold " + (p.hasOverdue ? "text-red-600" : "text-amber-700")
+      }, fmtMoney(p.amount)), /*#__PURE__*/React.createElement("div", {
+        className: "text-[11px] text-paper-500"
+      }, p.count, " facture", p.count > 1 ? "s" : "", p.hasOverdue ? " · en retard" : "")) : /*#__PURE__*/React.createElement("span", {
+        className: "text-paper-300"
+      }, "\u2014"));
+    })(), /*#__PURE__*/React.createElement("td", {
       className: "px-5 py-3.5 text-center"
     }, openQuotesOf(c.id) > 0 ? /*#__PURE__*/React.createElement(Badge, {
       color: "blue"
@@ -8175,6 +8291,7 @@ function QuoteEditor(_ref69) {
   var _useStore11 = useStore(),
     state = _useStore11.state;
   var isNew = !quote.id;
+  var _defaultVatQ = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState111 = useState(function () {
       return {
         id: quote.id || uid("q"),
@@ -8186,6 +8303,7 @@ function QuoteEditor(_ref69) {
         issueDate: quote.issueDate ? quote.issueDate.slice(0, 10) : todayISO(),
         validUntil: quote.validUntil ? quote.validUntil.slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
         discount: quote.discount || 0,
+        vat: quote.vat != null ? Number(quote.vat) : _defaultVatQ,
         lines: quote.lines && quote.lines.length > 0 ? quote.lines : [{
           id: uid("ln"),
           description: "",
@@ -8210,7 +8328,7 @@ function QuoteEditor(_ref69) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
   var setLine = function setLine(i, patch) {
     setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -8326,23 +8444,17 @@ function QuoteEditor(_ref69) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      onClick: function onClick() {
-        return onSave(form);
-      },
-      disabled: !valid
-    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenSend: true
+          thenExportPDF: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Send, {
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer & envoyer")))
+    }, "Enregistrer et exporter PDF")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8410,7 +8522,20 @@ function QuoteEditor(_ref69) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA applicable",
+    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vat,
+    onChange: function onChange(e) {
+      return set("vat", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -8572,7 +8697,7 @@ function QuoteEditor(_ref69) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -8589,6 +8714,7 @@ function QuoteEditor(_ref69) {
 function QuoteViewer(_ref71) {
   var _state$settings2, _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
   var quoteId = _ref71.quoteId,
+    autoExport = _ref71.autoExport,
     onClose = _ref71.onClose,
     onEdit = _ref71.onEdit,
     openClientProfile = _ref71.openClientProfile,
@@ -8597,6 +8723,9 @@ function QuoteViewer(_ref71) {
     state = _useStore12.state,
     setQuoteStatus = _useStore12.setQuoteStatus,
     generateInvoiceFromQuote = _useStore12.generateInvoiceFromQuote;
+  var _useAuth_qv = useAuth(),
+    currentUser_qv = _useAuth_qv.currentUser;
+  var _signerLive = currentUser_qv ? { name: currentUser_qv.name || "", position: currentUser_qv.position || "" } : null;
   var toast = useToast();
   // All hooks must be called BEFORE any conditional return (React Hooks Rules)
   var printRef = useRef(null);
@@ -8737,6 +8866,15 @@ function QuoteViewer(_ref71) {
       title: "Statut mis à jour"
     });
   };
+  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
+  var _autoExportTriggered = useRef(false);
+  useEffect(function () {
+    if (autoExport && !_autoExportTriggered.current && printRef.current) {
+      _autoExportTriggered.current = true;
+      // petit délai pour s'assurer que la mise en page est faite
+      setTimeout(function () { exportPDF(); }, 350);
+    }
+  }, [autoExport, quote && quote.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -8825,7 +8963,8 @@ function QuoteViewer(_ref71) {
   }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
     quote: quote,
     recipient: recipient,
-    company: company
+    company: company,
+    signer: _signerLive
   }))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -8898,9 +9037,15 @@ function QuoteViewer(_ref71) {
 function BrandedQuoteDocument(_ref74) {
   var quote = _ref74.quote,
     recipient = _ref74.recipient,
-    company = _ref74.company;
+    company = _ref74.company,
+    signer = _ref74.signer;
   company = company || {};
-  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
+  var _quoteVat = quote.vat != null ? Number(quote.vat) : VAT_LU;
+  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, _quoteVat);
+  // Signataire : priorité au prop (utilisateur connecté), puis snapshot stocké sur le devis.
+  var _signerObj = signer || quote.signer || null;
+  var _signerName = (_signerObj && _signerObj.name) ? _signerObj.name : "Cerberion";
+  var _signerPos = (_signerObj && _signerObj.position) ? _signerObj.position : "Direction commerciale";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -9236,7 +9381,7 @@ function BrandedQuoteDocument(_ref74) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", _quoteVat, "%)"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500
     }
@@ -9393,13 +9538,13 @@ function BrandedQuoteDocument(_ref74) {
       marginTop: 8,
       fontStyle: "italic"
     }
-  }, "J. Pinheiro"), /*#__PURE__*/React.createElement("div", {
+  }, _signerName), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#6b7280",
       marginTop: 2
     }
-  }, "Direction commerciale"))), /*#__PURE__*/React.createElement("div", {
+  }, _signerPos))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 36,
       paddingTop: 14,
@@ -9670,24 +9815,24 @@ function InvoicesPage(_ref75) {
     onSave: (/*#__PURE__*/function () {
       var _ref78 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(data) {
         var opts,
-          finalData,
           _args21 = arguments;
         return _regenerator().w(function (_context21) {
           while (1) switch (_context21.n) {
             case 0:
               opts = _args21.length > 1 && _args21[1] !== undefined ? _args21[1] : {};
-              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
-                status: "envoyee"
-              }) : data;
               _context21.n = 1;
-              return upsertInvoice(finalData);
+              return upsertInvoice(data);
             case 1:
               toast.push({
                 type: "success",
-                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
-                message: finalData.number
+                title: editor.id ? "Facture mise à jour" : "Facture créée",
+                message: data.number
               });
               setEditor(null);
+              // Si "Enregistrer et exporter PDF" : ouvrir le viewer avec flag auto-export.
+              if (opts.thenExportPDF) {
+                setViewer(_objectSpread(_objectSpread({}, data), {}, { _autoExport: true }));
+              }
             case 2:
               return _context21.a(2);
           }
@@ -9717,6 +9862,7 @@ function InvoicesPage(_ref75) {
 function InvoiceViewer(_ref79) {
   var _state$settings3, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
   var invoice = _ref79.invoice,
+    autoExport = _ref79.autoExport,
     onClose = _ref79.onClose;
   var _useStore14 = useStore(),
     state = _useStore14.state,
@@ -9728,6 +9874,9 @@ function InvoiceViewer(_ref79) {
     _useState128 = _slicedToArray(_useState127, 2),
     exporting = _useState128[0],
     setExporting = _useState128[1];
+  var _autoExportTriggeredInv = useRef(false);
+  // Détecte un flag _autoExport sur l'invoice (cas viewer interne InvoicesPage).
+  var _shouldAutoExportInv = !!(autoExport || (invoice && invoice._autoExport));
   if (!invoice) return null;
   var client = state.clients.find(function (c) {
     return c.id === invoice.clientId;
@@ -9792,6 +9941,13 @@ function InvoiceViewer(_ref79) {
       return _ref80.apply(this, arguments);
     };
   }();
+  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
+  useEffect(function () {
+    if (_shouldAutoExportInv && !_autoExportTriggeredInv.current && printRef.current) {
+      _autoExportTriggeredInv.current = true;
+      setTimeout(function () { exportPDF(); }, 350);
+    }
+  }, [_shouldAutoExportInv, invoice && invoice.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -9864,6 +10020,7 @@ function InvoiceEditor(_ref81) {
   var isNew = !invoice.id;
   var paymentDays = (_state$settings$docum = (_state$settings4 = state.settings) === null || _state$settings4 === void 0 || (_state$settings4 = _state$settings4.documents) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
   var defaultTerms = ((_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.defaultTerms) || "Paiement à 30 jours fin de mois.";
+  var _defaultVatI = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
   var _useState129 = useState(function () {
       return {
         id: invoice.id || uid("inv"),
@@ -9874,6 +10031,7 @@ function InvoiceEditor(_ref81) {
         issueDate: invoice.issueDate ? invoice.issueDate.slice(0, 10) : todayISO(),
         dueDate: invoice.dueDate ? invoice.dueDate.slice(0, 10) : new Date(Date.now() + paymentDays * 86400000).toISOString().slice(0, 10),
         discount: invoice.discount || 0,
+        vat: invoice.vat != null ? Number(invoice.vat) : _defaultVatI,
         lines: invoice.lines && invoice.lines.length > 0 ? invoice.lines : [{
           id: uid("ln"),
           description: "",
@@ -9897,7 +10055,7 @@ function InvoiceEditor(_ref81) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
   var setLine = function setLine(i, patch) {
     return setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -9987,23 +10145,17 @@ function InvoiceEditor(_ref81) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      onClick: function onClick() {
-        return onSave(form);
-      },
-      disabled: !valid
-    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenSend: true
+          thenExportPDF: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Send, {
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer & envoyer")))
+    }, "Enregistrer et exporter PDF")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -10066,7 +10218,20 @@ function InvoiceEditor(_ref81) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "TVA applicable",
+    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vat,
+    onChange: function onChange(e) {
+      return set("vat", Number(e.target.value));
+    }
+  }, VAT_RATES.map(function (v) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: v.rate,
+      value: v.rate
+    }, v.label);
+  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -10237,7 +10402,7 @@ function InvoiceEditor(_ref81) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -10254,7 +10419,8 @@ function BrandedInvoiceDocument(_ref83) {
     client = _ref83.client,
     company = _ref83.company;
   company = company || {};
-  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0);
+  var _invVat = invoice.vat != null ? Number(invoice.vat) : VAT_LU;
+  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0, _invVat);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -10544,7 +10710,7 @@ function BrandedInvoiceDocument(_ref83) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
+  }, "TVA (", _invVat, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -12151,10 +12317,749 @@ function SettingsData(_ref99) {
     onClick: onReset
   }, "R\xE9initialiser toutes les donn\xE9es")));
 }
+// ============================================================================
+//  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
+// ============================================================================
+function SignaturePage(_ref100) {
+  var quoteId = _ref100.quoteId,
+    onClose = _ref100.onClose;
+  var toast = useToast();
+  var _useState159 = useState(null),
+    _useState160 = _slicedToArray(_useState159, 2),
+    quote = _useState160[0],
+    setQuote = _useState160[1];
+  var _useState161 = useState(null),
+    _useState162 = _slicedToArray(_useState161, 2),
+    recipient = _useState162[0],
+    setRecipient = _useState162[1];
+  var _useState163 = useState(COMPANY),
+    _useState164 = _slicedToArray(_useState163, 2),
+    company = _useState164[0],
+    setCompany = _useState164[1];
+  var _useState165 = useState(true),
+    _useState166 = _slicedToArray(_useState165, 2),
+    loading = _useState166[0],
+    setLoading = _useState166[1];
+  var _useState167 = useState(false),
+    _useState168 = _slicedToArray(_useState167, 2),
+    notFound = _useState168[0],
+    setNotFound = _useState168[1];
+  var _useState169 = useState(""),
+    _useState170 = _slicedToArray(_useState169, 2),
+    name = _useState170[0],
+    setName = _useState170[1];
+  var _useState171 = useState(false),
+    _useState172 = _slicedToArray(_useState171, 2),
+    accept = _useState172[0],
+    setAccept = _useState172[1];
+  var _useState173 = useState(false),
+    _useState174 = _slicedToArray(_useState173, 2),
+    signed = _useState174[0],
+    setSigned = _useState174[1];
+  useEffect(function () {
+    fetch("/api/public/quote/".concat(quoteId)).then(function (r) {
+      if (!r.ok) throw new Error("not found");
+      return r.json();
+    }).then(function (d) {
+      var _d$settings, _d$recipient;
+      setQuote(d.quote);
+      setRecipient(d.recipient);
+      if ((_d$settings = d.settings) !== null && _d$settings !== void 0 && _d$settings.company) setCompany(d.settings.company);
+      setName(((_d$recipient = d.recipient) === null || _d$recipient === void 0 ? void 0 : _d$recipient.contact) || "");
+    })["catch"](function () {
+      return setNotFound(true);
+    })["finally"](function () {
+      return setLoading(false);
+    });
+  }, [quoteId]);
+  if (loading) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "min-h-screen flex items-center justify-center"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-paper-500"
+    }, "Chargement du devis\u2026"));
+  }
+  if (!quote) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "min-h-screen flex items-center justify-center p-6"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "card-base p-10 text-center max-w-md"
+    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
+      className: "w-10 h-10 text-red-500 mx-auto mb-4"
+    }), /*#__PURE__*/React.createElement("h2", {
+      className: "text-xl font-bold text-paper-800 mb-2"
+    }, "Devis introuvable"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm text-paper-600 mb-5"
+    }, "Ce lien de signature n'est plus valide ou le devis a \xE9t\xE9 supprim\xE9."), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      onClick: onClose
+    }, "Retour au CRM")));
+  }
+  var onSign = /*#__PURE__*/function () {
+    var _ref101 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee28() {
+      var res, _t10;
+      return _regenerator().w(function (_context28) {
+        while (1) switch (_context28.p = _context28.n) {
+          case 0:
+            if (!(!name.trim() || !accept)) {
+              _context28.n = 1;
+              break;
+            }
+            return _context28.a(2);
+          case 1:
+            _context28.p = 1;
+            _context28.n = 2;
+            return fetch("/api/public/quote/".concat(quote.id, "/sign"), {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                signedBy: name.trim(),
+                signatureData: name.trim()
+              })
+            });
+          case 2:
+            res = _context28.v;
+            if (res.ok) {
+              _context28.n = 3;
+              break;
+            }
+            throw new Error("Signature échouée");
+          case 3:
+            setQuote(_objectSpread(_objectSpread({}, quote), {}, {
+              signedAt: new Date().toISOString(),
+              signedBy: name.trim(),
+              signatureData: name.trim()
+            }));
+            setSigned(true);
+            toast.push({
+              type: "success",
+              title: "Devis signé !",
+              message: "Cerberion a été notifié."
+            });
+            _context28.n = 5;
+            break;
+          case 4:
+            _context28.p = 4;
+            _t10 = _context28.v;
+            toast.push({
+              type: "error",
+              title: "Erreur",
+              message: String(_t10.message || _t10)
+            });
+          case 5:
+            return _context28.a(2);
+        }
+      }, _callee28, null, [[1, 4]]);
+    }));
+    return function onSign() {
+      return _ref101.apply(this, arguments);
+    };
+  }();
+  if (signed || quote.signedAt) {
+    return /*#__PURE__*/React.createElement("div", {
+      className: "min-h-screen flex items-center justify-center p-6"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "card-base p-10 text-center max-w-lg shadow-card-hover"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "inline-flex p-4 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 mb-5"
+    }, /*#__PURE__*/React.createElement(Ic.Check, {
+      className: "w-10 h-10"
+    })), /*#__PURE__*/React.createElement("h2", {
+      className: "text-2xl font-bold text-paper-800 mb-3"
+    }, "Devis accept\xE9"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm text-paper-700 mb-1"
+    }, "Merci, ", /*#__PURE__*/React.createElement("span", {
+      className: "font-semibold"
+    }, quote.signedBy || name), " !"), /*#__PURE__*/React.createElement("p", {
+      className: "text-sm text-paper-600 mb-6"
+    }, "Votre devis ", /*#__PURE__*/React.createElement("span", {
+      className: "font-mono text-gold-700"
+    }, quote.number), " a \xE9t\xE9 sign\xE9 \xE9lectroniquement."), /*#__PURE__*/React.createElement("div", {
+      className: "card-soft p-4 text-left mb-5"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-paper-500"
+    }, "Montant accept\xE9"), /*#__PURE__*/React.createElement("div", {
+      className: "text-2xl font-bold gold-text mt-1"
+    }, fmtMoney(quote.ttc)), /*#__PURE__*/React.createElement("div", {
+      className: "text-[11px] text-paper-500 mt-2"
+    }, "Sign\xE9 le ", fmtDateTime(quote.signedAt || nowISO()))), /*#__PURE__*/React.createElement("p", {
+      className: "text-xs text-paper-500"
+    }, "Un membre de l'\xE9quipe Cerberion vous contactera pour la mise en route."), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose,
+      className: "mt-5"
+    }, "Fermer")));
+  }
+  return /*#__PURE__*/React.createElement("div", {
+    className: "min-h-screen p-4 md:p-10"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "max-w-4xl mx-auto"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6 mb-6 flex items-center gap-4 hero-shimmer-light"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-16 h-16 rounded-xl bg-ink-900 flex items-center justify-center flex-none"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: LOGO_LIGHT,
+    alt: "Cerberion",
+    className: "w-12 h-12 object-contain"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "font-display text-xl tracking-[0.3em] text-paper-800"
+  }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-gold-700 tracking-wider uppercase font-medium"
+  }, "Security Manager")), /*#__PURE__*/React.createElement("div", {
+    className: "ml-auto text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500"
+  }, "Devis"), /*#__PURE__*/React.createElement("div", {
+    className: "font-mono text-gold-700 font-semibold"
+  }, quote.number))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white rounded-xl overflow-hidden shadow-card-hover border border-paper-200"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "32px 40px"
+    }
+  }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
+    quote: quote,
+    recipient: recipient,
+    company: company
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card-base p-6 mt-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 mb-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "p-2.5 rounded-lg bg-gold-50 text-gold-700"
+  }, /*#__PURE__*/React.createElement(Ic.PenTool, {
+    className: "w-5 h-5"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-paper-800"
+  }, "Signer ce devis"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-paper-600"
+  }, "En signant, vous acceptez les termes et le montant indiqu\xE9."))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Nom complet du signataire",
+    required: true
+  }, /*#__PURE__*/React.createElement(Input, {
+    value: name,
+    onChange: function onChange(e) {
+      return setName(e.target.value);
+    },
+    placeholder: "Pr\xE9nom et nom"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Date"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "text",
+    disabled: true,
+    value: new Date().toLocaleDateString("fr-FR", {
+      dateStyle: "long"
+    })
+  }))), /*#__PURE__*/React.createElement("label", {
+    className: "flex items-start gap-3 mt-4 cursor-pointer"
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "checkbox",
+    checked: accept,
+    onChange: function onChange(e) {
+      return setAccept(e.target.checked);
+    },
+    className: "mt-1 w-4 h-4 accent-gold-500"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-sm text-paper-700"
+  }, "Je certifie \xEAtre habilit\xE9 \xE0 signer pour le compte de ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold"
+  }, (recipient === null || recipient === void 0 ? void 0 : recipient.name) || "—"), ", et j'accepte le devis Cerberion ", /*#__PURE__*/React.createElement("span", {
+    className: "font-mono text-gold-700"
+  }, quote.number), " d'un montant total de ", /*#__PURE__*/React.createElement("span", {
+    className: "font-bold gold-text"
+  }, fmtMoney(quote.ttc)), " ainsi que les conditions g\xE9n\xE9rales mentionn\xE9es.")), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5 p-4 rounded-lg bg-paper-50 border border-paper-200"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-paper-500 mb-1"
+  }, "Aper\xE7u de la signature"), /*#__PURE__*/React.createElement("div", {
+    className: "font-display text-3xl text-gold-700 italic min-h-[44px]"
+  }, name || "—")), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-end mt-5"
+  }, /*#__PURE__*/React.createElement(Button, {
+    variant: "primary",
+    size: "lg",
+    disabled: !name.trim() || !accept,
+    onClick: onSign,
+    icon: /*#__PURE__*/React.createElement(Ic.PenTool, {
+      className: "w-4 h-4"
+    })
+  }, "Signer le devis"))), /*#__PURE__*/React.createElement("div", {
+    className: "text-center text-[11px] text-paper-500 mt-6"
+  }, "Ce lien de signature est s\xE9curis\xE9. Cerberion S.A. \xB7 ", company.email, " \xB7 ", company.phone)));
+}
 
 // ============================================================================
-//  FICHES EXTRA — Missions courtes agents (conformité ITM Luxembourg)
+//  MAIN APP
 // ============================================================================
+function App() {
+  var _useState175 = useState(window.location.hash),
+    _useState176 = _slicedToArray(_useState175, 2),
+    hash = _useState176[0],
+    setHash = _useState176[1];
+  useEffect(function () {
+    var onHash = function onHash() {
+      return setHash(window.location.hash);
+    };
+    window.addEventListener("hashchange", onHash);
+    return function () {
+      return window.removeEventListener("hashchange", onHash);
+    };
+  }, []);
+  if (hash.startsWith("#sign/")) {
+    var quoteId = hash.replace("#sign/", "");
+    return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(SignaturePage, {
+      quoteId: quoteId,
+      onClose: function onClose() {
+        window.location.hash = "";
+      }
+    }));
+  }
+  return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(AuthGate, null, /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(Shell, null)))));
+}
+function Shell() {
+  // Routing in-app (state-driven, single page)
+  var _useState177 = useState("dashboard"),
+    _useState178 = _slicedToArray(_useState177, 2),
+    page = _useState178[0],
+    setPage = _useState178[1];
+  var _useState179 = useState({
+      kind: "list"
+    }),
+    _useState180 = _slicedToArray(_useState179, 2),
+    view = _useState180[0],
+    setView = _useState180[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
+  var _useState181 = useState(false),
+    _useState182 = _slicedToArray(_useState181, 2),
+    collapsed = _useState182[0],
+    setCollapsed = _useState182[1];
+  var _useState183 = useState(""),
+    _useState184 = _slicedToArray(_useState183, 2),
+    search = _useState184[0],
+    setSearch = _useState184[1];
+  var _useState185 = useState(false),
+    _useState186 = _slicedToArray(_useState185, 2),
+    mobileMenu = _useState186[0],
+    setMobileMenu = _useState186[1];
+
+  // Filter for devis/factures pages (set when navigating from a profile)
+  var _useState187 = useState({
+      clientId: null,
+      prospectId: null
+    }),
+    _useState188 = _slicedToArray(_useState187, 2),
+    devisFilter = _useState188[0],
+    setDevisFilter = _useState188[1];
+  var _useState189 = useState({
+      clientId: null
+    }),
+    _useState190 = _slicedToArray(_useState189, 2),
+    facturesFilter = _useState190[0],
+    setFacturesFilter = _useState190[1];
+
+  // Modals managed at shell level
+  var _useState191 = useState(null),
+    _useState192 = _slicedToArray(_useState191, 2),
+    quoteEditor = _useState192[0],
+    setQuoteEditor = _useState192[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
+  var _useState193 = useState(null),
+    _useState194 = _slicedToArray(_useState193, 2),
+    quoteViewer = _useState194[0],
+    setQuoteViewer = _useState194[1]; // null | quoteId
+
+  // Invoice viewer state
+  var _useState195 = useState(null),
+    _useState196 = _slicedToArray(_useState195, 2),
+    invoiceViewer = _useState196[0],
+    setInvoiceViewer = _useState196[1];
+  // Invoice editor state (shell-level, like quoteEditor)
+  var _useState197 = useState(null),
+    _useState198 = _slicedToArray(_useState197, 2),
+    invoiceEditor = _useState198[0],
+    setInvoiceEditor = _useState198[1]; // null | { id?, clientId? }
+
+  // Helpers
+  var goTo = function goTo(newPage) {
+    setPage(newPage);
+    setView({
+      kind: "list"
+    });
+    setSearch(""); // clear global search on page change to avoid filter sticking
+    if (newPage !== "devis") setDevisFilter({
+      clientId: null,
+      prospectId: null
+    });
+    if (newPage !== "factures") setFacturesFilter({
+      clientId: null
+    });
+  };
+  var openClientProfile = function openClientProfile(id) {
+    setPage("clients");
+    setView({
+      kind: "client",
+      id: id
+    });
+    setSearch("");
+  };
+  var openProspectProfile = function openProspectProfile(id) {
+    setPage("prospects");
+    setView({
+      kind: "prospect",
+      id: id
+    });
+    setSearch("");
+  };
+  var _openQuoteEditor2 = function openQuoteEditor(idOrNew) {
+    var prefill = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    if (idOrNew === "new") setQuoteEditor(_objectSpread({}, prefill));else setQuoteEditor({
+      id: idOrNew
+    });
+  };
+  // State des viewers : soit string id (cas normal), soit { id, autoExport: true }
+  var openQuoteViewer = function openQuoteViewer(id) {
+    var autoExport = arguments.length > 1 && arguments[1] === true;
+    setQuoteViewer(autoExport ? { id: id, autoExport: true } : id);
+    setSearch("");
+  };
+  var openInvoiceViewer = function openInvoiceViewer(id) {
+    var autoExport = arguments.length > 1 && arguments[1] === true;
+    setInvoiceViewer(autoExport ? { id: id, autoExport: true } : id);
+    setSearch("");
+  };
+  var _openInvoiceEditor = function openInvoiceEditor(idOrNew) {
+    var prefill = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+    if (idOrNew === "new") setInvoiceEditor(_objectSpread({}, prefill));else setInvoiceEditor({
+      id: idOrNew
+    });
+  };
+
+  // keyboard shortcut for search
+  useEffect(function () {
+    var onKey = function onKey(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        var _document$querySelect;
+        e.preventDefault();
+        (_document$querySelect = document.querySelector(".input-base")) === null || _document$querySelect === void 0 || _document$querySelect.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return function () {
+      return window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  // Render the right view per page
+  var renderContent = function renderContent() {
+    if (view.kind === "client") {
+      return /*#__PURE__*/React.createElement(ClientProfile, {
+        clientId: view.id,
+        goBack: function goBack() {
+          return setView({
+            kind: "list"
+          });
+        },
+        openQuoteEditor: function openQuoteEditor(idOrNew, opts) {
+          return _openQuoteEditor2(idOrNew, _objectSpread({
+            clientId: view.id
+          }, opts));
+        },
+        openQuoteViewer: openQuoteViewer,
+        openInvoiceViewer: openInvoiceViewer,
+        openInvoiceEditor: function openInvoiceEditor(idOrNew, opts) {
+          return _openInvoiceEditor(idOrNew, _objectSpread({
+            clientId: view.id
+          }, opts));
+        }
+      });
+    }
+    if (view.kind === "prospect") {
+      return /*#__PURE__*/React.createElement(ProspectProfile, {
+        prospectId: view.id,
+        goBack: function goBack() {
+          return setView({
+            kind: "list"
+          });
+        },
+        openQuoteEditor: function openQuoteEditor(idOrNew, opts) {
+          return _openQuoteEditor2(idOrNew, _objectSpread({
+            prospectId: view.id
+          }, opts));
+        },
+        openQuoteViewer: openQuoteViewer
+      });
+    }
+    // Per-page search is intentionally empty — global search is handled by TopBar dropdown
+    var pageSearch = "";
+    switch (page) {
+      case "dashboard":
+        return /*#__PURE__*/React.createElement(Dashboard, {
+          setPage: goTo,
+          openClientProfile: openClientProfile,
+          openProspectProfile: openProspectProfile,
+          openQuoteEditor: _openQuoteEditor2
+        });
+      case "clients":
+        return /*#__PURE__*/React.createElement(ClientsPage, {
+          search: pageSearch,
+          openClientProfile: openClientProfile
+        });
+      case "prospects":
+        return /*#__PURE__*/React.createElement(ProspectsPage, {
+          search: pageSearch,
+          openProspectProfile: openProspectProfile
+        });
+      case "pipeline":
+        return /*#__PURE__*/React.createElement(PipelinePage, {
+          openProspectProfile: openProspectProfile
+        });
+      case "devis":
+        return /*#__PURE__*/React.createElement(DevisPage, {
+          search: pageSearch,
+          filterClient: devisFilter.clientId,
+          filterProspect: devisFilter.prospectId,
+          clearFilter: function clearFilter() {
+            return setDevisFilter({
+              clientId: null,
+              prospectId: null
+            });
+          },
+          openQuoteEditor: _openQuoteEditor2,
+          openQuoteViewer: openQuoteViewer,
+          openClientProfile: openClientProfile,
+          openProspectProfile: openProspectProfile
+        });
+      case "factures":
+        return /*#__PURE__*/React.createElement(InvoicesPage, {
+          search: pageSearch,
+          filterClient: facturesFilter.clientId,
+          externalViewerId: invoiceViewer,
+          setExternalViewerId: setInvoiceViewer,
+          clearFilter: function clearFilter() {
+            return setFacturesFilter({
+              clientId: null
+            });
+          }
+        });
+      case "taches":
+        return /*#__PURE__*/React.createElement(TasksPage, {
+          search: pageSearch,
+          openClientProfile: openClientProfile,
+          openProspectProfile: openProspectProfile
+        });
+      case "fichesExtra":
+        return /*#__PURE__*/React.createElement(FichesExtraPage, {
+          search: pageSearch
+        });
+      case "notifications":
+        return /*#__PURE__*/React.createElement(NotificationsPage, {
+          setPage: goTo,
+          openQuoteViewer: openQuoteViewer
+        });
+      case "settings":
+        return /*#__PURE__*/React.createElement(SettingsPage, null);
+      case "backend":
+        return /*#__PURE__*/React.createElement(BackendPage, null);
+      default:
+        return null;
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "flex h-screen overflow-hidden"
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    page: page,
+    setPage: goTo,
+    collapsed: collapsed,
+    setCollapsed: setCollapsed
+  }), mobileMenu && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 bg-black/60 z-40 md:hidden",
+    onClick: function onClick() {
+      return setMobileMenu(false);
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "fixed left-0 top-0 bottom-0 w-[280px] z-50 md:hidden"
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    page: page,
+    setPage: function setPage(p) {
+      goTo(p);
+      setMobileMenu(false);
+    },
+    collapsed: false,
+    setCollapsed: function setCollapsed() {}
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 flex flex-col min-w-0"
+  }, /*#__PURE__*/React.createElement(TopBar, {
+    page: page,
+    setPage: goTo,
+    onMobileMenu: function onMobileMenu() {
+      return setMobileMenu(true);
+    },
+    search: search,
+    setSearch: setSearch,
+    onOpenClient: openClientProfile,
+    onOpenProspect: openProspectProfile,
+    onOpenQuote: openQuoteViewer,
+    onOpenInvoice: openInvoiceViewer
+  }), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8"
+  }, renderContent())), quoteEditor && /*#__PURE__*/React.createElement(QuoteEditorWrapper, {
+    editor: quoteEditor,
+    onClose: function onClose() {
+      return setQuoteEditor(null);
+    },
+    onAfterSave: function onAfterSave(id, _sent, autoExport) {
+      // Ouvre le viewer (avec auto-export PDF si demandé).
+      if (autoExport) openQuoteViewer(id, true);
+    }
+  }), quoteViewer && /*#__PURE__*/React.createElement(QuoteViewerWrapper, {
+    quoteId: typeof quoteViewer === "string" ? quoteViewer : quoteViewer.id,
+    autoExport: typeof quoteViewer === "object" && quoteViewer !== null && quoteViewer.autoExport === true,
+    onClose: function onClose() {
+      return setQuoteViewer(null);
+    },
+    onEdit: function onEdit(id) {
+      setQuoteViewer(null);
+      _openQuoteEditor2(id);
+    }
+  }), invoiceEditor && /*#__PURE__*/React.createElement(InvoiceEditorWrapper, {
+    editor: invoiceEditor,
+    onClose: function onClose() {
+      return setInvoiceEditor(null);
+    },
+    onAfterSave: function onAfterSave(id, autoExport) {
+      if (autoExport) openInvoiceViewer(id, true);
+    }
+  }), invoiceViewer && /*#__PURE__*/React.createElement(InvoiceViewerShellWrapper, {
+    invoiceId: typeof invoiceViewer === "string" ? invoiceViewer : invoiceViewer.id,
+    autoExport: typeof invoiceViewer === "object" && invoiceViewer !== null && invoiceViewer.autoExport === true,
+    onClose: function onClose() {
+      return setInvoiceViewer(null);
+    }
+  }));
+}
+function InvoiceEditorWrapper(_ref102) {
+  var _state$invoices;
+  var editor = _ref102.editor,
+    onClose = _ref102.onClose,
+    onAfterSave = _ref102.onAfterSave;
+  var _useStore19 = useStore(),
+    state = _useStore19.state,
+    upsertInvoice = _useStore19.upsertInvoice;
+  var toast = useToast();
+  var invoice = editor.id ? (_state$invoices = state.invoices) === null || _state$invoices === void 0 ? void 0 : _state$invoices.find(function (i) {
+    return i.id === editor.id;
+  }) : {
+    clientId: editor.clientId || null
+  };
+  if (editor.id && !invoice) {
+    onClose();
+    return null;
+  }
+  return /*#__PURE__*/React.createElement(InvoiceEditor, {
+    invoice: invoice,
+    onClose: onClose,
+    onSave: (/*#__PURE__*/function () {
+      var _ref103 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee29(data) {
+        var opts,
+          _args29 = arguments;
+        return _regenerator().w(function (_context29) {
+          while (1) switch (_context29.n) {
+            case 0:
+              opts = _args29.length > 1 && _args29[1] !== undefined ? _args29[1] : {};
+              _context29.n = 1;
+              return upsertInvoice(data);
+            case 1:
+              toast.push({
+                type: "success",
+                title: editor.id ? "Facture mise à jour" : "Facture créée",
+                message: data.number
+              });
+              if (onAfterSave) onAfterSave(data.id, !!opts.thenExportPDF);
+              onClose();
+            case 2:
+              return _context29.a(2);
+          }
+        }, _callee29);
+      }));
+      return function (_x20) {
+        return _ref103.apply(this, arguments);
+      };
+    }())
+  });
+}
+function QuoteEditorWrapper(_ref104) {
+  var editor = _ref104.editor,
+    onClose = _ref104.onClose,
+    onAfterSave = _ref104.onAfterSave;
+  var _useStore20 = useStore(),
+    state = _useStore20.state,
+    upsertQuote = _useStore20.upsertQuote,
+    setQuoteStatus = _useStore20.setQuoteStatus;
+  var toast = useToast();
+  var quote = editor.id ? state.quotes.find(function (q) {
+    return q.id === editor.id;
+  }) : {
+    clientId: editor.clientId || null,
+    prospectId: editor.prospectId || null
+  };
+  if (editor.id && !quote) {
+    onClose();
+    return null;
+  }
+  return /*#__PURE__*/React.createElement(QuoteEditor, {
+    quote: quote,
+    onClose: onClose,
+    onSave: function onSave(data) {
+      var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+      upsertQuote(data);
+      toast.push({
+        type: "success",
+        title: editor.id ? "Devis mis à jour" : "Devis créé",
+        message: opts.thenExportPDF ? "Ouverture de l'export PDF\u2026" : undefined
+      });
+      // 3e argument = autoExport. Lance l'ouverture du viewer + déclenche l'export PDF.
+      onAfterSave(data.id, false, !!opts.thenExportPDF);
+      onClose();
+    }
+  });
+}
+function QuoteViewerWrapper(_ref105) {
+  var quoteId = _ref105.quoteId,
+    autoExport = _ref105.autoExport,
+    onClose = _ref105.onClose,
+    _onEdit = _ref105.onEdit;
+  return /*#__PURE__*/React.createElement(QuoteViewer, {
+    quoteId: quoteId,
+    autoExport: !!autoExport,
+    onClose: onClose,
+    onEdit: function onEdit() {
+      return _onEdit(quoteId);
+    }
+  });
+}
+
+// Wrapper App-level pour ouvrir une facture en visualiseur (avec auto-export PDF optionnel).
+function InvoiceViewerShellWrapper(_ref106) {
+  var invoiceId = _ref106.invoiceId,
+    autoExport = _ref106.autoExport,
+    onClose = _ref106.onClose;
+  var _useStore21 = useStore(),
+    state = _useStore21.state;
+  var inv = (state.invoices || []).find(function (i) {
+    return i.id === invoiceId;
+  });
+  if (!inv) return null;
+  return /*#__PURE__*/React.createElement(InvoiceViewer, {
+    invoice: inv,
+    autoExport: !!autoExport,
+    onClose: onClose
+  });
+}
+
+// ===== Fiches Extra UI components =====
 function FichesExtraPage(_ref100) {
   var search = _ref100.search;
   var _useStore19 = useStore(),
@@ -12934,729 +13839,6 @@ function RecapRow(_ref108) {
   }, value), sub && /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] text-paper-500 mt-0.5"
   }, sub));
-}
-// ============================================================================
-//  PUBLIC SIGNATURE PAGE (accessed via #sign/<id>)
-// ============================================================================
-function SignaturePage(_ref109) {
-  var quoteId = _ref109.quoteId,
-    onClose = _ref109.onClose;
-  var toast = useToast();
-  var _useState171 = useState(null),
-    _useState172 = _slicedToArray(_useState171, 2),
-    quote = _useState172[0],
-    setQuote = _useState172[1];
-  var _useState173 = useState(null),
-    _useState174 = _slicedToArray(_useState173, 2),
-    recipient = _useState174[0],
-    setRecipient = _useState174[1];
-  var _useState175 = useState(COMPANY),
-    _useState176 = _slicedToArray(_useState175, 2),
-    company = _useState176[0],
-    setCompany = _useState176[1];
-  var _useState177 = useState(true),
-    _useState178 = _slicedToArray(_useState177, 2),
-    loading = _useState178[0],
-    setLoading = _useState178[1];
-  var _useState179 = useState(false),
-    _useState180 = _slicedToArray(_useState179, 2),
-    notFound = _useState180[0],
-    setNotFound = _useState180[1];
-  var _useState181 = useState(""),
-    _useState182 = _slicedToArray(_useState181, 2),
-    name = _useState182[0],
-    setName = _useState182[1];
-  var _useState183 = useState(false),
-    _useState184 = _slicedToArray(_useState183, 2),
-    accept = _useState184[0],
-    setAccept = _useState184[1];
-  var _useState185 = useState(false),
-    _useState186 = _slicedToArray(_useState185, 2),
-    signed = _useState186[0],
-    setSigned = _useState186[1];
-  useEffect(function () {
-    fetch("/api/public/quote/".concat(quoteId)).then(function (r) {
-      if (!r.ok) throw new Error("not found");
-      return r.json();
-    }).then(function (d) {
-      var _d$settings, _d$recipient;
-      setQuote(d.quote);
-      setRecipient(d.recipient);
-      if ((_d$settings = d.settings) !== null && _d$settings !== void 0 && _d$settings.company) setCompany(d.settings.company);
-      setName(((_d$recipient = d.recipient) === null || _d$recipient === void 0 ? void 0 : _d$recipient.contact) || "");
-    })["catch"](function () {
-      return setNotFound(true);
-    })["finally"](function () {
-      return setLoading(false);
-    });
-  }, [quoteId]);
-  if (loading) {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "min-h-screen flex items-center justify-center"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "text-paper-500"
-    }, "Chargement du devis\u2026"));
-  }
-  if (!quote) {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "min-h-screen flex items-center justify-center p-6"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "card-base p-10 text-center max-w-md"
-    }, /*#__PURE__*/React.createElement(Ic.AlertCircle, {
-      className: "w-10 h-10 text-red-500 mx-auto mb-4"
-    }), /*#__PURE__*/React.createElement("h2", {
-      className: "text-xl font-bold text-paper-800 mb-2"
-    }, "Devis introuvable"), /*#__PURE__*/React.createElement("p", {
-      className: "text-sm text-paper-600 mb-5"
-    }, "Ce lien de signature n'est plus valide ou le devis a \xE9t\xE9 supprim\xE9."), /*#__PURE__*/React.createElement(Button, {
-      variant: "primary",
-      onClick: onClose
-    }, "Retour au CRM")));
-  }
-  var onSign = /*#__PURE__*/function () {
-    var _ref110 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee30() {
-      var res, _t10;
-      return _regenerator().w(function (_context30) {
-        while (1) switch (_context30.p = _context30.n) {
-          case 0:
-            if (!(!name.trim() || !accept)) {
-              _context30.n = 1;
-              break;
-            }
-            return _context30.a(2);
-          case 1:
-            _context30.p = 1;
-            _context30.n = 2;
-            return fetch("/api/public/quote/".concat(quote.id, "/sign"), {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                signedBy: name.trim(),
-                signatureData: name.trim()
-              })
-            });
-          case 2:
-            res = _context30.v;
-            if (res.ok) {
-              _context30.n = 3;
-              break;
-            }
-            throw new Error("Signature échouée");
-          case 3:
-            setQuote(_objectSpread(_objectSpread({}, quote), {}, {
-              signedAt: new Date().toISOString(),
-              signedBy: name.trim(),
-              signatureData: name.trim()
-            }));
-            setSigned(true);
-            toast.push({
-              type: "success",
-              title: "Devis signé !",
-              message: "Cerberion a été notifié."
-            });
-            _context30.n = 5;
-            break;
-          case 4:
-            _context30.p = 4;
-            _t10 = _context30.v;
-            toast.push({
-              type: "error",
-              title: "Erreur",
-              message: String(_t10.message || _t10)
-            });
-          case 5:
-            return _context30.a(2);
-        }
-      }, _callee30, null, [[1, 4]]);
-    }));
-    return function onSign() {
-      return _ref110.apply(this, arguments);
-    };
-  }();
-  if (signed || quote.signedAt) {
-    return /*#__PURE__*/React.createElement("div", {
-      className: "min-h-screen flex items-center justify-center p-6"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "card-base p-10 text-center max-w-lg shadow-card-hover"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "inline-flex p-4 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-700 mb-5"
-    }, /*#__PURE__*/React.createElement(Ic.Check, {
-      className: "w-10 h-10"
-    })), /*#__PURE__*/React.createElement("h2", {
-      className: "text-2xl font-bold text-paper-800 mb-3"
-    }, "Devis accept\xE9"), /*#__PURE__*/React.createElement("p", {
-      className: "text-sm text-paper-700 mb-1"
-    }, "Merci, ", /*#__PURE__*/React.createElement("span", {
-      className: "font-semibold"
-    }, quote.signedBy || name), " !"), /*#__PURE__*/React.createElement("p", {
-      className: "text-sm text-paper-600 mb-6"
-    }, "Votre devis ", /*#__PURE__*/React.createElement("span", {
-      className: "font-mono text-gold-700"
-    }, quote.number), " a \xE9t\xE9 sign\xE9 \xE9lectroniquement."), /*#__PURE__*/React.createElement("div", {
-      className: "card-soft p-4 text-left mb-5"
-    }, /*#__PURE__*/React.createElement("div", {
-      className: "text-xs text-paper-500"
-    }, "Montant accept\xE9"), /*#__PURE__*/React.createElement("div", {
-      className: "text-2xl font-bold gold-text mt-1"
-    }, fmtMoney(quote.ttc)), /*#__PURE__*/React.createElement("div", {
-      className: "text-[11px] text-paper-500 mt-2"
-    }, "Sign\xE9 le ", fmtDateTime(quote.signedAt || nowISO()))), /*#__PURE__*/React.createElement("p", {
-      className: "text-xs text-paper-500"
-    }, "Un membre de l'\xE9quipe Cerberion vous contactera pour la mise en route."), /*#__PURE__*/React.createElement(Button, {
-      variant: "ghost",
-      onClick: onClose,
-      className: "mt-5"
-    }, "Fermer")));
-  }
-  return /*#__PURE__*/React.createElement("div", {
-    className: "min-h-screen p-4 md:p-10"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "max-w-4xl mx-auto"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-6 mb-6 flex items-center gap-4 hero-shimmer-light"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "w-16 h-16 rounded-xl bg-ink-900 flex items-center justify-center flex-none"
-  }, /*#__PURE__*/React.createElement("img", {
-    src: LOGO_LIGHT,
-    alt: "Cerberion",
-    className: "w-12 h-12 object-contain"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    className: "font-display text-xl tracking-[0.3em] text-paper-800"
-  }, "CERBERION"), /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-gold-700 tracking-wider uppercase font-medium"
-  }, "Security Manager")), /*#__PURE__*/React.createElement("div", {
-    className: "ml-auto text-right"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-paper-500"
-  }, "Devis"), /*#__PURE__*/React.createElement("div", {
-    className: "font-mono text-gold-700 font-semibold"
-  }, quote.number))), /*#__PURE__*/React.createElement("div", {
-    className: "bg-white rounded-xl overflow-hidden shadow-card-hover border border-paper-200"
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "32px 40px"
-    }
-  }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
-    quote: quote,
-    recipient: recipient,
-    company: company
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "card-base p-6 mt-6"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "flex items-center gap-3 mb-4"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "p-2.5 rounded-lg bg-gold-50 text-gold-700"
-  }, /*#__PURE__*/React.createElement(Ic.PenTool, {
-    className: "w-5 h-5"
-  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
-    className: "font-semibold text-paper-800"
-  }, "Signer ce devis"), /*#__PURE__*/React.createElement("p", {
-    className: "text-xs text-paper-600"
-  }, "En signant, vous acceptez les termes et le montant indiqu\xE9."))), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-1 md:grid-cols-2 gap-4"
-  }, /*#__PURE__*/React.createElement(Field, {
-    label: "Nom complet du signataire",
-    required: true
-  }, /*#__PURE__*/React.createElement(Input, {
-    value: name,
-    onChange: function onChange(e) {
-      return setName(e.target.value);
-    },
-    placeholder: "Pr\xE9nom et nom"
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "Date"
-  }, /*#__PURE__*/React.createElement(Input, {
-    type: "text",
-    disabled: true,
-    value: new Date().toLocaleDateString("fr-FR", {
-      dateStyle: "long"
-    })
-  }))), /*#__PURE__*/React.createElement("label", {
-    className: "flex items-start gap-3 mt-4 cursor-pointer"
-  }, /*#__PURE__*/React.createElement("input", {
-    type: "checkbox",
-    checked: accept,
-    onChange: function onChange(e) {
-      return setAccept(e.target.checked);
-    },
-    className: "mt-1 w-4 h-4 accent-gold-500"
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "text-sm text-paper-700"
-  }, "Je certifie \xEAtre habilit\xE9 \xE0 signer pour le compte de ", /*#__PURE__*/React.createElement("span", {
-    className: "font-semibold"
-  }, (recipient === null || recipient === void 0 ? void 0 : recipient.name) || "—"), ", et j'accepte le devis Cerberion ", /*#__PURE__*/React.createElement("span", {
-    className: "font-mono text-gold-700"
-  }, quote.number), " d'un montant total de ", /*#__PURE__*/React.createElement("span", {
-    className: "font-bold gold-text"
-  }, fmtMoney(quote.ttc)), " ainsi que les conditions g\xE9n\xE9rales mentionn\xE9es.")), /*#__PURE__*/React.createElement("div", {
-    className: "mt-5 p-4 rounded-lg bg-paper-50 border border-paper-200"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "text-xs text-paper-500 mb-1"
-  }, "Aper\xE7u de la signature"), /*#__PURE__*/React.createElement("div", {
-    className: "font-display text-3xl text-gold-700 italic min-h-[44px]"
-  }, name || "—")), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-end mt-5"
-  }, /*#__PURE__*/React.createElement(Button, {
-    variant: "primary",
-    size: "lg",
-    disabled: !name.trim() || !accept,
-    onClick: onSign,
-    icon: /*#__PURE__*/React.createElement(Ic.PenTool, {
-      className: "w-4 h-4"
-    })
-  }, "Signer le devis"))), /*#__PURE__*/React.createElement("div", {
-    className: "text-center text-[11px] text-paper-500 mt-6"
-  }, "Ce lien de signature est s\xE9curis\xE9. Cerberion S.A. \xB7 ", company.email, " \xB7 ", company.phone)));
-}
-
-// ============================================================================
-//  MAIN APP
-// ============================================================================
-function App() {
-  var _useState187 = useState(window.location.hash),
-    _useState188 = _slicedToArray(_useState187, 2),
-    hash = _useState188[0],
-    setHash = _useState188[1];
-  useEffect(function () {
-    var onHash = function onHash() {
-      return setHash(window.location.hash);
-    };
-    window.addEventListener("hashchange", onHash);
-    return function () {
-      return window.removeEventListener("hashchange", onHash);
-    };
-  }, []);
-  if (hash.startsWith("#sign/")) {
-    var quoteId = hash.replace("#sign/", "");
-    return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(SignaturePage, {
-      quoteId: quoteId,
-      onClose: function onClose() {
-        window.location.hash = "";
-      }
-    }));
-  }
-  return /*#__PURE__*/React.createElement(ToastProvider, null, /*#__PURE__*/React.createElement(AuthProvider, null, /*#__PURE__*/React.createElement(AuthGate, null, /*#__PURE__*/React.createElement(StoreProvider, null, /*#__PURE__*/React.createElement(Shell, null)))));
-}
-function Shell() {
-  // Routing in-app (state-driven, single page)
-  var _useState189 = useState("dashboard"),
-    _useState190 = _slicedToArray(_useState189, 2),
-    page = _useState190[0],
-    setPage = _useState190[1];
-  var _useState191 = useState({
-      kind: "list"
-    }),
-    _useState192 = _slicedToArray(_useState191, 2),
-    view = _useState192[0],
-    setView = _useState192[1]; // { kind: "list" } | { kind: "client", id } | { kind: "prospect", id }
-  var _useState193 = useState(false),
-    _useState194 = _slicedToArray(_useState193, 2),
-    collapsed = _useState194[0],
-    setCollapsed = _useState194[1];
-  var _useState195 = useState(""),
-    _useState196 = _slicedToArray(_useState195, 2),
-    search = _useState196[0],
-    setSearch = _useState196[1];
-  var _useState197 = useState(false),
-    _useState198 = _slicedToArray(_useState197, 2),
-    mobileMenu = _useState198[0],
-    setMobileMenu = _useState198[1];
-
-  // Filter for devis/factures pages (set when navigating from a profile)
-  var _useState199 = useState({
-      clientId: null,
-      prospectId: null
-    }),
-    _useState200 = _slicedToArray(_useState199, 2),
-    devisFilter = _useState200[0],
-    setDevisFilter = _useState200[1];
-  var _useState201 = useState({
-      clientId: null
-    }),
-    _useState202 = _slicedToArray(_useState201, 2),
-    facturesFilter = _useState202[0],
-    setFacturesFilter = _useState202[1];
-
-  // Modals managed at shell level
-  var _useState203 = useState(null),
-    _useState204 = _slicedToArray(_useState203, 2),
-    quoteEditor = _useState204[0],
-    setQuoteEditor = _useState204[1]; // null | "new" | { id, prefill: {clientId|prospectId} }
-  var _useState205 = useState(null),
-    _useState206 = _slicedToArray(_useState205, 2),
-    quoteViewer = _useState206[0],
-    setQuoteViewer = _useState206[1]; // null | quoteId
-
-  // Invoice viewer state
-  var _useState207 = useState(null),
-    _useState208 = _slicedToArray(_useState207, 2),
-    invoiceViewer = _useState208[0],
-    setInvoiceViewer = _useState208[1];
-  // Invoice editor state (shell-level, like quoteEditor)
-  var _useState209 = useState(null),
-    _useState210 = _slicedToArray(_useState209, 2),
-    invoiceEditor = _useState210[0],
-    setInvoiceEditor = _useState210[1]; // null | { id?, clientId? }
-
-  // Helpers
-  var goTo = function goTo(newPage) {
-    setPage(newPage);
-    setView({
-      kind: "list"
-    });
-    setSearch(""); // clear global search on page change to avoid filter sticking
-    if (newPage !== "devis") setDevisFilter({
-      clientId: null,
-      prospectId: null
-    });
-    if (newPage !== "factures") setFacturesFilter({
-      clientId: null
-    });
-  };
-  var openClientProfile = function openClientProfile(id) {
-    setPage("clients");
-    setView({
-      kind: "client",
-      id: id
-    });
-    setSearch("");
-  };
-  var openProspectProfile = function openProspectProfile(id) {
-    setPage("prospects");
-    setView({
-      kind: "prospect",
-      id: id
-    });
-    setSearch("");
-  };
-  var _openQuoteEditor2 = function openQuoteEditor(idOrNew) {
-    var prefill = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-    if (idOrNew === "new") setQuoteEditor(_objectSpread({}, prefill));else setQuoteEditor({
-      id: idOrNew
-    });
-  };
-  var openQuoteViewer = function openQuoteViewer(id) {
-    setQuoteViewer(id);
-    setSearch("");
-  };
-  var openInvoiceViewer = function openInvoiceViewer(id) {
-    setInvoiceViewer(id);
-    setSearch("");
-  };
-  var _openInvoiceEditor = function openInvoiceEditor(idOrNew) {
-    var prefill = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-    if (idOrNew === "new") setInvoiceEditor(_objectSpread({}, prefill));else setInvoiceEditor({
-      id: idOrNew
-    });
-  };
-
-  // keyboard shortcut for search
-  useEffect(function () {
-    var onKey = function onKey(e) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        var _document$querySelect;
-        e.preventDefault();
-        (_document$querySelect = document.querySelector(".input-base")) === null || _document$querySelect === void 0 || _document$querySelect.focus();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return function () {
-      return window.removeEventListener("keydown", onKey);
-    };
-  }, []);
-
-  // Render the right view per page
-  var renderContent = function renderContent() {
-    if (view.kind === "client") {
-      return /*#__PURE__*/React.createElement(ClientProfile, {
-        clientId: view.id,
-        goBack: function goBack() {
-          return setView({
-            kind: "list"
-          });
-        },
-        openQuoteEditor: function openQuoteEditor(idOrNew, opts) {
-          return _openQuoteEditor2(idOrNew, _objectSpread({
-            clientId: view.id
-          }, opts));
-        },
-        openQuoteViewer: openQuoteViewer,
-        openInvoiceViewer: openInvoiceViewer,
-        openInvoiceEditor: function openInvoiceEditor(idOrNew, opts) {
-          return _openInvoiceEditor(idOrNew, _objectSpread({
-            clientId: view.id
-          }, opts));
-        }
-      });
-    }
-    if (view.kind === "prospect") {
-      return /*#__PURE__*/React.createElement(ProspectProfile, {
-        prospectId: view.id,
-        goBack: function goBack() {
-          return setView({
-            kind: "list"
-          });
-        },
-        openQuoteEditor: function openQuoteEditor(idOrNew, opts) {
-          return _openQuoteEditor2(idOrNew, _objectSpread({
-            prospectId: view.id
-          }, opts));
-        },
-        openQuoteViewer: openQuoteViewer
-      });
-    }
-    // Per-page search is intentionally empty — global search is handled by TopBar dropdown
-    var pageSearch = "";
-    switch (page) {
-      case "dashboard":
-        return /*#__PURE__*/React.createElement(Dashboard, {
-          setPage: goTo,
-          openClientProfile: openClientProfile,
-          openProspectProfile: openProspectProfile,
-          openQuoteEditor: _openQuoteEditor2
-        });
-      case "clients":
-        return /*#__PURE__*/React.createElement(ClientsPage, {
-          search: pageSearch,
-          openClientProfile: openClientProfile
-        });
-      case "prospects":
-        return /*#__PURE__*/React.createElement(ProspectsPage, {
-          search: pageSearch,
-          openProspectProfile: openProspectProfile
-        });
-      case "pipeline":
-        return /*#__PURE__*/React.createElement(PipelinePage, {
-          openProspectProfile: openProspectProfile
-        });
-      case "devis":
-        return /*#__PURE__*/React.createElement(DevisPage, {
-          search: pageSearch,
-          filterClient: devisFilter.clientId,
-          filterProspect: devisFilter.prospectId,
-          clearFilter: function clearFilter() {
-            return setDevisFilter({
-              clientId: null,
-              prospectId: null
-            });
-          },
-          openQuoteEditor: _openQuoteEditor2,
-          openQuoteViewer: openQuoteViewer,
-          openClientProfile: openClientProfile,
-          openProspectProfile: openProspectProfile
-        });
-      case "factures":
-        return /*#__PURE__*/React.createElement(InvoicesPage, {
-          search: pageSearch,
-          filterClient: facturesFilter.clientId,
-          externalViewerId: invoiceViewer,
-          setExternalViewerId: setInvoiceViewer,
-          clearFilter: function clearFilter() {
-            return setFacturesFilter({
-              clientId: null
-            });
-          }
-        });
-      case "taches":
-        return /*#__PURE__*/React.createElement(TasksPage, {
-          search: pageSearch,
-          openClientProfile: openClientProfile,
-          openProspectProfile: openProspectProfile
-        });
-      case "fichesExtra":
-        return /*#__PURE__*/React.createElement(FichesExtraPage, {
-          search: pageSearch
-        });
-      case "notifications":
-        return /*#__PURE__*/React.createElement(NotificationsPage, {
-          setPage: goTo,
-          openQuoteViewer: openQuoteViewer
-        });
-      case "settings":
-        return /*#__PURE__*/React.createElement(SettingsPage, null);
-      case "backend":
-        return /*#__PURE__*/React.createElement(BackendPage, null);
-      default:
-        return null;
-    }
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    className: "flex h-screen overflow-hidden"
-  }, /*#__PURE__*/React.createElement(Sidebar, {
-    page: page,
-    setPage: goTo,
-    collapsed: collapsed,
-    setCollapsed: setCollapsed
-  }), mobileMenu && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
-    className: "fixed inset-0 bg-black/60 z-40 md:hidden",
-    onClick: function onClick() {
-      return setMobileMenu(false);
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "fixed left-0 top-0 bottom-0 w-[280px] z-50 md:hidden"
-  }, /*#__PURE__*/React.createElement(Sidebar, {
-    page: page,
-    setPage: function setPage(p) {
-      goTo(p);
-      setMobileMenu(false);
-    },
-    collapsed: false,
-    setCollapsed: function setCollapsed() {}
-  }))), /*#__PURE__*/React.createElement("div", {
-    className: "flex-1 flex flex-col min-w-0"
-  }, /*#__PURE__*/React.createElement(TopBar, {
-    page: page,
-    setPage: goTo,
-    onMobileMenu: function onMobileMenu() {
-      return setMobileMenu(true);
-    },
-    search: search,
-    setSearch: setSearch,
-    onOpenClient: openClientProfile,
-    onOpenProspect: openProspectProfile,
-    onOpenQuote: openQuoteViewer,
-    onOpenInvoice: openInvoiceViewer
-  }), /*#__PURE__*/React.createElement("main", {
-    className: "flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8"
-  }, renderContent())), quoteEditor && /*#__PURE__*/React.createElement(QuoteEditorWrapper, {
-    editor: quoteEditor,
-    onClose: function onClose() {
-      return setQuoteEditor(null);
-    },
-    onAfterSave: function onAfterSave(id, sent) {
-      if (sent) openQuoteViewer(id);
-    }
-  }), quoteViewer && /*#__PURE__*/React.createElement(QuoteViewerWrapper, {
-    quoteId: quoteViewer,
-    onClose: function onClose() {
-      return setQuoteViewer(null);
-    },
-    onEdit: function onEdit(id) {
-      setQuoteViewer(null);
-      _openQuoteEditor2(id);
-    }
-  }), invoiceEditor && /*#__PURE__*/React.createElement(InvoiceEditorWrapper, {
-    editor: invoiceEditor,
-    onClose: function onClose() {
-      return setInvoiceEditor(null);
-    }
-  }));
-}
-function InvoiceEditorWrapper(_ref111) {
-  var _state$invoices;
-  var editor = _ref111.editor,
-    onClose = _ref111.onClose;
-  var _useStore20 = useStore(),
-    state = _useStore20.state,
-    upsertInvoice = _useStore20.upsertInvoice;
-  var toast = useToast();
-  var invoice = editor.id ? (_state$invoices = state.invoices) === null || _state$invoices === void 0 ? void 0 : _state$invoices.find(function (i) {
-    return i.id === editor.id;
-  }) : {
-    clientId: editor.clientId || null
-  };
-  if (editor.id && !invoice) {
-    onClose();
-    return null;
-  }
-  return /*#__PURE__*/React.createElement(InvoiceEditor, {
-    invoice: invoice,
-    onClose: onClose,
-    onSave: (/*#__PURE__*/function () {
-      var _ref112 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31(data) {
-        var opts,
-          finalData,
-          _args31 = arguments;
-        return _regenerator().w(function (_context31) {
-          while (1) switch (_context31.n) {
-            case 0:
-              opts = _args31.length > 1 && _args31[1] !== undefined ? _args31[1] : {};
-              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
-                status: "envoyee"
-              }) : data;
-              _context31.n = 1;
-              return upsertInvoice(finalData);
-            case 1:
-              toast.push({
-                type: "success",
-                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
-                message: finalData.number
-              });
-              onClose();
-            case 2:
-              return _context31.a(2);
-          }
-        }, _callee31);
-      }));
-      return function (_x21) {
-        return _ref112.apply(this, arguments);
-      };
-    }())
-  });
-}
-function QuoteEditorWrapper(_ref113) {
-  var editor = _ref113.editor,
-    onClose = _ref113.onClose,
-    onAfterSave = _ref113.onAfterSave;
-  var _useStore21 = useStore(),
-    state = _useStore21.state,
-    upsertQuote = _useStore21.upsertQuote,
-    setQuoteStatus = _useStore21.setQuoteStatus;
-  var toast = useToast();
-  var quote = editor.id ? state.quotes.find(function (q) {
-    return q.id === editor.id;
-  }) : {
-    clientId: editor.clientId || null,
-    prospectId: editor.prospectId || null
-  };
-  if (editor.id && !quote) {
-    onClose();
-    return null;
-  }
-  return /*#__PURE__*/React.createElement(QuoteEditor, {
-    quote: quote,
-    onClose: onClose,
-    onSave: function onSave(data) {
-      var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-      upsertQuote(data);
-      if (opts.thenSend) {
-        setTimeout(function () {
-          setQuoteStatus(data.id, "envoye");
-          toast.push({
-            type: "success",
-            title: "Devis envoyé",
-            message: "".concat(data.number, " marqu\xE9 comme envoy\xE9. Lien copi\xE9.")
-          });
-          try {
-            var _navigator$clipboard2;
-            (_navigator$clipboard2 = navigator.clipboard) === null || _navigator$clipboard2 === void 0 || _navigator$clipboard2.writeText(shareableLink(data.id));
-          } catch (e) {}
-          onAfterSave(data.id, true);
-        }, 100);
-      } else {
-        toast.push({
-          type: "success",
-          title: editor.id ? "Devis mis à jour" : "Devis créé"
-        });
-        onAfterSave(data.id, false);
-      }
-      onClose();
-    }
-  });
-}
-function QuoteViewerWrapper(_ref114) {
-  var quoteId = _ref114.quoteId,
-    onClose = _ref114.onClose,
-    _onEdit = _ref114.onEdit;
-  return /*#__PURE__*/React.createElement(QuoteViewer, {
-    quoteId: quoteId,
-    onClose: onClose,
-    onEdit: function onEdit() {
-      return _onEdit(quoteId);
-    }
-  });
 }
 
 // Mount
