@@ -10194,6 +10194,10 @@ function InvoicesPage(_ref76) {
     _useState126 = _slicedToArray(_useState125, 2),
     editor = _useState126[0],
     setEditor = _useState126[1]; // null | "new" | invoiceObject
+  var _useState127 = useState(null),
+    _useState128 = _slicedToArray(_useState127, 2),
+    markPaid = _useState128[0],
+    setMarkPaid = _useState128[1]; // null | invoiceObject
 
   var filterEntity = filterClient ? state.clients.find(function (c) {
     return c.id === filterClient;
@@ -10369,14 +10373,7 @@ function InvoicesPage(_ref76) {
       className: "flex items-center gap-1 justify-end"
     }, inv.status !== "payee" && /*#__PURE__*/React.createElement("button", {
       onClick: function onClick() {
-        setInvoiceStatus(inv.id, "payee", {
-          paidAt: nowISO(),
-          paymentMethod: "Virement"
-        });
-        toast.push({
-          type: "success",
-          title: "Facture marquée payée"
-        });
+        return setMarkPaid(inv);
       },
       title: "Marquer pay\xE9e",
       className: "p-1.5 rounded hover:bg-paper-100 text-paper-500 hover:text-emerald-600"
@@ -10464,29 +10461,52 @@ function InvoicesPage(_ref76) {
       });
       setConfirmDelete(null);
     }
+  }), markPaid && /*#__PURE__*/React.createElement(MarkAsPaidModal, {
+    invoice: markPaid,
+    onClose: function onClose() {
+      return setMarkPaid(null);
+    },
+    onConfirm: function onConfirm(_ref80) {
+      var paidAt = _ref80.paidAt,
+        paymentMethod = _ref80.paymentMethod;
+      setInvoiceStatus(markPaid.id, "payee", {
+        paidAt: paidAt,
+        paymentMethod: paymentMethod
+      });
+      toast.push({
+        type: "success",
+        title: "Facture marquée payée",
+        message: "R\xE8glement le ".concat(fmtDate(paidAt))
+      });
+      setMarkPaid(null);
+    }
   }));
 }
-function InvoiceViewer(_ref80) {
+function InvoiceViewer(_ref81) {
   var _state$settings4, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
-  var invoice = _ref80.invoice,
-    onClose = _ref80.onClose;
+  var invoice = _ref81.invoice,
+    onClose = _ref81.onClose;
   var _useStore14 = useStore(),
     state = _useStore14.state,
     setInvoiceStatus = _useStore14.setInvoiceStatus;
   var toast = useToast();
   // Hooks first (Hooks Rules)
   var printRef = useRef(null);
-  var _useState127 = useState(false),
-    _useState128 = _slicedToArray(_useState127, 2),
-    exporting = _useState128[0],
-    setExporting = _useState128[1];
+  var _useState129 = useState(false),
+    _useState130 = _slicedToArray(_useState129, 2),
+    exporting = _useState130[0],
+    setExporting = _useState130[1];
+  var _useState131 = useState(null),
+    _useState132 = _slicedToArray(_useState131, 2),
+    markPaid = _useState132[0],
+    setMarkPaid = _useState132[1];
   if (!invoice) return null;
   var client = state.clients.find(function (c) {
     return c.id === invoice.clientId;
   });
   var company = ((_state$settings4 = state.settings) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.company) || {};
   var exportPDF = /*#__PURE__*/function () {
-    var _ref81 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
+    var _ref82 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
       var canvas, img, jsPDF, pdf, pageW, ratio, imgH, _t1;
       return _regenerator().w(function (_context22) {
         while (1) switch (_context22.p = _context22.n) {
@@ -10541,7 +10561,7 @@ function InvoiceViewer(_ref80) {
       }, _callee22, null, [[2, 4, 5, 6]]);
     }));
     return function exportPDF() {
-      return _ref81.apply(this, arguments);
+      return _ref82.apply(this, arguments);
     };
   }();
   return /*#__PURE__*/React.createElement(Modal, {
@@ -10568,15 +10588,7 @@ function InvoiceViewer(_ref80) {
         className: "w-4 h-4"
       }),
       onClick: function onClick() {
-        setInvoiceStatus(invoice.id, "payee", {
-          paidAt: nowISO(),
-          paymentMethod: "Virement"
-        });
-        onClose();
-        toast.push({
-          type: "success",
-          title: "Facture marquée payée"
-        });
+        return setMarkPaid(invoice);
       }
     }, "Marquer pay\xE9e"), invoice.status === "brouillon" && /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
@@ -10602,21 +10614,41 @@ function InvoiceViewer(_ref80) {
     invoice: invoice,
     client: client,
     company: company
-  }))));
+  }))), markPaid && /*#__PURE__*/React.createElement(MarkAsPaidModal, {
+    invoice: markPaid,
+    onClose: function onClose() {
+      return setMarkPaid(null);
+    },
+    onConfirm: function onConfirm(_ref83) {
+      var paidAt = _ref83.paidAt,
+        paymentMethod = _ref83.paymentMethod;
+      setInvoiceStatus(invoice.id, "payee", {
+        paidAt: paidAt,
+        paymentMethod: paymentMethod
+      });
+      toast.push({
+        type: "success",
+        title: "Facture marquée payée",
+        message: "R\xE8glement le ".concat(fmtDate(paidAt))
+      });
+      setMarkPaid(null);
+      onClose();
+    }
+  }));
 }
 
 // ----------- Invoice Editor (create / edit invoice directly, no quote needed) -----------
-function InvoiceEditor(_ref82) {
+function InvoiceEditor(_ref84) {
   var _state$settings$docum, _state$settings5, _state$settings6;
-  var invoice = _ref82.invoice,
-    onClose = _ref82.onClose,
-    onSave = _ref82.onSave;
+  var invoice = _ref84.invoice,
+    onClose = _ref84.onClose,
+    onSave = _ref84.onSave;
   var _useStore15 = useStore(),
     state = _useStore15.state;
   var isNew = !invoice.id;
   var paymentDays = (_state$settings$docum = (_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
   var defaultTerms = ((_state$settings6 = state.settings) === null || _state$settings6 === void 0 || (_state$settings6 = _state$settings6.documents) === null || _state$settings6 === void 0 ? void 0 : _state$settings6.defaultTerms) || "Paiement à la réception de la facture au comptant.";
-  var _useState129 = useState(function () {
+  var _useState133 = useState(function () {
       return {
         id: invoice.id || uid("inv"),
         number: invoice.number || generateInvoiceNumber(state.invoices),
@@ -10641,9 +10673,9 @@ function InvoiceEditor(_ref82) {
         quoteId: invoice.quoteId || null
       };
     }),
-    _useState130 = _slicedToArray(_useState129, 2),
-    form = _useState130[0],
-    setForm = _useState130[1];
+    _useState134 = _slicedToArray(_useState133, 2),
+    form = _useState134[0],
+    setForm = _useState134[1];
   var set = function set(k, v) {
     return setForm(function (f) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
@@ -10686,9 +10718,9 @@ function InvoiceEditor(_ref82) {
       var lines = _toConsumableArray(f.lines);
       var j = i + dir;
       if (j < 0 || j >= lines.length) return f;
-      var _ref83 = [lines[j], lines[i]];
-      lines[i] = _ref83[0];
-      lines[j] = _ref83[1];
+      var _ref85 = [lines[j], lines[i]];
+      lines[i] = _ref85[0];
+      lines[j] = _ref85[1];
       return _objectSpread(_objectSpread({}, f), {}, {
         lines: lines
       });
@@ -10818,7 +10850,71 @@ function InvoiceEditor(_ref82) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "card-soft p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs uppercase tracking-wider text-paper-500 font-semibold mb-3"
+  }, "Paiement"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 md:grid-cols-3 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Statut"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.status,
+    onChange: function onChange(e) {
+      var newStatus = e.target.value;
+      // Si on passe à "payee" et qu'il n'y a pas encore de date, on pré-remplit avec aujourd'hui
+      if (newStatus === "payee" && !form.paidAt) {
+        setForm(function (f) {
+          return _objectSpread(_objectSpread({}, f), {}, {
+            status: newStatus,
+            paidAt: new Date().toISOString(),
+            paymentMethod: f.paymentMethod || "virement"
+          });
+        });
+      } else if (newStatus !== "payee") {
+        // Si on quitte le statut payée, on garde quand même la date (au cas où c'était une erreur)
+        setForm(function (f) {
+          return _objectSpread(_objectSpread({}, f), {}, {
+            status: newStatus
+          });
+        });
+      } else {
+        set("status", newStatus);
+      }
+    }
+  }, Object.entries(INVOICE_STATUS).map(function (_ref86) {
+    var _ref87 = _slicedToArray(_ref86, 2),
+      k = _ref87[0],
+      v = _ref87[1];
+    return /*#__PURE__*/React.createElement("option", {
+      key: k,
+      value: k
+    }, v.label);
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "Date de r\xE8glement",
+    hint: form.status === "payee" ? "Date à laquelle le paiement a été reçu" : "Renseigner quand le paiement arrive"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: form.paidAt ? form.paidAt.slice(0, 10) : "",
+    onChange: function onChange(e) {
+      var val = e.target.value;
+      if (!val) set("paidAt", null);else set("paidAt", new Date(val + "T12:00:00").toISOString());
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Mode de paiement"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.paymentMethod || "",
+    onChange: function onChange(e) {
+      return set("paymentMethod", e.target.value || null);
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "\u2014 Non pr\xE9cis\xE9 \u2014"), PAYMENT_METHODS.map(function (m) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: m.id,
+      value: m.id
+    }, m.label);
+  }))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -11000,6 +11096,74 @@ function InvoiceEditor(_ref82) {
   }, "Total TTC"), /*#__PURE__*/React.createElement("span", {
     className: "gold-text"
   }, fmtMoney(totals.ttc))))))));
+}
+
+// Mini-modal pour marquer une facture comme payée avec date et mode personnalisables
+function MarkAsPaidModal(_ref88) {
+  var invoice = _ref88.invoice,
+    onClose = _ref88.onClose,
+    onConfirm = _ref88.onConfirm;
+  var _useState135 = useState(invoice.paidAt ? invoice.paidAt.slice(0, 10) : todayISO()),
+    _useState136 = _slicedToArray(_useState135, 2),
+    paidAt = _useState136[0],
+    setPaidAt = _useState136[1];
+  var _useState137 = useState(invoice.paymentMethod || "virement"),
+    _useState138 = _slicedToArray(_useState137, 2),
+    paymentMethod = _useState138[0],
+    setPaymentMethod = _useState138[1];
+  return /*#__PURE__*/React.createElement(Modal, {
+    open: true,
+    onClose: onClose,
+    title: "Marquer ".concat(invoice.number, " comme pay\xE9e"),
+    size: "sm",
+    footer: /*#__PURE__*/React.createElement("div", {
+      className: "flex justify-end gap-2"
+    }, /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: onClose
+    }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "primary",
+      icon: /*#__PURE__*/React.createElement(Ic.Check, {
+        className: "w-4 h-4"
+      }),
+      onClick: function onClick() {
+        return onConfirm({
+          paidAt: new Date(paidAt + "T12:00:00").toISOString(),
+          paymentMethod: paymentMethod
+        });
+      }
+    }, "Confirmer le r\xE8glement"))
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "space-y-4"
+  }, /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-paper-600"
+  }, "Indique la date \xE0 laquelle le r\xE8glement a \xE9t\xE9 re\xE7u et le mode utilis\xE9."), /*#__PURE__*/React.createElement(Field, {
+    label: "Date de r\xE8glement",
+    required: true,
+    hint: "Date du virement, du d\xE9p\xF4t du ch\xE8que, du paiement CB\u2026"
+  }, /*#__PURE__*/React.createElement(Input, {
+    type: "date",
+    value: paidAt,
+    onChange: function onChange(e) {
+      return setPaidAt(e.target.value);
+    }
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Mode de paiement"
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: paymentMethod,
+    onChange: function onChange(e) {
+      return setPaymentMethod(e.target.value);
+    }
+  }, PAYMENT_METHODS.map(function (m) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: m.id,
+      value: m.id
+    }, m.label);
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-md bg-paper-50 border border-paper-200 p-3 text-xs text-paper-600"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "font-semibold text-paper-800 mb-1"
+  }, invoice.number, " \xB7 ", fmtMoney(invoice.ttc || 0)), /*#__PURE__*/React.createElement("div", null, "\xC9ch\xE9ance pr\xE9vue : ", invoice.dueDate ? fmtDate(invoice.dueDate) : "—"))));
 }
 function BrandedInvoiceDocument(_ref83) {
   var invoice = _ref83.invoice,
