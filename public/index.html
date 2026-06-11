@@ -8888,14 +8888,17 @@ function DevisPage(_ref66) {
 }
 
 // ----------- Quote Editor -----------
-function QuoteEditor(_ref69) {
-  var quote = _ref69.quote,
-    onClose = _ref69.onClose,
-    onSave = _ref69.onSave;
+function QuoteEditor(_ref70) {
+  var _state$settings2;
+  var quote = _ref70.quote,
+    onClose = _ref70.onClose,
+    onSave = _ref70.onSave;
   var _useStore11 = useStore(),
     state = _useStore11.state;
+  var _useAuth7 = useAuth(),
+    currentUser = _useAuth7.currentUser;
   var isNew = !quote.id;
-  var _defaultVatQ = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
+  var defaultTerms = ((_state$settings2 = state.settings) === null || _state$settings2 === void 0 || (_state$settings2 = _state$settings2.documents) === null || _state$settings2 === void 0 ? void 0 : _state$settings2.defaultTerms) || "Paiement à la réception de la facture au comptant.";
   var _useState111 = useState(function () {
       return {
         id: quote.id || uid("q"),
@@ -8907,7 +8910,6 @@ function QuoteEditor(_ref69) {
         issueDate: quote.issueDate ? quote.issueDate.slice(0, 10) : todayISO(),
         validUntil: quote.validUntil ? quote.validUntil.slice(0, 10) : new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10),
         discount: quote.discount || 0,
-        vat: quote.vat != null ? Number(quote.vat) : _defaultVatQ,
         lines: quote.lines && quote.lines.length > 0 ? quote.lines : [{
           id: uid("ln"),
           description: "",
@@ -8916,11 +8918,15 @@ function QuoteEditor(_ref69) {
           ref: ""
         }],
         notes: quote.notes || "",
-        terms: quote.terms || "Paiement à 30 jours fin de mois. Acompte 30% à la commande. Tarifs valables 30 jours à compter de la date d'émission.",
+        terms: quote.terms || defaultTerms,
         signedAt: quote.signedAt || null,
         signedBy: quote.signedBy || null,
         signatureMethod: quote.signatureMethod || null,
         signatureData: quote.signatureData || null,
+        // Signataire côté Cerberion = utilisateur connecté qui crée/modifie le devis
+        createdByName: quote.createdByName || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.name) || "",
+        createdByPosition: quote.createdByPosition || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.position) || "",
+        createdByEmail: quote.createdByEmail || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.email) || "",
         createdAt: quote.createdAt || nowISO()
       };
     }),
@@ -8932,7 +8938,7 @@ function QuoteEditor(_ref69) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
+  var totals = calcQuoteTotals(form.lines, form.discount);
   var setLine = function setLine(i, patch) {
     setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -8969,20 +8975,29 @@ function QuoteEditor(_ref69) {
       var lines = _toConsumableArray(f.lines);
       var j = i + dir;
       if (j < 0 || j >= lines.length) return f;
-      var _ref70 = [lines[j], lines[i]];
-      lines[i] = _ref70[0];
-      lines[j] = _ref70[1];
+      var _ref71 = [lines[j], lines[i]];
+      lines[i] = _ref71[0];
+      lines[j] = _ref71[1];
       return _objectSpread(_objectSpread({}, f), {}, {
         lines: lines
       });
     });
   };
   var insertCatalogue = function insertCatalogue(i, ref) {
+    // Recherche d'abord dans le catalogue utilisateur (Paramètres → Catalogue)
+    var prod = (state.products || []).find(function (p) {
+      return p.id === ref || p.ref === ref;
+    });
+    if (prod) return setLine(i, {
+      description: prod.name + (prod.description ? " \u2014 ".concat(prod.description) : ""),
+      unitPrice: prod.price || 0,
+      ref: prod.id
+    });
+    // Sinon catalogue prédéfini
     var item = SERVICE_CATALOGUE.find(function (s) {
       return s.ref === ref;
     });
-    if (!item) return;
-    setLine(i, {
+    if (item) setLine(i, {
       description: item.label,
       unitPrice: item.price,
       ref: item.ref
@@ -9048,17 +9063,23 @@ function QuoteEditor(_ref69) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(form);
+      },
+      disabled: !valid
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenExportPDF: true
+          thenSend: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer et exporter PDF")))
+    }, "Enregistrer & envoyer")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -9126,20 +9147,7 @@ function QuoteEditor(_ref69) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "TVA applicable",
-    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
-  }, /*#__PURE__*/React.createElement(Select, {
-    value: form.vat,
-    onChange: function onChange(e) {
-      return set("vat", Number(e.target.value));
-    }
-  }, VAT_RATES.map(function (v) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: v.rate,
-      value: v.rate
-    }, v.label);
-  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -9196,12 +9204,21 @@ function QuoteEditor(_ref69) {
       className: "w-full bg-transparent border border-transparent hover:border-paper-200 focus:border-gold-500 rounded px-2 py-1.5 text-xs outline-none text-paper-700"
     }, /*#__PURE__*/React.createElement("option", {
       value: ""
-    }, "\u2014"), SERVICE_CATALOGUE.map(function (s) {
+    }, "\u2014"), (state.products || []).length > 0 && /*#__PURE__*/React.createElement("optgroup", {
+      label: "Mon catalogue"
+    }, (state.products || []).map(function (p) {
+      return /*#__PURE__*/React.createElement("option", {
+        key: p.id,
+        value: p.id
+      }, p.name);
+    })), /*#__PURE__*/React.createElement("optgroup", {
+      label: "Catalogue pr\xE9d\xE9fini"
+    }, SERVICE_CATALOGUE.map(function (s) {
       return /*#__PURE__*/React.createElement("option", {
         key: s.ref,
         value: s.ref
       }, s.ref);
-    }))), /*#__PURE__*/React.createElement("td", {
+    })))), /*#__PURE__*/React.createElement("td", {
       className: "px-2 py-1.5"
     }, /*#__PURE__*/React.createElement("input", {
       type: "number",
@@ -9301,7 +9318,7 @@ function QuoteEditor(_ref69) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -9315,21 +9332,17 @@ function QuoteEditor(_ref69) {
 }
 
 // ----------- Quote Viewer (modal with branded preview + actions) -----------
-function QuoteViewer(_ref71) {
-  var _state$settings2, _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
-  var quoteId = _ref71.quoteId,
-    autoExport = _ref71.autoExport,
-    onClose = _ref71.onClose,
-    onEdit = _ref71.onEdit,
-    openClientProfile = _ref71.openClientProfile,
-    openProspectProfile = _ref71.openProspectProfile;
+function QuoteViewer(_ref72) {
+  var _state$settings3, _QUOTE_STATUS$quote$s, _QUOTE_STATUS$quote$s2;
+  var quoteId = _ref72.quoteId,
+    onClose = _ref72.onClose,
+    onEdit = _ref72.onEdit,
+    openClientProfile = _ref72.openClientProfile,
+    openProspectProfile = _ref72.openProspectProfile;
   var _useStore12 = useStore(),
     state = _useStore12.state,
     setQuoteStatus = _useStore12.setQuoteStatus,
     generateInvoiceFromQuote = _useStore12.generateInvoiceFromQuote;
-  var _useAuth_qv = useAuth(),
-    currentUser_qv = _useAuth_qv.currentUser;
-  var _signerLive = currentUser_qv ? { name: currentUser_qv.name || "", position: currentUser_qv.position || "" } : null;
   var toast = useToast();
   // All hooks must be called BEFORE any conditional return (React Hooks Rules)
   var printRef = useRef(null);
@@ -9354,10 +9367,10 @@ function QuoteViewer(_ref71) {
   }) : quote.prospectId ? state.prospects.find(function (p) {
     return p.id === quote.prospectId;
   }) : null;
-  var company = ((_state$settings2 = state.settings) === null || _state$settings2 === void 0 ? void 0 : _state$settings2.company) || {};
+  var company = ((_state$settings3 = state.settings) === null || _state$settings3 === void 0 ? void 0 : _state$settings3.company) || {};
   var link = shareableLink(quote.id);
   var copyLink = /*#__PURE__*/function () {
-    var _ref72 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
+    var _ref73 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee19() {
       var _t9;
       return _regenerator().w(function (_context19) {
         while (1) switch (_context19.p = _context19.n) {
@@ -9386,11 +9399,11 @@ function QuoteViewer(_ref71) {
       }, _callee19, null, [[0, 2]]);
     }));
     return function copyLink() {
-      return _ref72.apply(this, arguments);
+      return _ref73.apply(this, arguments);
     };
   }();
   var exportPDF = /*#__PURE__*/function () {
-    var _ref73 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee20() {
+    var _ref74 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee20() {
       var canvas, img, jsPDF, pdf, pageW, pageH, ratio, imgW, imgH, remainingH, page, _t0;
       return _regenerator().w(function (_context20) {
         while (1) switch (_context20.p = _context20.n) {
@@ -9460,7 +9473,7 @@ function QuoteViewer(_ref71) {
       }, _callee20, null, [[2, 4, 5, 6]]);
     }));
     return function exportPDF() {
-      return _ref73.apply(this, arguments);
+      return _ref74.apply(this, arguments);
     };
   }();
   var onChangeStatus = function onChangeStatus(status, extra) {
@@ -9470,15 +9483,6 @@ function QuoteViewer(_ref71) {
       title: "Statut mis à jour"
     });
   };
-  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
-  var _autoExportTriggered = useRef(false);
-  useEffect(function () {
-    if (autoExport && !_autoExportTriggered.current && printRef.current) {
-      _autoExportTriggered.current = true;
-      // petit délai pour s'assurer que la mise en page est faite
-      setTimeout(function () { exportPDF(); }, 350);
-    }
-  }, [autoExport, quote && quote.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -9567,8 +9571,7 @@ function QuoteViewer(_ref71) {
   }, /*#__PURE__*/React.createElement(BrandedQuoteDocument, {
     quote: quote,
     recipient: recipient,
-    company: company,
-    signer: _signerLive
+    company: company
   }))), /*#__PURE__*/React.createElement("div", {
     className: "mt-4 card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -9638,18 +9641,12 @@ function QuoteViewer(_ref71) {
 }
 
 // ----------- Branded Quote Document (printable - keep Cinzel here for the brand) -----------
-function BrandedQuoteDocument(_ref74) {
-  var quote = _ref74.quote,
-    recipient = _ref74.recipient,
-    company = _ref74.company,
-    signer = _ref74.signer;
+function BrandedQuoteDocument(_ref75) {
+  var quote = _ref75.quote,
+    recipient = _ref75.recipient,
+    company = _ref75.company;
   company = company || {};
-  var _quoteVat = quote.vat != null ? Number(quote.vat) : VAT_LU;
-  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, _quoteVat);
-  // Signataire : priorité au prop (utilisateur connecté), puis snapshot stocké sur le devis.
-  var _signerObj = signer || quote.signer || null;
-  var _signerName = (_signerObj && _signerObj.name) ? _signerObj.name : "Cerberion";
-  var _signerPos = (_signerObj && _signerObj.position) ? _signerObj.position : "Direction commerciale";
+  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -9985,7 +9982,7 @@ function BrandedQuoteDocument(_ref74) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", _quoteVat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500
     }
@@ -10134,7 +10131,7 @@ function BrandedQuoteDocument(_ref74) {
       letterSpacing: "0.12em",
       textTransform: "uppercase"
     }
-  }, "Cerberion S.A."), /*#__PURE__*/React.createElement("div", {
+  }, company.legalName || "Cerberion"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Cinzel',serif",
       fontSize: 18,
@@ -10142,13 +10139,19 @@ function BrandedQuoteDocument(_ref74) {
       marginTop: 8,
       fontStyle: "italic"
     }
-  }, _signerName), /*#__PURE__*/React.createElement("div", {
+  }, quote.createdByName || "—"), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: "#6b7280",
       marginTop: 2
     }
-  }, _signerPos))), /*#__PURE__*/React.createElement("div", {
+  }, quote.createdByPosition || ""), quote.createdByEmail && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#9ca3af",
+      marginTop: 2
+    }
+  }, quote.createdByEmail))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 36,
       paddingTop: 14,
@@ -10163,10 +10166,10 @@ function BrandedQuoteDocument(_ref74) {
 // ============================================================================
 //  INVOICES PAGE
 // ============================================================================
-function InvoicesPage(_ref75) {
-  var search = _ref75.search,
-    filterClient = _ref75.filterClient,
-    clearFilter = _ref75.clearFilter;
+function InvoicesPage(_ref76) {
+  var search = _ref76.search,
+    filterClient = _ref76.filterClient,
+    clearFilter = _ref76.clearFilter;
   var _useStore13 = useStore(),
     state = _useStore13.state,
     upsertInvoice = _useStore13.upsertInvoice,
@@ -10262,10 +10265,10 @@ function InvoicesPage(_ref75) {
       return setStatusFilter("all");
     },
     className: "badge ".concat(statusFilter === "all" ? "badge-gold" : "badge-slate", " cursor-pointer")
-  }, "Toutes (", invoices.length, ")"), Object.entries(INVOICE_STATUS).map(function (_ref76) {
-    var _ref77 = _slicedToArray(_ref76, 2),
-      k = _ref77[0],
-      v = _ref77[1];
+  }, "Toutes (", invoices.length, ")"), Object.entries(INVOICE_STATUS).map(function (_ref77) {
+    var _ref78 = _slicedToArray(_ref77, 2),
+      k = _ref78[0],
+      v = _ref78[1];
     var n = invoices.filter(function (x) {
       return x.status === k;
     }).length;
@@ -10417,33 +10420,33 @@ function InvoicesPage(_ref75) {
       return setEditor(null);
     },
     onSave: (/*#__PURE__*/function () {
-      var _ref78 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(data) {
+      var _ref79 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee21(data) {
         var opts,
+          finalData,
           _args21 = arguments;
         return _regenerator().w(function (_context21) {
           while (1) switch (_context21.n) {
             case 0:
               opts = _args21.length > 1 && _args21[1] !== undefined ? _args21[1] : {};
+              finalData = opts.thenSend ? _objectSpread(_objectSpread({}, data), {}, {
+                status: "envoyee"
+              }) : data;
               _context21.n = 1;
-              return upsertInvoice(data);
+              return upsertInvoice(finalData);
             case 1:
               toast.push({
                 type: "success",
-                title: editor.id ? "Facture mise à jour" : "Facture créée",
-                message: data.number
+                title: editor.id ? "Facture mise à jour" : opts.thenSend ? "Facture envoyée" : "Facture créée",
+                message: finalData.number
               });
               setEditor(null);
-              // Si "Enregistrer et exporter PDF" : ouvrir le viewer avec flag auto-export.
-              if (opts.thenExportPDF) {
-                setViewer(_objectSpread(_objectSpread({}, data), {}, { _autoExport: true }));
-              }
             case 2:
               return _context21.a(2);
           }
         }, _callee21);
       }));
       return function (_x18) {
-        return _ref78.apply(this, arguments);
+        return _ref79.apply(this, arguments);
       };
     }())
   }), confirmDelete && /*#__PURE__*/React.createElement(ConfirmModal, {
@@ -10463,11 +10466,10 @@ function InvoicesPage(_ref75) {
     }
   }));
 }
-function InvoiceViewer(_ref79) {
-  var _state$settings3, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
-  var invoice = _ref79.invoice,
-    autoExport = _ref79.autoExport,
-    onClose = _ref79.onClose;
+function InvoiceViewer(_ref80) {
+  var _state$settings4, _INVOICE_STATUS$invoi, _INVOICE_STATUS$invoi2;
+  var invoice = _ref80.invoice,
+    onClose = _ref80.onClose;
   var _useStore14 = useStore(),
     state = _useStore14.state,
     setInvoiceStatus = _useStore14.setInvoiceStatus;
@@ -10478,16 +10480,13 @@ function InvoiceViewer(_ref79) {
     _useState128 = _slicedToArray(_useState127, 2),
     exporting = _useState128[0],
     setExporting = _useState128[1];
-  var _autoExportTriggeredInv = useRef(false);
-  // Détecte un flag _autoExport sur l'invoice (cas viewer interne InvoicesPage).
-  var _shouldAutoExportInv = !!(autoExport || (invoice && invoice._autoExport));
   if (!invoice) return null;
   var client = state.clients.find(function (c) {
     return c.id === invoice.clientId;
   });
-  var company = ((_state$settings3 = state.settings) === null || _state$settings3 === void 0 ? void 0 : _state$settings3.company) || {};
+  var company = ((_state$settings4 = state.settings) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.company) || {};
   var exportPDF = /*#__PURE__*/function () {
-    var _ref80 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
+    var _ref81 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22() {
       var canvas, img, jsPDF, pdf, pageW, ratio, imgH, _t1;
       return _regenerator().w(function (_context22) {
         while (1) switch (_context22.p = _context22.n) {
@@ -10542,16 +10541,9 @@ function InvoiceViewer(_ref79) {
       }, _callee22, null, [[2, 4, 5, 6]]);
     }));
     return function exportPDF() {
-      return _ref80.apply(this, arguments);
+      return _ref81.apply(this, arguments);
     };
   }();
-  // Auto-export PDF si demandé (déclenché après "Enregistrer et exporter PDF" dans l'éditeur).
-  useEffect(function () {
-    if (_shouldAutoExportInv && !_autoExportTriggeredInv.current && printRef.current) {
-      _autoExportTriggeredInv.current = true;
-      setTimeout(function () { exportPDF(); }, 350);
-    }
-  }, [_shouldAutoExportInv, invoice && invoice.id]);
   return /*#__PURE__*/React.createElement(Modal, {
     open: true,
     onClose: onClose,
@@ -10614,17 +10606,16 @@ function InvoiceViewer(_ref79) {
 }
 
 // ----------- Invoice Editor (create / edit invoice directly, no quote needed) -----------
-function InvoiceEditor(_ref81) {
-  var _state$settings$docum, _state$settings4, _state$settings5;
-  var invoice = _ref81.invoice,
-    onClose = _ref81.onClose,
-    onSave = _ref81.onSave;
+function InvoiceEditor(_ref82) {
+  var _state$settings$docum, _state$settings5, _state$settings6;
+  var invoice = _ref82.invoice,
+    onClose = _ref82.onClose,
+    onSave = _ref82.onSave;
   var _useStore15 = useStore(),
     state = _useStore15.state;
   var isNew = !invoice.id;
-  var paymentDays = (_state$settings$docum = (_state$settings4 = state.settings) === null || _state$settings4 === void 0 || (_state$settings4 = _state$settings4.documents) === null || _state$settings4 === void 0 ? void 0 : _state$settings4.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
-  var defaultTerms = ((_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.defaultTerms) || "Paiement à 30 jours fin de mois.";
-  var _defaultVatI = (state.settings && state.settings.vat != null) ? Number(state.settings.vat) : VAT_LU;
+  var paymentDays = (_state$settings$docum = (_state$settings5 = state.settings) === null || _state$settings5 === void 0 || (_state$settings5 = _state$settings5.documents) === null || _state$settings5 === void 0 ? void 0 : _state$settings5.paymentTermsDays) !== null && _state$settings$docum !== void 0 ? _state$settings$docum : 30;
+  var defaultTerms = ((_state$settings6 = state.settings) === null || _state$settings6 === void 0 || (_state$settings6 = _state$settings6.documents) === null || _state$settings6 === void 0 ? void 0 : _state$settings6.defaultTerms) || "Paiement à la réception de la facture au comptant.";
   var _useState129 = useState(function () {
       return {
         id: invoice.id || uid("inv"),
@@ -10635,7 +10626,6 @@ function InvoiceEditor(_ref81) {
         issueDate: invoice.issueDate ? invoice.issueDate.slice(0, 10) : todayISO(),
         dueDate: invoice.dueDate ? invoice.dueDate.slice(0, 10) : new Date(Date.now() + paymentDays * 86400000).toISOString().slice(0, 10),
         discount: invoice.discount || 0,
-        vat: invoice.vat != null ? Number(invoice.vat) : _defaultVatI,
         lines: invoice.lines && invoice.lines.length > 0 ? invoice.lines : [{
           id: uid("ln"),
           description: "",
@@ -10659,7 +10649,7 @@ function InvoiceEditor(_ref81) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount, form.vat);
+  var totals = calcQuoteTotals(form.lines, form.discount);
   var setLine = function setLine(i, patch) {
     return setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -10696,9 +10686,9 @@ function InvoiceEditor(_ref81) {
       var lines = _toConsumableArray(f.lines);
       var j = i + dir;
       if (j < 0 || j >= lines.length) return f;
-      var _ref82 = [lines[j], lines[i]];
-      lines[i] = _ref82[0];
-      lines[j] = _ref82[1];
+      var _ref83 = [lines[j], lines[i]];
+      lines[i] = _ref83[0];
+      lines[j] = _ref83[1];
       return _objectSpread(_objectSpread({}, f), {}, {
         lines: lines
       });
@@ -10749,17 +10739,23 @@ function InvoiceEditor(_ref81) {
       variant: "ghost",
       onClick: onClose
     }, "Annuler"), /*#__PURE__*/React.createElement(Button, {
+      variant: "ghost",
+      onClick: function onClick() {
+        return onSave(form);
+      },
+      disabled: !valid
+    }, "Enregistrer brouillon"), /*#__PURE__*/React.createElement(Button, {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenExportPDF: true
+          thenSend: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Download, {
+      icon: /*#__PURE__*/React.createElement(Ic.Send, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer et exporter PDF")))
+    }, "Enregistrer & envoyer")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -10822,20 +10818,7 @@ function InvoiceEditor(_ref81) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
-  })), /*#__PURE__*/React.createElement(Field, {
-    label: "TVA applicable",
-    hint: "Par d\xE9faut : taux configur\xE9 dans Param\xE8tres > Documents."
-  }, /*#__PURE__*/React.createElement(Select, {
-    value: form.vat,
-    onChange: function onChange(e) {
-      return set("vat", Number(e.target.value));
-    }
-  }, VAT_RATES.map(function (v) {
-    return /*#__PURE__*/React.createElement("option", {
-      key: v.rate,
-      value: v.rate
-    }, v.label);
-  })))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
     className: "font-semibold text-paper-800"
@@ -11006,7 +10989,7 @@ function InvoiceEditor(_ref81) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", form.vat, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
