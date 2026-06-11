@@ -9418,10 +9418,22 @@ function QuoteEditor(_ref70) {
   }, "Total HT"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.ht))), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between"
+    className: "flex justify-between items-center"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-paper-600"
-  }, "TVA (", currentRegime.rate, "%)"), /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600 flex items-center gap-1"
+  }, "TVA", /*#__PURE__*/React.createElement("select", {
+    value: form.vatRegime,
+    onChange: function onChange(e) {
+      return set("vatRegime", e.target.value);
+    },
+    title: "Changer le r\xE9gime TVA directement ici",
+    className: "bg-white border border-paper-300 hover:border-gold-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 rounded px-2 py-0.5 text-xs font-medium cursor-pointer outline-none"
+  }, VAT_REGIMES.map(function (r) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: r.id,
+      value: r.id
+    }, r.rate, "%", r.country !== "LU" ? " \xB7 ".concat(r.country) : "");
+  }))), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -9431,7 +9443,9 @@ function QuoteEditor(_ref70) {
     className: "text-paper-800"
   }, "Total ", currentRegime.rate > 0 ? "TTC" : "à payer"), /*#__PURE__*/React.createElement("span", {
     className: "gold-text"
-  }, fmtMoney(totals.ttc))), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(totals.ttc))), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 mt-1"
+  }, currentRegime.label), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] text-paper-500 italic mt-2 pt-2 border-t border-paper-100"
   }, currentRegime.mention))))));
 }
@@ -11215,10 +11229,22 @@ function InvoiceEditor(_ref84) {
   }, "Total HT"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.ht))), /*#__PURE__*/React.createElement("div", {
-    className: "flex justify-between"
+    className: "flex justify-between items-center"
   }, /*#__PURE__*/React.createElement("span", {
-    className: "text-paper-600"
-  }, "TVA (", currentRegime.rate, "%)"), /*#__PURE__*/React.createElement("span", {
+    className: "text-paper-600 flex items-center gap-1"
+  }, "TVA", /*#__PURE__*/React.createElement("select", {
+    value: form.vatRegime,
+    onChange: function onChange(e) {
+      return set("vatRegime", e.target.value);
+    },
+    title: "Changer le r\xE9gime TVA directement ici",
+    className: "bg-white border border-paper-300 hover:border-gold-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500 rounded px-2 py-0.5 text-xs font-medium cursor-pointer outline-none"
+  }, VAT_REGIMES.map(function (r) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: r.id,
+      value: r.id
+    }, r.rate, "%", r.country !== "LU" ? " \xB7 ".concat(r.country) : "");
+  }))), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -11228,7 +11254,9 @@ function InvoiceEditor(_ref84) {
     className: "text-paper-800"
   }, "Total ", currentRegime.rate > 0 ? "TTC" : "à payer"), /*#__PURE__*/React.createElement("span", {
     className: "gold-text"
-  }, fmtMoney(totals.ttc))), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(totals.ttc))), /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 mt-1"
+  }, currentRegime.label), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
     className: "text-[10px] text-paper-500 italic mt-2 pt-2 border-t border-paper-100"
   }, currentRegime.mention))))));
 }
