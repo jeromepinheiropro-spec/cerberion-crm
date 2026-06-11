@@ -514,14 +514,16 @@ var round2 = function round2(n) {
 function splitDayNightMinutes(startISO, endISO) {
   var start = new Date(startISO).getTime();
   var end = new Date(endISO).getTime();
-  if (end <= start) return {
+  if (isNaN(start) || isNaN(end) || end <= start) return {
     totalMin: 0,
     dayMin: 0,
     nightMin: 0
   };
+  // Garde-fou : on borne à 36h max pour éviter une boucle infinie sur données corrompues
+  var cappedEnd = Math.min(end, start + 36 * 60 * 60 * 1000);
   var day = 0,
     night = 0;
-  for (var t = start; t < end; t += 60000) {
+  for (var t = start; t < cappedEnd; t += 60000) {
     var h = new Date(t).getHours();
     if (h >= LU_LABOR.nightStartHour || h < LU_LABOR.nightEndHour) night += 1;else day += 1;
   }
@@ -532,16 +534,20 @@ function splitDayNightMinutes(startISO, endISO) {
   };
 }
 function calcFicheExtra(fiche) {
-  var date = fiche.date || new Date().toISOString().slice(0, 10);
-  var start = fiche.startTime || "08:00";
-  var end = fiche.endTime || "17:00";
-  var breakMin = Number(fiche.breakMinutes || 0);
-  var rate = Number(fiche.hourlyRate || 0);
+  // Robustesse : valide la date avant de l'utiliser (évite crash sur date vide/invalide)
+  var date = isValidISODate(fiche === null || fiche === void 0 ? void 0 : fiche.date) ? fiche.date : new Date().toISOString().slice(0, 10);
+  var start = isValidTime(fiche === null || fiche === void 0 ? void 0 : fiche.startTime) ? fiche.startTime : "08:00";
+  var end = isValidTime(fiche === null || fiche === void 0 ? void 0 : fiche.endTime) ? fiche.endTime : "17:00";
+  var breakMin = Number((fiche === null || fiche === void 0 ? void 0 : fiche.breakMinutes) || 0);
+  var rate = Number((fiche === null || fiche === void 0 ? void 0 : fiche.hourlyRate) || 0);
   var endDate = date;
   if (end < start) {
-    var d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + 1);
-    endDate = d.toISOString().slice(0, 10);
+    try {
+      var d = new Date(date + "T00:00:00");
+      d.setDate(d.getDate() + 1);
+      var iso = d.toISOString();
+      if (iso) endDate = iso.slice(0, 10);
+    } catch (e) {/* garde endDate = date */}
   }
   var split = splitDayNightMinutes("".concat(date, "T").concat(start, ":00"), "".concat(endDate, "T").concat(end, ":00"));
   var totalWorkedMin = Math.max(0, split.totalMin - breakMin);
@@ -640,16 +646,19 @@ function validateFicheExtra(fiche) {
       message: "Taux inf\xE9rieur au SSM non qualifi\xE9 (".concat(LU_WAGES_2026.ssmNonQualifie.toFixed(2), " \u20AC/h brut).")
     });
   }
-  if (fiche.agentName) {
-    var others = allFiches.filter(function (f) {
+  // Validations dépendant de la date : on les skip si la date de la fiche n'est pas valide
+  if (fiche.agentName && isValidISODate(fiche.date)) {
+    var others = (allFiches || []).filter(function (f) {
       var _f$agentName;
-      return f.id !== fiche.id && ((_f$agentName = f.agentName) === null || _f$agentName === void 0 ? void 0 : _f$agentName.trim().toLowerCase()) === fiche.agentName.trim().toLowerCase();
+      return f.id !== fiche.id && ((_f$agentName = f.agentName) === null || _f$agentName === void 0 ? void 0 : _f$agentName.trim().toLowerCase()) === fiche.agentName.trim().toLowerCase() && isValidISODate(f.date);
     });
     var endDate = fiche.date;
     if ((fiche.endTime || "") < (fiche.startTime || "")) {
-      var dd = new Date(fiche.date + "T00:00:00");
-      dd.setDate(dd.getDate() + 1);
-      endDate = dd.toISOString().slice(0, 10);
+      try {
+        var dd = new Date(fiche.date + "T00:00:00");
+        dd.setDate(dd.getDate() + 1);
+        endDate = dd.toISOString().slice(0, 10);
+      } catch (e) {/* keep endDate = fiche.date */}
     }
     var startMs = new Date("".concat(fiche.date, "T").concat(fiche.startTime || "00:00", ":00")).getTime();
     var endMs = new Date("".concat(endDate, "T").concat(fiche.endTime || "00:00", ":00")).getTime();
@@ -660,12 +669,15 @@ function validateFicheExtra(fiche) {
         var o = _step.value;
         var oEnd = o.date;
         if ((o.endTime || "") < (o.startTime || "")) {
-          var _dd = new Date(o.date + "T00:00:00");
-          _dd.setDate(_dd.getDate() + 1);
-          oEnd = _dd.toISOString().slice(0, 10);
+          try {
+            var _dd = new Date(o.date + "T00:00:00");
+            _dd.setDate(_dd.getDate() + 1);
+            oEnd = _dd.toISOString().slice(0, 10);
+          } catch (e) {/* keep oEnd = o.date */}
         }
         var oStartMs = new Date("".concat(o.date, "T").concat(o.startTime || "00:00", ":00")).getTime();
         var oEndMs = new Date("".concat(oEnd, "T").concat(o.endTime || "00:00", ":00")).getTime();
+        if (isNaN(oStartMs) || isNaN(oEndMs) || isNaN(startMs) || isNaN(endMs)) continue;
         if (oStartMs < endMs && oEndMs > startMs) {
           alerts.push({
             severity: "error",
@@ -689,20 +701,23 @@ function validateFicheExtra(fiche) {
     } finally {
       _iterator.f();
     }
-    var monday = function () {
+    var monday = null,
+      sunday = null;
+    try {
       var d = new Date(fiche.date + "T00:00:00");
       var day = (d.getDay() + 6) % 7;
       d.setDate(d.getDate() - day);
-      return d.toISOString().slice(0, 10);
-    }();
-    var sunday = function () {
-      var d = new Date(monday + "T00:00:00");
-      d.setDate(d.getDate() + 6);
-      return d.toISOString().slice(0, 10);
-    }();
-    var weekFiches = [].concat(_toConsumableArray(others.filter(function (f) {
+      monday = d.toISOString().slice(0, 10);
+      var d2 = new Date(monday + "T00:00:00");
+      d2.setDate(d2.getDate() + 6);
+      sunday = d2.toISOString().slice(0, 10);
+    } catch (e) {
+      monday = null;
+      sunday = null;
+    }
+    var weekFiches = monday && sunday ? [].concat(_toConsumableArray(others.filter(function (f) {
       return f.date >= monday && f.date <= sunday;
-    })), [fiche]);
+    })), [fiche]) : [fiche];
     var weekTotalH = weekFiches.reduce(function (s, f) {
       return s + calcFicheExtra(f).totalH;
     }, 0);
@@ -1453,17 +1468,89 @@ var initialsOf = function initialsOf() {
     return s[0];
   }).slice(0, 2).join("").toUpperCase();
 };
+var VAT_REGIMES = [{
+  id: "luxembourg_17",
+  label: "Luxembourg — TVA standard (17 %)",
+  rate: 17,
+  country: "LU"
+}, {
+  id: "luxembourg_14",
+  label: "Luxembourg — TVA réduit (14 %)",
+  rate: 14,
+  country: "LU"
+}, {
+  id: "luxembourg_8",
+  label: "Luxembourg — TVA intermédiaire (8 %)",
+  rate: 8,
+  country: "LU"
+}, {
+  id: "luxembourg_3",
+  label: "Luxembourg — TVA super-réduit (3 %)",
+  rate: 3,
+  country: "LU"
+}, {
+  id: "france",
+  label: "France — Autoliquidation B2B (0 %)",
+  rate: 0,
+  country: "FR",
+  mention: "Autoliquidation – Article 196 de la Directive 2006/112/CE (preneur redevable de la TVA)."
+}, {
+  id: "belgique",
+  label: "Belgique — Autoliquidation B2B (0 %)",
+  rate: 0,
+  country: "BE",
+  mention: "Autoliquidation – TVA due par le cocontractant établi en Belgique."
+}, {
+  id: "ue_intra",
+  label: "UE — Autoliquidation intracommunautaire (0 %)",
+  rate: 0,
+  country: "EU",
+  mention: "Autoliquidation – Article 196 de la Directive 2006/112/CE (preneur redevable de la TVA)."
+}, {
+  id: "suisse",
+  label: "Suisse — Exportation hors UE (0 %)",
+  rate: 0,
+  country: "CH",
+  mention: "Exportation hors UE – Exonération de TVA au titre de l'article 146 de la Directive 2006/112/CE."
+}, {
+  id: "hors_ue",
+  label: "Hors UE — Exportation (0 %)",
+  rate: 0,
+  country: "XX",
+  mention: "Exportation hors UE – Exonération de TVA au titre de l'article 146 de la Directive 2006/112/CE."
+}, {
+  id: "exonere",
+  label: "Exonéré de TVA (0 %)",
+  rate: 0,
+  country: "*",
+  mention: "TVA non applicable."
+}];
+function getVatRegime(regimeId) {
+  return VAT_REGIMES.find(function (r) {
+    return r.id === regimeId;
+  }) || VAT_REGIMES[0];
+}
+function getVatRateFromRegime(regimeId) {
+  return getVatRegime(regimeId).rate;
+}
+function isValidISODate(s) {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var d = new Date(s + "T00:00:00");
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+function isValidTime(s) {
+  return typeof s === "string" && /^\d{2}:\d{2}$/.test(s);
+}
 function calcQuoteTotals(lines) {
   var discountPct = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-  // Le 3e paramètre est le taux de TVA. S'il est absent, on retombe sur le taux LU par défaut.
-  var vatRate = arguments.length > 2 && arguments[2] !== undefined ? Number(arguments[2]) : VAT_LU;
-  if (!isFinite(vatRate)) vatRate = VAT_LU;
+  var vatRate = arguments.length > 2 ? arguments[2] : undefined;
+  var rate = vatRate != null ? Number(vatRate) : VAT_LU;
   var subTotal = lines.reduce(function (s, l) {
     return s + (Number(l.qty) || 0) * (Number(l.unitPrice) || 0);
   }, 0);
   var discount = subTotal * (Number(discountPct) || 0) / 100;
   var ht = subTotal - discount;
-  var tva = ht * vatRate / 100;
+  var tva = ht * rate / 100;
   var ttc = ht + tva;
   return {
     subTotal: subTotal,
@@ -1471,7 +1558,7 @@ function calcQuoteTotals(lines) {
     ht: ht,
     tva: tva,
     ttc: ttc,
-    vat: vatRate
+    vatRate: rate
   };
 }
 function generateQuoteNumber(quotes) {
@@ -8927,6 +9014,7 @@ function QuoteEditor(_ref70) {
         createdByName: quote.createdByName || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.name) || "",
         createdByPosition: quote.createdByPosition || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.position) || "",
         createdByEmail: quote.createdByEmail || (currentUser === null || currentUser === void 0 ? void 0 : currentUser.email) || "",
+        vatRegime: quote.vatRegime || "luxembourg_17",
         createdAt: quote.createdAt || nowISO()
       };
     }),
@@ -8938,7 +9026,8 @@ function QuoteEditor(_ref70) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var currentRegime = getVatRegime(form.vatRegime);
+  var totals = calcQuoteTotals(form.lines, form.discount, currentRegime.rate);
   var setLine = function setLine(i, patch) {
     setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -9072,14 +9161,14 @@ function QuoteEditor(_ref70) {
       variant: "primary",
       onClick: function onClick() {
         return onSave(form, {
-          thenSend: true
+          thenExportPDF: true
         });
       },
       disabled: !valid,
-      icon: /*#__PURE__*/React.createElement(Ic.Send, {
+      icon: /*#__PURE__*/React.createElement(Ic.Download, {
         className: "w-4 h-4"
       })
-    }, "Enregistrer & envoyer")))
+    }, "Enregistrer et exporter PDF")))
   }, /*#__PURE__*/React.createElement("div", {
     className: "space-y-6"
   }, /*#__PURE__*/React.createElement("div", {
@@ -9147,6 +9236,20 @@ function QuoteEditor(_ref70) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "R\xE9gime TVA",
+    required: true,
+    hint: currentRegime.country !== "LU" ? "Hors Luxembourg : pas de TVA facturée (mention légale automatique sur le PDF)." : "TVA Luxembourg appliquée selon le taux."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vatRegime,
+    onChange: function onChange(e) {
+      return set("vatRegime", e.target.value);
+    }
+  }, VAT_REGIMES.map(function (r) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: r.id,
+      value: r.id
+    }, r.label);
   }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "flex items-center justify-between mb-3"
   }, /*#__PURE__*/React.createElement("div", {
@@ -9318,7 +9421,7 @@ function QuoteEditor(_ref70) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", currentRegime.rate, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -9326,9 +9429,11 @@ function QuoteEditor(_ref70) {
     className: "flex justify-between text-lg font-bold"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-800"
-  }, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+  }, "Total ", currentRegime.rate > 0 ? "TTC" : "à payer"), /*#__PURE__*/React.createElement("span", {
     className: "gold-text"
-  }, fmtMoney(totals.ttc))))))));
+  }, fmtMoney(totals.ttc))), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 italic mt-2 pt-2 border-t border-paper-100"
+  }, currentRegime.mention))))));
 }
 
 // ----------- Quote Viewer (modal with branded preview + actions) -----------
@@ -9646,7 +9751,8 @@ function BrandedQuoteDocument(_ref75) {
     recipient = _ref75.recipient,
     company = _ref75.company;
   company = company || {};
-  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0);
+  var regime = getVatRegime(quote.vatRegime || "luxembourg_17");
+  var totals = calcQuoteTotals(quote.lines || [], quote.discount || 0, regime.rate);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -9982,7 +10088,7 @@ function BrandedQuoteDocument(_ref75) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", regime.rate, "%)"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontWeight: 500
     }
@@ -10002,12 +10108,23 @@ function BrandedQuoteDocument(_ref75) {
       fontSize: 13,
       fontWeight: 700
     }
-  }, "TOTAL TTC"), /*#__PURE__*/React.createElement("span", {
+  }, regime.rate > 0 ? "TOTAL TTC" : "TOTAL À PAYER"), /*#__PURE__*/React.createElement("span", {
     style: {
       fontSize: 18,
       fontWeight: 700
     }
-  }, fmtMoney(totals.ttc))))), quote.notes && /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(totals.ttc))), regime.rate === 0 && regime.mention && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "10px 12px",
+      background: "#fef3c7",
+      border: "1px solid #fcd34d",
+      borderRadius: 6,
+      fontSize: 10,
+      color: "#78350f",
+      fontStyle: "italic"
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Mention l\xE9gale TVA :"), " ", regime.mention))), quote.notes && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24,
       padding: 14,
@@ -10670,7 +10787,8 @@ function InvoiceEditor(_ref84) {
         paidAt: invoice.paidAt || null,
         paymentMethod: invoice.paymentMethod || null,
         createdAt: invoice.createdAt || nowISO(),
-        quoteId: invoice.quoteId || null
+        quoteId: invoice.quoteId || null,
+        vatRegime: invoice.vatRegime || "luxembourg_17"
       };
     }),
     _useState134 = _slicedToArray(_useState133, 2),
@@ -10681,7 +10799,8 @@ function InvoiceEditor(_ref84) {
       return _objectSpread(_objectSpread({}, f), {}, _defineProperty({}, k, v));
     });
   };
-  var totals = calcQuoteTotals(form.lines, form.discount);
+  var currentRegime = getVatRegime(form.vatRegime);
+  var totals = calcQuoteTotals(form.lines, form.discount, currentRegime.rate);
   var setLine = function setLine(i, patch) {
     return setForm(function (f) {
       var lines = _toConsumableArray(f.lines);
@@ -10850,6 +10969,20 @@ function InvoiceEditor(_ref84) {
     onChange: function onChange(e) {
       return set("discount", parseFloat(e.target.value) || 0);
     }
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "R\xE9gime TVA",
+    required: true,
+    hint: currentRegime.country !== "LU" ? "Hors Luxembourg : pas de TVA facturée (mention légale automatique sur le PDF)." : "TVA Luxembourg appliquée selon le taux."
+  }, /*#__PURE__*/React.createElement(Select, {
+    value: form.vatRegime,
+    onChange: function onChange(e) {
+      return set("vatRegime", e.target.value);
+    }
+  }, VAT_REGIMES.map(function (r) {
+    return /*#__PURE__*/React.createElement("option", {
+      key: r.id,
+      value: r.id
+    }, r.label);
   }))), /*#__PURE__*/React.createElement("div", {
     className: "card-soft p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -11085,7 +11218,7 @@ function InvoiceEditor(_ref84) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "TVA (", VAT_LU, "%)"), /*#__PURE__*/React.createElement("span", {
+  }, "TVA (", currentRegime.rate, "%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium text-paper-800"
   }, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     className: "divider my-2"
@@ -11093,9 +11226,11 @@ function InvoiceEditor(_ref84) {
     className: "flex justify-between text-lg font-bold"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-800"
-  }, "Total TTC"), /*#__PURE__*/React.createElement("span", {
+  }, "Total ", currentRegime.rate > 0 ? "TTC" : "à payer"), /*#__PURE__*/React.createElement("span", {
     className: "gold-text"
-  }, fmtMoney(totals.ttc))))))));
+  }, fmtMoney(totals.ttc))), currentRegime.rate === 0 && currentRegime.mention && /*#__PURE__*/React.createElement("div", {
+    className: "text-[10px] text-paper-500 italic mt-2 pt-2 border-t border-paper-100"
+  }, currentRegime.mention))))));
 }
 
 // Mini-modal pour marquer une facture comme payée avec date et mode personnalisables
@@ -11165,13 +11300,13 @@ function MarkAsPaidModal(_ref88) {
     className: "font-semibold text-paper-800 mb-1"
   }, invoice.number, " \xB7 ", fmtMoney(invoice.ttc || 0)), /*#__PURE__*/React.createElement("div", null, "\xC9ch\xE9ance pr\xE9vue : ", invoice.dueDate ? fmtDate(invoice.dueDate) : "—"))));
 }
-function BrandedInvoiceDocument(_ref83) {
-  var invoice = _ref83.invoice,
-    client = _ref83.client,
-    company = _ref83.company;
+function BrandedInvoiceDocument(_ref89) {
+  var invoice = _ref89.invoice,
+    client = _ref89.client,
+    company = _ref89.company;
   company = company || {};
-  var _invVat = invoice.vat != null ? Number(invoice.vat) : VAT_LU;
-  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0, _invVat);
+  var regime = getVatRegime(invoice.vatRegime || "luxembourg_17");
+  var totals = calcQuoteTotals(invoice.lines || [], invoice.discount || 0, regime.rate);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Inter', sans-serif",
@@ -11461,7 +11596,7 @@ function BrandedInvoiceDocument(_ref83) {
     style: {
       color: "#6b7280"
     }
-  }, "TVA (", _invVat, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
+  }, "TVA (", regime.rate, "%)"), /*#__PURE__*/React.createElement("span", null, fmtMoney(totals.tva))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       justifyContent: "space-between",
@@ -11481,7 +11616,18 @@ function BrandedInvoiceDocument(_ref83) {
       fontSize: 18,
       fontWeight: 700
     }
-  }, fmtMoney(totals.ttc))))), invoice.status === "payee" && /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(totals.ttc))), regime.rate === 0 && regime.mention && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10,
+      padding: "10px 12px",
+      background: "#fef3c7",
+      border: "1px solid #fcd34d",
+      borderRadius: 6,
+      fontSize: 10,
+      color: "#78350f",
+      fontStyle: "italic"
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Mention l\xE9gale TVA :"), " ", regime.mention))), invoice.status === "payee" && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       padding: 14,
@@ -13747,14 +13893,14 @@ function InvoiceEditorWrapper(_ref102) {
     }())
   });
 }
-function QuoteEditorWrapper(_ref104) {
-  var editor = _ref104.editor,
-    onClose = _ref104.onClose,
-    onAfterSave = _ref104.onAfterSave;
-  var _useStore20 = useStore(),
-    state = _useStore20.state,
-    upsertQuote = _useStore20.upsertQuote,
-    setQuoteStatus = _useStore20.setQuoteStatus;
+function QuoteEditorWrapper(_ref143) {
+  var editor = _ref143.editor,
+    onClose = _ref143.onClose,
+    onAfterSave = _ref143.onAfterSave;
+  var _useStore24 = useStore(),
+    state = _useStore24.state,
+    upsertQuote = _useStore24.upsertQuote,
+    setQuoteStatus = _useStore24.setQuoteStatus;
   var toast = useToast();
   var quote = editor.id ? state.quotes.find(function (q) {
     return q.id === editor.id;
@@ -13772,13 +13918,23 @@ function QuoteEditorWrapper(_ref104) {
     onSave: function onSave(data) {
       var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
       upsertQuote(data);
-      toast.push({
-        type: "success",
-        title: editor.id ? "Devis mis à jour" : "Devis créé",
-        message: opts.thenExportPDF ? "Ouverture de l'export PDF\u2026" : undefined
-      });
-      // 3e argument = autoExport. Lance l'ouverture du viewer + déclenche l'export PDF.
-      onAfterSave(data.id, false, !!opts.thenExportPDF);
+      if (opts.thenExportPDF) {
+        // Sauvegarde puis ouvre le viewer pour permettre l'export PDF
+        setTimeout(function () {
+          toast.push({
+            type: "success",
+            title: editor.id ? "Devis mis à jour" : "Devis créé",
+            message: "Cliquez sur Exporter PDF dans la fenêtre suivante."
+          });
+          onAfterSave(data.id, true);
+        }, 100);
+      } else {
+        toast.push({
+          type: "success",
+          title: editor.id ? "Devis mis à jour" : "Devis créé"
+        });
+        onAfterSave(data.id, false);
+      }
       onClose();
     }
   });
@@ -13872,10 +14028,12 @@ function FichesExtraPage(_ref100) {
   // KPIs sur la sélection courante
   var kpis = useMemo(function () {
     var totals = filtered.reduce(function (acc, f) {
-      var c = calcFicheExtra(f);
-      acc.hours += c.totalH;
-      acc.nightH += c.nightH;
-      acc.gross += c.totalGross;
+      try {
+        var c = calcFicheExtra(f);
+        acc.hours += c.totalH;
+        acc.nightH += c.nightH;
+        acc.gross += c.totalGross;
+      } catch(e) {}
       return acc;
     }, {
       hours: 0,
@@ -15785,10 +15943,10 @@ function ComptabilitePage() {
     tva: 0
   });
   var notesTotal = notes.reduce(function (s, n) {
-    return s + calcNoteFrais(n).ttc;
+    try { return s + calcNoteFrais(n).ttc; } catch(e) { return s; }
   }, 0);
   var fichesTotal = fiches.reduce(function (s, f) {
-    return s + calcFicheExtra(f).totalGross;
+    try { return s + calcFicheExtra(f).totalGross; } catch(e) { return s; }
   }, 0);
   var tvaSolde = ventesTotals.tva - achatsTotals.tva;
   var years = [];
