@@ -6081,12 +6081,18 @@ function Dashboard(_ref49) {
       value = _ref50.value,
       sub = _ref50.sub,
       trend = _ref50.trend,
+      onClick = _ref50.onClick,
       _ref50$accentColor = _ref50.accentColor,
       accentColor = _ref50$accentColor === void 0 ? "gold" : _ref50$accentColor,
       _ref50$iconBg = _ref50.iconBg,
       iconBg = _ref50$iconBg === void 0 ? "bg-gold-50" : _ref50$iconBg;
+    var _isClickable = typeof onClick === "function";
     return /*#__PURE__*/React.createElement("div", {
-      className: "card-base p-5 relative kpi-accent"
+      className: "card-base p-5 relative kpi-accent" + (_isClickable ? " card-hover" : ""),
+      onClick: _isClickable ? onClick : undefined,
+      role: _isClickable ? "button" : undefined,
+      tabIndex: _isClickable ? 0 : undefined,
+      onKeyDown: _isClickable ? function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex items-start justify-between gap-3"
     }, /*#__PURE__*/React.createElement("div", {
@@ -6152,7 +6158,8 @@ function Dashboard(_ref49) {
     value: fmtMoney(totalOpen),
     sub: "".concat(openQuotes.length, " en attente"),
     iconBg: "bg-blue-50",
-    accentColor: "blue"
+    accentColor: "blue",
+    onClick: function onClick() { setPage("devis"); }
   }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-5 h-5"
@@ -6161,7 +6168,8 @@ function Dashboard(_ref49) {
     value: fmtMoney(totalSigned),
     sub: "".concat(signedQuotes.length, " contrats"),
     iconBg: "bg-emerald-50",
-    accentColor: "emerald"
+    accentColor: "emerald",
+    onClick: function onClick() { setPage("devis"); }
   }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.Users, {
       className: "w-5 h-5"
@@ -6170,7 +6178,8 @@ function Dashboard(_ref49) {
     value: clients.length,
     sub: "Conversion ".concat(winRate, "%"),
     iconBg: "bg-gold-50",
-    accentColor: "gold"
+    accentColor: "gold",
+    onClick: function onClick() { setPage("clients"); }
   }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.AlertCircle, {
       className: "w-5 h-5"
@@ -6179,7 +6188,8 @@ function Dashboard(_ref49) {
     value: fmtMoney(totalUnpaid),
     sub: "".concat(unpaid.length, " ", unpaid.length > 1 ? "factures" : "facture", " en attente"),
     iconBg: unpaid.length > 0 ? "bg-amber-50" : "bg-paper-100",
-    accentColor: unpaid.length > 0 ? "amber" : "paper"
+    accentColor: unpaid.length > 0 ? "amber" : "paper",
+    onClick: function onClick() { setPage("factures"); }
   }), /*#__PURE__*/React.createElement(KPICard, {
     icon: /*#__PURE__*/React.createElement(Ic.Check, {
       className: "w-5 h-5"
@@ -6188,7 +6198,8 @@ function Dashboard(_ref49) {
     value: fmtMoney(totalPaid),
     sub: "".concat(paidInvoices.length, " ", paidInvoices.length > 1 ? "factures encaiss\xE9es" : "facture encaiss\xE9e"),
     iconBg: "bg-emerald-50",
-    accentColor: "emerald"
+    accentColor: "emerald",
+    onClick: function onClick() { setPage("factures"); }
   })), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-1 lg:grid-cols-3 gap-6"
   }, /*#__PURE__*/React.createElement("div", {
