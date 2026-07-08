@@ -10344,6 +10344,11 @@ function InvoicesPage(_ref76) {
   var filterEntity = filterClient ? state.clients.find(function (c) {
     return c.id === filterClient;
   }) : null;
+  // Une facture est "en retard" si son statut est literalement 'retard'
+  // OU si elle a été envoyée et que la date d'échéance est dépassée.
+  var _isOverdueInv = function _isOverdueInv(inv) {
+    return inv && (inv.status === "retard" || (inv.status === "envoyee" && inv.dueDate && new Date(inv.dueDate) < new Date()));
+  };
   var filtered = useMemo(function () {
     var q = (search || "").toLowerCase().trim();
     var arr = invoices;
@@ -10355,9 +10360,16 @@ function InvoicesPage(_ref76) {
         return (f || "").toLowerCase().includes(q);
       });
     });
-    if (statusFilter !== "all") arr = arr.filter(function (x) {
-      return x.status === statusFilter;
-    });
+    if (statusFilter !== "all") {
+      if (statusFilter === "retard") {
+        arr = arr.filter(_isOverdueInv);
+      } else if (statusFilter === "envoyee") {
+        // Envoyée = envoyée ET pas encore en retard (les retards vont dans leur bucket).
+        arr = arr.filter(function (x) { return x.status === "envoyee" && !_isOverdueInv(x); });
+      } else {
+        arr = arr.filter(function (x) { return x.status === statusFilter; });
+      }
+    }
     return _toConsumableArray(arr).sort(function (a, b) {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
@@ -10415,9 +10427,17 @@ function InvoicesPage(_ref76) {
     var _ref78 = _slicedToArray(_ref77, 2),
       k = _ref78[0],
       v = _ref78[1];
-    var n = invoices.filter(function (x) {
-      return x.status === k;
-    }).length;
+    // Compte cohérent avec la logique du filtre :
+    //  - "retard" englobe le vrai statut retard ET les envoyées en retard
+    //  - "envoyee" exclut celles qui basculent en retard
+    var n;
+    if (k === "retard") {
+      n = invoices.filter(_isOverdueInv).length;
+    } else if (k === "envoyee") {
+      n = invoices.filter(function (x) { return x.status === "envoyee" && !_isOverdueInv(x); }).length;
+    } else {
+      n = invoices.filter(function (x) { return x.status === k; }).length;
+    }
     return /*#__PURE__*/React.createElement("button", {
       key: k,
       onClick: function onClick() {
