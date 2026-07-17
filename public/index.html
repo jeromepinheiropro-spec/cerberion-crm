@@ -10526,7 +10526,15 @@ function InvoicesPage(_ref76) {
       color: overdue ? "red" : (_INVOICE_STATUS$inv$s5 = INVOICE_STATUS[inv.status]) === null || _INVOICE_STATUS$inv$s5 === void 0 ? void 0 : _INVOICE_STATUS$inv$s5.color
     }, overdue ? "En retard" : (_INVOICE_STATUS$inv$s6 = INVOICE_STATUS[inv.status]) === null || _INVOICE_STATUS$inv$s6 === void 0 ? void 0 : _INVOICE_STATUS$inv$s6.label)), /*#__PURE__*/React.createElement("td", {
       className: "px-5 py-3.5 text-right font-semibold text-paper-800"
-    }, fmtMoney(inv.ttc)), /*#__PURE__*/React.createElement("td", {
+    }, (function () {
+      // Facture HT-only (TVA = 0) : afficher 0 dans TTC + petit tag HT
+      var _isHT = (inv.vat != null && Number(inv.vat) === 0);
+      return _isHT
+        ? /*#__PURE__*/React.createElement("div", { className: "flex items-center justify-end gap-1.5" },
+            /*#__PURE__*/React.createElement("span", { className: "text-paper-400 tabular-nums" }, fmtMoney(0)),
+            /*#__PURE__*/React.createElement("span", { className: "text-[10px] px-1.5 py-0.5 rounded-full bg-paper-100 text-paper-500 font-semibold uppercase tracking-wider", title: "Facture HT (TVA 0 %)" }, "HT"))
+        : fmtMoney(inv.ttc);
+    })()), /*#__PURE__*/React.createElement("td", {
       className: "px-5 py-3.5 text-right",
       onClick: function onClick(e) {
         return e.stopPropagation();
@@ -15981,7 +15989,10 @@ function ComptabilitePage() {
     return q.status === "signe" && inPeriod(bestDate(q, "signedAt", "issueDate", "createdAt"));
   });
   var ventesTotals = ventes.reduce(function (acc, i) {
-    acc.ttc += Number(i.ttc || 0);
+    // Facture HT-only (TVA 0 %) : n'ajoute PAS de TTC (le TTC n'existe pas, seul le HT est encaissé).
+    // Le HT et la TVA restent sommés normalement (TVA = 0 pour ces lignes, donc pas de faux gonflement).
+    var _isHT = (i.vat != null && Number(i.vat) === 0);
+    acc.ttc += _isHT ? 0 : Number(i.ttc || 0);
     acc.ht += Number(i.ht || 0);
     acc.tva += Number(i.tva || 0);
     return acc;
@@ -16480,7 +16491,12 @@ function ComptabilitePage() {
       className: "px-3 py-2 text-right tabular-nums text-blue-700"
     }, fmtMoney(v.tva || 0)), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-right tabular-nums font-semibold"
-    }, fmtMoney(v.ttc || 0)), /*#__PURE__*/React.createElement("td", {
+    }, (function () {
+      var _isHT = (v.vat != null && Number(v.vat) === 0);
+      return _isHT
+        ? /*#__PURE__*/React.createElement("span", { className: "text-paper-400", title: "Facture HT (TVA 0 %)" }, fmtMoney(0), " ", /*#__PURE__*/React.createElement("span", { className: "text-[9px] uppercase tracking-wider text-paper-500" }, "HT"))
+        : fmtMoney(v.ttc || 0);
+    })()), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2"
     }, /*#__PURE__*/React.createElement(Badge, {
       color: (_INVOICE_STATUS$v$sta = INVOICE_STATUS[v.status]) === null || _INVOICE_STATUS$v$sta === void 0 ? void 0 : _INVOICE_STATUS$v$sta.color
