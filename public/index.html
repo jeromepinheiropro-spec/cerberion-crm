@@ -443,6 +443,10 @@ var LU_WAGES_2026 = {
   ssmNonQualifie: 15.63,
   ssmQualifie: 18.75
 };
+// Retenues salariales employé Luxembourg 2026 : CNS ~3,05% + Pension 8% + Dépendance ~1,40% = ~12,45%
+// Net (à verser) ≈ Brut × 0,8755
+var LU_EMPLOYEE_DEDUCTION = 0.1245;
+var LU_NET_RATIO = 1 - LU_EMPLOYEE_DEDUCTION;
 var AGENT_ROLES = [{
   id: "ssiap1",
   label: "Agent SSIAP 1 (sécurité incendie)",
@@ -580,7 +584,9 @@ function calcFicheExtra(fiche) {
     sundayPremium: round2(sundayPremium),
     holidayPremium: round2(holidayPremium),
     overtimePremium: round2(overtimePremium),
-    totalGross: round2(totalGross)
+    totalGross: round2(totalGross),
+    // Net à verser après retenues salariales LU (~12,45% CNS employé)
+    totalNet: round2(totalGross * LU_NET_RATIO)
   };
 }
 function validateFicheExtra(fiche) {
@@ -5114,10 +5120,10 @@ function StoreProvider(_ref43) {
       key: "hourlyRate",
       label: "Taux €/h"
     }, {
-      key: "totalGross",
-      label: "Brut total €",
+      key: "totalNet",
+      label: "Net total €",
       value: function value(r) {
-        return calcFicheExtra(r).totalGross;
+        return calcFicheExtra(r).totalNet;
       }
     }, {
       key: "status",
@@ -14100,19 +14106,19 @@ function FichesExtraPage(_ref100) {
         var c = calcFicheExtra(f);
         acc.hours += c.totalH;
         acc.nightH += c.nightH;
-        acc.gross += c.totalGross;
+        acc.net += c.totalNet;
       } catch(e) {}
       return acc;
     }, {
       hours: 0,
       nightH: 0,
-      gross: 0
+      net: 0
     });
     return {
       count: filtered.length,
       hours: round2(totals.hours),
       nightH: round2(totals.nightH),
-      gross: round2(totals.gross)
+      net: round2(totals.net)
     };
   }, [filtered]);
   var agentSuggestions = _toConsumableArray(new Set(fiches.map(function (f) {
@@ -14178,8 +14184,8 @@ function FichesExtraPage(_ref100) {
     icon: /*#__PURE__*/React.createElement(Ic.DollarSign, {
       className: "w-5 h-5"
     }),
-    label: "Brut cumul\xE9",
-    value: fmtMoney(kpis.gross)
+    label: "Net cumul\xE9",
+    value: fmtMoney(kpis.net)
   })), /*#__PURE__*/React.createElement("div", {
     className: "card-base p-4"
   }, /*#__PURE__*/React.createElement("div", {
@@ -14328,7 +14334,7 @@ function FichesExtraPage(_ref100) {
       className: "text-[11px] text-amber-600"
     }, c.overtimeH, " h sup")), /*#__PURE__*/React.createElement("td", {
       className: "px-4 py-3 text-right tabular-nums font-semibold text-gold-700"
-    }, fmtMoney(c.totalGross)), /*#__PURE__*/React.createElement("td", {
+    }, fmtMoney(c.totalNet)), /*#__PURE__*/React.createElement("td", {
       className: "px-4 py-3"
     }, /*#__PURE__*/React.createElement("div", {
       className: "flex flex-col gap-1"
@@ -14509,9 +14515,9 @@ function FicheExtraEditor(_ref105) {
       className: "flex items-center justify-between flex-wrap gap-3"
     }, /*#__PURE__*/React.createElement("div", {
       className: "text-xs text-paper-600"
-    }, "Brut total : ", /*#__PURE__*/React.createElement("span", {
+    }, "Net à payer : ", /*#__PURE__*/React.createElement("span", {
       className: "font-bold text-paper-800 text-base tabular-nums"
-    }, fmtMoney(calc.totalGross)), " · ", calc.totalH, " h", calc.nightH > 0 && /*#__PURE__*/React.createElement("span", {
+    }, fmtMoney(calc.totalNet)), " · ", calc.totalH, " h", calc.nightH > 0 && /*#__PURE__*/React.createElement("span", {
       className: "text-blue-600"
     }, " \xB7 ", calc.nightH, " h nuit"), calc.overtimeH > 0 && /*#__PURE__*/React.createElement("span", {
       className: "text-amber-600"
@@ -14615,9 +14621,14 @@ function FicheExtraEditor(_ref105) {
       value: r.id
     }, r.label);
   }))), /*#__PURE__*/React.createElement(Field, {
-    label: "Taux horaire (\u20AC/h brut)",
+    label: "Taux horaire brut (€/h)",
     required: true,
-    hint: role ? "Minimum conventionnel : ".concat(role.minHourly.toFixed(2), " \u20AC/h") : null
+    hint: (function () {
+      var _rate = Number(form.hourlyRate || 0);
+      var _netRate = _rate * LU_NET_RATIO;
+      var _netStr = _rate > 0 ? " · ≈ " + _netRate.toFixed(2) + " €/h net" : "";
+      return (role ? "Minimum conventionnel : " + role.minHourly.toFixed(2) + " €/h brut" : "Saisir le brut convenu") + _netStr;
+    })()
   }, /*#__PURE__*/React.createElement(Input, {
     type: "number",
     step: "0.01",
@@ -14737,9 +14748,9 @@ function FicheExtraEditor(_ref105) {
     className: "flex justify-between pt-2 border-t border-paper-200 text-base font-bold"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-800"
-  }, "BRUT \xC0 PAYER"), /*#__PURE__*/React.createElement("span", {
+  }, "NET \xC0 PAYER"), /*#__PURE__*/React.createElement("span", {
     className: "text-gold-700 tabular-nums"
-  }, fmtMoney(calc.totalGross))))), /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(calc.totalNet))))), /*#__PURE__*/React.createElement("div", {
     className: "space-y-2"
   }, errors.length > 0 && /*#__PURE__*/React.createElement("div", {
     className: "rounded-md border border-red-300 bg-red-50 p-3"
@@ -16018,7 +16029,7 @@ function ComptabilitePage() {
     try { return s + calcNoteFrais(n).ttc; } catch(e) { return s; }
   }, 0);
   var fichesTotal = fiches.reduce(function (s, f) {
-    try { return s + calcFicheExtra(f).totalGross; } catch(e) { return s; }
+    try { return s + calcFicheExtra(f).totalNet; } catch(e) { return s; }
   }, 0);
   var tvaSolde = ventesTotals.tva - achatsTotals.tva;
   var years = [];
@@ -16404,7 +16415,7 @@ function ComptabilitePage() {
     className: "border-b border-paper-100"
   }, /*#__PURE__*/React.createElement("td", {
     className: "py-2 text-paper-600"
-  }, "Fiches Extra (brut)"), /*#__PURE__*/React.createElement("td", {
+  }, "Fiches Extra (net)"), /*#__PURE__*/React.createElement("td", {
     className: "py-2 text-right tabular-nums"
   }, fmtMoney(fichesTotal))), /*#__PURE__*/React.createElement("tr", {
     className: "border-t-2 border-paper-300"
@@ -16752,7 +16763,7 @@ function ComptabilitePage() {
     }),
     count: fiches.length,
     total: fichesTotal,
-    totalLabel: "Brut",
+    totalLabel: "Net",
     onExport: exportFichesExtraCsv,
     selCount: getSel("fichesExtra").size,
     onPrint: function onPrint() {
@@ -16784,7 +16795,7 @@ function ComptabilitePage() {
     className: "px-3 py-2 text-right"
   }, "Dont nuit"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2 text-right"
-  }, "Brut"), /*#__PURE__*/React.createElement("th", {
+  }, "Net"), /*#__PURE__*/React.createElement("th", {
     className: "px-3 py-2"
   }, "Statut"))), /*#__PURE__*/React.createElement("tbody", {
     className: "divide-y divide-paper-100"
@@ -16821,7 +16832,7 @@ function ComptabilitePage() {
       className: "px-3 py-2 text-right tabular-nums text-blue-700"
     }, c.nightH > 0 ? c.nightH + " h" : "—"), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-right tabular-nums font-semibold"
-    }, fmtMoney(c.totalGross)), /*#__PURE__*/React.createElement("td", {
+    }, fmtMoney(c.totalNet)), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2"
     }, /*#__PURE__*/React.createElement(Badge, {
       color: (_FICHE_EXTRA_STATUS3 = FICHE_EXTRA_STATUS[f.status || "brouillon"]) === null || _FICHE_EXTRA_STATUS3 === void 0 ? void 0 : _FICHE_EXTRA_STATUS3.color
@@ -18042,7 +18053,7 @@ function PrintableFicheExtra(_ref125) {
       fontWeight: 700
     },
     colSpan: 2
-  }, "BRUT \xC0 PAYER"), /*#__PURE__*/React.createElement("td", {
+  }, "NET \xC0 PAYER"), /*#__PURE__*/React.createElement("td", {
     style: {
       padding: "10px 12px",
       textAlign: "right",
@@ -18050,7 +18061,7 @@ function PrintableFicheExtra(_ref125) {
       fontSize: 14,
       color: "#85693a"
     }
-  }, fmtMoney(c.totalGross))))), /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(c.totalNet))))), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       padding: "8px 12px",
