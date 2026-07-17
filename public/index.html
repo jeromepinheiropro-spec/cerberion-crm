@@ -14726,25 +14726,25 @@ function FicheExtraEditor(_ref105) {
     className: "flex justify-between"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-600"
-  }, "Base (", form.hourlyRate.toFixed(2), " \u20AC/h \xD7 ", calc.totalH, " h)"), /*#__PURE__*/React.createElement("span", {
+  }, "Base (", (form.hourlyRate * LU_NET_RATIO).toFixed(2), " \u20AC/h net \xD7 ", calc.totalH, " h)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium tabular-nums"
-  }, fmtMoney(calc.base))), calc.nightPremium > 0 && /*#__PURE__*/React.createElement("div", {
+  }, fmtMoney(calc.base * LU_NET_RATIO))), calc.nightPremium > 0 && /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between text-blue-700"
   }, /*#__PURE__*/React.createElement("span", null, "+ Prime de nuit (+15%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium tabular-nums"
-  }, "+", fmtMoney(calc.nightPremium))), calc.sundayPremium > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "+", fmtMoney(calc.nightPremium * LU_NET_RATIO))), calc.sundayPremium > 0 && /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between text-purple-700"
   }, /*#__PURE__*/React.createElement("span", null, "+ Prime dimanche (+70%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium tabular-nums"
-  }, "+", fmtMoney(calc.sundayPremium))), calc.holidayPremium > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "+", fmtMoney(calc.sundayPremium * LU_NET_RATIO))), calc.holidayPremium > 0 && /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between text-red-700"
   }, /*#__PURE__*/React.createElement("span", null, "+ Prime jour f\xE9ri\xE9 (+100%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium tabular-nums"
-  }, "+", fmtMoney(calc.holidayPremium))), calc.overtimePremium > 0 && /*#__PURE__*/React.createElement("div", {
+  }, "+", fmtMoney(calc.holidayPremium * LU_NET_RATIO))), calc.overtimePremium > 0 && /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between text-amber-700"
   }, /*#__PURE__*/React.createElement("span", null, "+ Prime heures sup (+40%)"), /*#__PURE__*/React.createElement("span", {
     className: "font-medium tabular-nums"
-  }, "+", fmtMoney(calc.overtimePremium))), /*#__PURE__*/React.createElement("div", {
+  }, "+", fmtMoney(calc.overtimePremium * LU_NET_RATIO))), /*#__PURE__*/React.createElement("div", {
     className: "flex justify-between pt-2 border-t border-paper-200 text-base font-bold"
   }, /*#__PURE__*/React.createElement("span", {
     className: "text-paper-800"
@@ -17957,7 +17957,7 @@ function PrintableFicheExtra(_ref125) {
     style: {
       padding: "8px 12px"
     }
-  }, "Base (", Number(fiche.hourlyRate || 0).toFixed(2), " \u20AC/h \xD7 ", c.totalH, " h)"), /*#__PURE__*/React.createElement("td", {
+  }, "Base (", (Number(fiche.hourlyRate || 0) * LU_NET_RATIO).toFixed(2), " \u20AC/h net \xD7 ", c.totalH, " h)"), /*#__PURE__*/React.createElement("td", {
     style: {
       padding: "8px 12px",
       textAlign: "right"
@@ -17967,7 +17967,7 @@ function PrintableFicheExtra(_ref125) {
       padding: "8px 12px",
       textAlign: "right"
     }
-  }, fmtMoney(c.base))), c.nightH > 0 && /*#__PURE__*/React.createElement("tr", {
+  }, fmtMoney(c.base * LU_NET_RATIO))), c.nightH > 0 && /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: "1px solid #e5e7eb",
       color: "#1d4ed8"
@@ -17986,7 +17986,7 @@ function PrintableFicheExtra(_ref125) {
       padding: "8px 12px",
       textAlign: "right"
     }
-  }, "+", fmtMoney(c.nightPremium))), c.sundayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
+  }, "+", fmtMoney(c.nightPremium * LU_NET_RATIO))), c.sundayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: "1px solid #e5e7eb",
       color: "#7c3aed"
@@ -18005,7 +18005,7 @@ function PrintableFicheExtra(_ref125) {
       padding: "8px 12px",
       textAlign: "right"
     }
-  }, "+", fmtMoney(c.sundayPremium))), c.holidayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
+  }, "+", fmtMoney(c.sundayPremium * LU_NET_RATIO))), c.holidayPremium > 0 && /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: "1px solid #e5e7eb",
       color: "#dc2626"
@@ -18024,7 +18024,7 @@ function PrintableFicheExtra(_ref125) {
       padding: "8px 12px",
       textAlign: "right"
     }
-  }, "+", fmtMoney(c.holidayPremium))), c.overtimePremium > 0 && /*#__PURE__*/React.createElement("tr", {
+  }, "+", fmtMoney(c.holidayPremium * LU_NET_RATIO))), c.overtimePremium > 0 && /*#__PURE__*/React.createElement("tr", {
     style: {
       borderBottom: "1px solid #e5e7eb",
       color: "#d97706"
@@ -18043,7 +18043,7 @@ function PrintableFicheExtra(_ref125) {
       padding: "8px 12px",
       textAlign: "right"
     }
-  }, "+", fmtMoney(c.overtimePremium))), /*#__PURE__*/React.createElement("tr", {
+  }, "+", fmtMoney(c.overtimePremium * LU_NET_RATIO))), /*#__PURE__*/React.createElement("tr", {
     style: {
       background: "#fbf7ec"
     }
