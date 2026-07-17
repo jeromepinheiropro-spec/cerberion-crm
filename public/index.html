@@ -10528,7 +10528,8 @@ function InvoicesPage(_ref76) {
       className: "px-5 py-3.5 text-right font-semibold text-paper-800"
     }, (function () {
       // Facture HT-only (TVA = 0) : afficher 0 dans TTC + petit tag HT
-      var _isHT = (inv.vat != null && Number(inv.vat) === 0);
+      // HT si vat explicitement 0 OU si tva calculee = 0 avec un HT non nul (couvre les factures anciennes sans champ vat)
+      var _isHT = (Number(inv.tva || 0) === 0 && Number(inv.ht || 0) > 0) || (inv.vat != null && Number(inv.vat) === 0);
       return _isHT
         ? /*#__PURE__*/React.createElement("div", { className: "flex items-center justify-end gap-1.5" },
             /*#__PURE__*/React.createElement("span", { className: "text-paper-400 tabular-nums" }, fmtMoney(0)),
@@ -15991,7 +15992,8 @@ function ComptabilitePage() {
   var ventesTotals = ventes.reduce(function (acc, i) {
     // Facture HT-only (TVA 0 %) : n'ajoute PAS de TTC (le TTC n'existe pas, seul le HT est encaissé).
     // Le HT et la TVA restent sommés normalement (TVA = 0 pour ces lignes, donc pas de faux gonflement).
-    var _isHT = (i.vat != null && Number(i.vat) === 0);
+    // HT si vat explicitement 0 OU si tva calculee = 0 avec un HT non nul (couvre les factures anciennes sans champ vat)
+    var _isHT = (Number(i.tva || 0) === 0 && Number(i.ht || 0) > 0) || (i.vat != null && Number(i.vat) === 0);
     acc.ttc += _isHT ? 0 : Number(i.ttc || 0);
     acc.ht += Number(i.ht || 0);
     acc.tva += Number(i.tva || 0);
@@ -16492,7 +16494,8 @@ function ComptabilitePage() {
     }, fmtMoney(v.tva || 0)), /*#__PURE__*/React.createElement("td", {
       className: "px-3 py-2 text-right tabular-nums font-semibold"
     }, (function () {
-      var _isHT = (v.vat != null && Number(v.vat) === 0);
+      // HT si vat explicitement 0 OU si tva calculee = 0 avec un HT non nul (couvre les factures anciennes sans champ vat)
+      var _isHT = (Number(v.tva || 0) === 0 && Number(v.ht || 0) > 0) || (v.vat != null && Number(v.vat) === 0);
       return _isHT
         ? /*#__PURE__*/React.createElement("span", { className: "text-paper-400", title: "Facture HT (TVA 0 %)" }, fmtMoney(0), " ", /*#__PURE__*/React.createElement("span", { className: "text-[9px] uppercase tracking-wider text-paper-500" }, "HT"))
         : fmtMoney(v.ttc || 0);
