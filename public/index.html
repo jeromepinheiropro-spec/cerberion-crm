@@ -11720,7 +11720,23 @@ function BrandedInvoiceDocument(_ref89) {
       fontWeight: 700,
       color: "#065f46"
     }
-  }, "\u2713 FACTURE PAY\xC9E \u2014 ", fmtDate(invoice.paidAt), " \xB7 ", invoice.paymentMethod)), invoice.terms && /*#__PURE__*/React.createElement("div", {
+  }, "\u2713 FACTURE PAY\xC9E \u2014 ", fmtDate(invoice.paidAt), " \xB7 ", invoice.paymentMethod)), invoice.notes && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      fontSize: 11,
+      color: "#374151"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      color: "#85693a",
+      marginBottom: 4
+    }
+  }, "Annotations / D\xE9tails"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      whiteSpace: "pre-wrap"
+    }
+  }, invoice.notes)), invoice.terms && /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 18,
       fontSize: 11,
