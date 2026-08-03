@@ -547,10 +547,14 @@ function calcFicheExtra(fiche) {
   var endDate = date;
   if (end < start) {
     try {
+      // Bug fix : ne PAS utiliser toISOString() (convertit en UTC -> decalage 1 jour en +2 CEST).
+      // On lit les composants en LOCAL apres setDate(+1).
       var d = new Date(date + "T00:00:00");
       d.setDate(d.getDate() + 1);
-      var iso = d.toISOString();
-      if (iso) endDate = iso.slice(0, 10);
+      var _y = d.getFullYear();
+      var _m = String(d.getMonth() + 1).padStart(2, '0');
+      var _dd = String(d.getDate()).padStart(2, '0');
+      endDate = _y + '-' + _m + '-' + _dd;
     } catch (e) {/* garde endDate = date */}
   }
   var split = splitDayNightMinutes("".concat(date, "T").concat(start, ":00"), "".concat(endDate, "T").concat(end, ":00"));
@@ -665,7 +669,10 @@ function validateFicheExtra(fiche) {
       try {
         var dd = new Date(fiche.date + "T00:00:00");
         dd.setDate(dd.getDate() + 1);
-        endDate = dd.toISOString().slice(0, 10);
+        var _yy = dd.getFullYear();
+        var _mm = String(dd.getMonth() + 1).padStart(2, '0');
+        var _ddd = String(dd.getDate()).padStart(2, '0');
+        endDate = _yy + '-' + _mm + '-' + _ddd;
       } catch (e) {/* keep endDate = fiche.date */}
     }
     var startMs = new Date("".concat(fiche.date, "T").concat(fiche.startTime || "00:00", ":00")).getTime();
@@ -680,7 +687,10 @@ function validateFicheExtra(fiche) {
           try {
             var _dd = new Date(o.date + "T00:00:00");
             _dd.setDate(_dd.getDate() + 1);
-            oEnd = _dd.toISOString().slice(0, 10);
+            var _yo = _dd.getFullYear();
+            var _mo = String(_dd.getMonth() + 1).padStart(2, '0');
+            var _dO = String(_dd.getDate()).padStart(2, '0');
+            oEnd = _yo + '-' + _mo + '-' + _dO;
           } catch (e) {/* keep oEnd = o.date */}
         }
         var oStartMs = new Date("".concat(o.date, "T").concat(o.startTime || "00:00", ":00")).getTime();
