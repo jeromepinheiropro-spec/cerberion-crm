@@ -566,11 +566,13 @@ function calcFicheExtra(fiche) {
   var overtimeH = Math.max(0, totalH - 8);
   var regularH = totalH - overtimeH;
   var base = rate * totalH;
-  var nightPremium = rate * nightH * LU_PREMIUMS.night;
-  var sundayPremium = onSunday ? rate * totalH * LU_PREMIUMS.sunday : 0;
-  var holidayPremium = isHoliday ? rate * totalH * LU_PREMIUMS.holiday : 0;
-  var overtimePremium = rate * overtimeH * LU_PREMIUMS.overtime;
-  var totalGross = base + nightPremium + sundayPremium + holidayPremium + overtimePremium;
+  // Pas de majorations automatiques : le total = taux x heures brut.
+  // Le user est libre d'inclure ce qu'il veut dans le taux horaire.
+  var nightPremium = 0;
+  var sundayPremium = 0;
+  var holidayPremium = 0;
+  var overtimePremium = 0;
+  var totalGross = base;
   return {
     totalH: round2(totalH),
     regularH: round2(regularH),
